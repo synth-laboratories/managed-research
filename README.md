@@ -1,59 +1,54 @@
 # managed-research
 
-Pure-Python public SMR surfaces for Managed Research.
+Canonical public home for Synth Managed Research.
 
-Current scope:
+This repository now owns the maintained SMR Python SDK, MCP server modules, and
+schema tooling. The package is library-first:
 
-- SMR API client
-- SMR MCP stdio server
-- generated-schema sync path for public SMR contracts
-
-Out of scope for this slice:
-
-- runtime internals
-- sandbox/session control
-- private backend models
+- no standalone CLI migration
+- no Data Factory surface
+- no old onboarding / starting-data bootstrap APIs
 
 ## Install
 
 ```bash
-pip install -U managed-research
+uv add synth-managed-research
 ```
 
-For local development:
-
-```bash
-uv sync --extra dev
-```
-
-## Run the MCP server
-
-```bash
-uv run managed-research-mcp
-```
-
-The package reads `SYNTH_API_KEY` and `SYNTH_BACKEND_URL` from the environment.
-
-Python API surface:
+## Python SDK
 
 ```python
-from managed_research import ManagedResearchClient
+from managed_research.sdk.client import SmrControlClient
 
-client = ManagedResearchClient(api_key="sk_...")
-projects = client.list_projects()
+client = SmrControlClient(api_key="sk_...")
+project = client.create_project({"name": "SMR demo"})
+client.upload_workspace_files(
+    project["project_id"],
+    [{"path": "README.md", "content": "# Demo\n", "content_type": "text/markdown"}],
+)
+readiness = client.get_project_readiness(project["project_id"])
 ```
 
-## Sync exported public schemas
+## MCP
+
+Run the stdio server directly:
 
 ```bash
-uv run python scripts/sync_public_schemas.py --source /path/to/exported/schemas
+python -m managed_research.mcp
 ```
 
-If you prefer environment configuration, set `MANAGED_RESEARCH_SCHEMA_SOURCE`
-instead of passing `--source`.
+The maintained MCP surface includes workspace bootstrap and progress tools such
+as `smr_attach_source_repo`, `smr_upload_workspace_files`,
+`smr_get_project_readiness`, and `smr_get_run_progress`.
 
-There is also a console entrypoint:
+## Repo Layout
 
-```bash
-uv run managed-research-sync-schemas --source /path/to/exported/schemas
-```
+- `managed_research/sdk`
+- `managed_research/mcp`
+- `managed_research/models`
+- `managed_research/transport`
+- `managed_research/_internal`
+- `managed_research/schema_sync.py`
+
+Legacy code from the previous public package remains quarantined under
+[`/Users/joshpurtell/Documents/GitHub/managed-research/old`](/Users/joshpurtell/Documents/GitHub/managed-research/old).

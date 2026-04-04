@@ -1,0 +1,185 @@
+Managed Research Re-Migration Scope
+Date: 2026-04-03
+
+Goal
+
+Move the standalone Managed Research Python SDK and MCP server modules back into this
+repository so this repo once again becomes the canonical public home for:
+
+- SMR Python SDK
+- SMR MCP server modules
+- SMR schema sync/library tooling
+- SMR public docs and packaging
+
+Current State
+
+- This repo is currently a migration-only stub.
+- The maintained public SMR SDK and MCP server currently live in `synth-ai`.
+- The active MCP server implementation is `synth_ai.mcp.managed_research_server`.
+- The active SDK entrypoint is `synth_ai.sdk.managed_research.SmrControlClient`.
+- The old standalone package contents were removed from this repo head, but the
+  `managed-research 0.1.0` artifacts still exist locally under `dist/`.
+
+What Should Move Back Here
+
+1. Public Python SDK
+- `SmrControlClient`
+- public models/types needed for SDK consumers
+- auth, retries, pagination, transport helpers
+- schema sync helpers
+- public docs and examples
+
+2. Public MCP server
+- stdio MCP server for managed research
+- tool registry and tool schemas
+- MCP-facing tests for stdio transport and tool coverage
+
+3. Public schemas and generated models
+- generated schema-backed models used by the SDK
+- schema export/sync path for external consumers
+
+What Should Probably Stay In `synth-ai`
+
+- non-SMR product surfaces unrelated to managed research
+- all Data Factory support, including starting-data upload and finalize/publish flows
+- all standalone CLI command surfaces
+- unrelated MCP servers
+- private or semi-internal utilities that are not needed by external MR users
+
+Recommended Repo Boundary
+
+This repo should contain only the public managed research surface area:
+
+- `managed_research/sdk/...`
+- `managed_research/mcp/...`
+- `managed_research/models/...`
+- `managed_research/transport/...`
+- `managed_research/schema_sync.py`
+- docs focused on MR only
+
+`synth-ai` should then depend on this package instead of owning the source of
+truth for MR API and MCP logic.
+
+Preferred Migration Shape
+
+Phase 0: Freeze and inventory
+- Catalog the exact public surface currently used from `synth-ai`.
+- Inventory all SMR-specific files under `synth_ai/sdk/managed_research*`.
+- Inventory all SMR-specific files under `synth_ai/mcp/managed_research*`.
+- Separate pure-SMR code from shared Synth utilities.
+
+Phase 1: Recreate standalone package layout in this repo
+- Restore `pyproject.toml`.
+- Restore package directory structure.
+
+Phase 2: Move code, minimizing behavior change
+- Copy SMR SDK logic from `synth-ai` into `managed_research/sdk`.
+- Copy SMR MCP server logic into `managed_research/mcp`.
+- Inline or vendor only the small shared helpers needed for the public package.
+- Avoid broad imports from `synth_ai` in the final package.
+
+Phase 3: Compatibility layer
+- Keep the public API shape as close as possible to:
+  - `from managed_research import ...`
+  - `from managed_research.sdk import ...`
+- In `synth-ai`, replace source ownership with thin compatibility imports for at
+  least one release cycle.
+
+Phase 4: Tests and release
+- Port SDK tests.
+- Port MCP server tests.
+- Add a package contract test that verifies import paths and MCP module imports.
+- Publish a new package release from this repo.
+
+Phase 5: Cut `synth-ai` over
+- Change `synth-ai` to depend on this package.
+- Keep backward-compatible import shims temporarily.
+- Update docs to state which repo is authoritative.
+
+Important Design Constraint
+
+Do not create a circular ownership model where:
+
+- this repo imports core MR logic from `synth-ai`, and
+- `synth-ai` imports the same logic back from this repo.
+
+There should be one source of truth. If we remigrate, this repo should own the
+MR public package outright and `synth-ai` should become a consumer.
+
+Files Likely To Seed The Re-Migration
+
+From `synth-ai`:
+- `synth_ai/sdk/managed_research.py`
+- `synth_ai/sdk/managed_research_projects.py`
+- `synth_ai/sdk/managed_research_runtime.py`
+- `synth_ai/sdk/managed_research_events.py`
+- `synth_ai/sdk/managed_research_interactivity.py`
+- `synth_ai/sdk/managed_research_git.py`
+- `synth_ai/sdk/managed_research_sublinear.py`
+- `synth_ai/mcp/managed_research_server.py`
+
+Likely Refactors Needed Before Publish
+
+- Replace `synth_ai.core.utils.*` dependencies with package-local utilities.
+- Audit names and entrypoints for package-local branding.
+- Remove Data Factory support from the migration target instead of carrying it forward.
+- Decide whether GitHub/Linear/Sublinear helpers belong in the public MR package
+  or should stay optional extras.
+
+Risks
+
+- The current implementation may rely on `synth-ai` helpers more heavily than
+  the old `managed-research 0.1.0` package did.
+- Packaging move could break existing `synth-ai` users if import shims are not
+  preserved.
+- This repo currently has archive messaging everywhere; docs and package metadata
+  will need a full reversal.
+
+Recommended Packaging Decision
+
+PyPI package name checks run on 2026-04-03 against `https://pypi.org/pypi/<name>/json`
+showed:
+
+- `managed-research`: taken
+- `managed_research`: taken
+- `synth-managed-research`: available
+- `synth-managed-research-sdk`: available
+- `synth-managed-research-client`: available
+- `synth-mr`: available
+- `smr-client`: available
+- `usesynth-managed-research`: available
+
+Recommendation:
+
+- First choice package name: `synth-managed-research`
+- First choice import package: `managed_research`
+
+Why:
+
+- It preserves a clean Python import surface.
+- It is descriptive and close to existing naming.
+- It avoids colliding with the already-published `managed-research`.
+
+Release Strategy
+
+Option A
+- Publish this repo as `synth-managed-research`.
+- Keep Python imports as `managed_research`.
+- Deprecate `synth-ai` MR entrypoints after a compatibility window.
+
+Option B
+- Publish this repo as `usesynth-managed-research`.
+- Use if we want a stronger vendor prefix and lower future naming conflict risk.
+
+My recommendation is Option A unless brand/legal/package-policy constraints say
+otherwise.
+
+Immediate Next Steps
+
+1. Decide whether this repo should fully own MR again or remain a wrapper/docs
+   repo.
+2. If ownership is moving back, copy the live SMR SDK + MCP files from
+   `synth-ai` into a draft branch here without changing behavior.
+3. Reintroduce `pyproject.toml` and package entrypoints.
+4. Add compatibility imports in `synth-ai`.
+5. Publish under `synth-managed-research`.
