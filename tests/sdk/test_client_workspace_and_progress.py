@@ -9,6 +9,97 @@ from managed_research import SmrApiError
 from managed_research import SmrControlClient
 
 
+def test_get_workspace_download_url_calls_backend_route(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    captured: dict[str, object] = {}
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        captured["method"] = method
+        captured["path"] = path
+        return {"download_url": "https://signed", "commit_sha": "abc", "archive_key": "k1"}
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    response = client.get_workspace_download_url("proj_123")
+
+    assert response["commit_sha"] == "abc"
+    assert captured == {
+        "method": "GET",
+        "path": "/smr/projects/proj_123/workspace/download-url",
+    }
+    client.close()
+
+
+def test_get_project_git_calls_backend_route(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    captured: dict[str, object] = {}
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        captured["path"] = path
+        return {"current_commit_sha": "deadbeef", "branch": "main"}
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    response = client.get_project_git("proj_123")
+
+    assert response["branch"] == "main"
+    assert captured["path"] == "/smr/projects/proj_123/git"
+    client.close()
+
+
+def test_download_workspace_archive_writes_stream(monkeypatch, tmp_path: Path) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    out = tmp_path / "out.tar.gz"
+
+    def fake_get_workspace_download_url(project_id: str) -> dict[str, str]:
+        assert project_id == "proj_123"
+        return {
+            "download_url": "https://storage.example/archive.tgz",
+            "commit_sha": "abc",
+            "archive_key": "key",
+        }
+
+    monkeypatch.setattr(client, "get_workspace_download_url", fake_get_workspace_download_url)
+
+    class _FakeStream:
+        def __enter__(self) -> "_FakeStream":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def iter_bytes(self, chunk_size: int = 65536) -> list[bytes]:
+            return [b"he", b"llo"]
+
+    class _FakeHttpxClient:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def __enter__(self) -> "_FakeHttpxClient":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def stream(self, method: str, url: str) -> _FakeStream:
+            assert method == "GET"
+            assert url == "https://storage.example/archive.tgz"
+            return _FakeStream()
+
+    monkeypatch.setattr("managed_research.sdk.client.httpx.Client", _FakeHttpxClient)
+
+    result = client.download_workspace_archive("proj_123", out)
+
+    assert out.read_bytes() == b"hello"
+    assert result["bytes_written"] == 5
+    assert result["commit_sha"] == "abc"
+    assert result["output_path"] == str(out.resolve())
+    client.close()
+
+
 def test_attach_source_repo_calls_workspace_input_route(monkeypatch) -> None:
     client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
     captured: dict[str, object] = {}

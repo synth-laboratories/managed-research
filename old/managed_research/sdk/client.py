@@ -2303,6 +2303,13 @@ class SmrControlClient:
 
         Storage internals (bucket, archive key) are not included.
         """
+        payload = self._request_json(
+            "GET",
+            f"/smr/projects/{project_id}/git",
+            allow_not_found=True,
+        )
+        if isinstance(payload, dict) and payload:
+            return payload
         return self._request_json("GET", f"/smr/projects/{project_id}/workspace/git")
 
     def search_victoria_logs(

@@ -7,7 +7,15 @@ from typing import Any
 
 import httpx
 
-from managed_research.errors import SmrApiError
+from managed_research.errors import (
+    SmrApiError,
+    SmrFundingLaneInvariantError,
+    SmrInsufficientCreditsError,
+    SmrLimitExceededError,
+    SmrManagedInferenceUnavailableError,
+    SmrProjectMonthlyBudgetExhaustedError,
+    SmrStructuredDenialError,
+)
 
 
 def _error_message(response: httpx.Response) -> str:
@@ -19,7 +27,82 @@ def _error_message(response: httpx.Response) -> str:
         detail = payload.get("detail")
         if isinstance(detail, str) and detail.strip():
             return detail.strip()
+        if isinstance(detail, dict):
+            msg = detail.get("message")
+            if isinstance(msg, str) and msg.strip():
+                return msg.strip()
+            err = detail.get("error")
+            if isinstance(err, str) and err.strip():
+                return err.strip()
     return f"{response.request.method} {response.request.url.path} failed with {response.status_code}"
+
+
+def _raise_for_error_response(response: httpx.Response) -> None:
+    """Map FastAPI ``{"detail": {"error_code": ...}}`` bodies to typed SDK errors."""
+    try:
+        payload = response.json()
+    except Exception:
+        payload = None
+    if isinstance(payload, dict):
+        detail = payload.get("detail")
+        if isinstance(detail, dict):
+            code = detail.get("error_code")
+            if isinstance(code, str) and code.strip():
+                message = _error_message(response)
+                status_code = response.status_code
+                response_text = response.text
+                stripped = code.strip()
+                if stripped == "smr_limit_exceeded":
+                    raise SmrLimitExceededError(
+                        message,
+                        status_code=status_code,
+                        response_text=response_text,
+                        detail=detail,
+                    )
+                if stripped == "smr_free_tier_routing_violation":
+                    raise SmrFundingLaneInvariantError(
+                        message,
+                        status_code=status_code,
+                        response_text=response_text,
+                        detail=detail,
+                    )
+                if stripped == "smr_insufficient_credits":
+                    raise SmrInsufficientCreditsError(
+                        message,
+                        status_code=status_code,
+                        response_text=response_text,
+                        detail=detail,
+                    )
+                if stripped == "smr_project_monthly_budget_exhausted":
+                    raise SmrProjectMonthlyBudgetExhaustedError(
+                        message,
+                        status_code=status_code,
+                        response_text=response_text,
+                        detail=detail,
+                    )
+                if stripped == "smr_managed_inference_unavailable":
+                    raise SmrManagedInferenceUnavailableError(
+                        message,
+                        status_code=status_code,
+                        response_text=response_text,
+                        detail=detail,
+                    )
+                raise SmrStructuredDenialError(
+                    message,
+                    status_code=status_code,
+                    response_text=response_text,
+                    detail=detail,
+                )
+            raise SmrApiError(
+                _error_message(response),
+                status_code=response.status_code,
+                response_text=response.text,
+            )
+    raise SmrApiError(
+        _error_message(response),
+        status_code=response.status_code,
+        response_text=response.text,
+    )
 
 
 @dataclass
@@ -59,11 +142,7 @@ class SmrHttpTransport:
         if allow_not_found and response.status_code == 404:
             return None
         if response.is_error:
-            raise SmrApiError(
-                _error_message(response),
-                status_code=response.status_code,
-                response_text=response.text,
-            )
+            _raise_for_error_response(response)
         if not response.content:
             return {}
         try:

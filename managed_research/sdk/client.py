@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import httpx
+
 from managed_research.auth import BACKEND_URL_BASE, get_api_key, normalize_backend_base
 from managed_research.errors import SmrApiError
 from managed_research.models import UsageAnalyticsPayload, UsageAnalyticsSubject
@@ -27,6 +29,7 @@ from managed_research.transport.pagination import build_query_params
 
 ACTIVE_RUN_STATES = {"queued", "planning", "executing", "blocked", "finalizing", "running"}
 DEFAULT_TIMEOUT_SECONDS = 30.0
+DEFAULT_WORKSPACE_ARCHIVE_DOWNLOAD_TIMEOUT_SECONDS = 600.0
 
 __all__ = [
     "ACTIVE_RUN_STATES",
@@ -297,6 +300,61 @@ class SmrControlClient:
 
     def get_limits(self) -> dict[str, Any]:
         return _coerce_dict(self._request_json("GET", "/smr/limits"), label="get_limits")
+
+    def get_workspace_download_url(self, project_id: str) -> dict[str, Any]:
+        """Return a presigned URL and metadata for the project workspace tarball."""
+        return _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/workspace/download-url",
+            ),
+            label="get_workspace_download_url",
+        )
+
+    def get_project_git(self, project_id: str) -> dict[str, Any]:
+        """Return read-only git metadata for the project workspace (commit, branch, remote hints)."""
+        return _coerce_dict(
+            self._request_json("GET", f"/smr/projects/{project_id}/git"),
+            label="get_project_git",
+        )
+
+    def download_workspace_archive(
+        self,
+        project_id: str,
+        output_path: str | os.PathLike[str],
+        *,
+        timeout_seconds: float = DEFAULT_WORKSPACE_ARCHIVE_DOWNLOAD_TIMEOUT_SECONDS,
+    ) -> dict[str, Any]:
+        """Fetch the workspace tarball via the presigned URL and write it to *output_path*."""
+        info = self.get_workspace_download_url(project_id)
+        url = info.get("download_url")
+        if not isinstance(url, str) or not url.strip():
+            raise SmrApiError(
+                "Workspace download response missing download_url",
+                status_code=None,
+                response_text=None,
+            )
+        path = Path(output_path).expanduser().resolve()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with httpx.Client(timeout=timeout_seconds) as http_client:
+                with http_client.stream("GET", url.strip()) as response:
+                    response.raise_for_status()
+                    with path.open("wb") as file_handle:
+                        for chunk in response.iter_bytes():
+                            file_handle.write(chunk)
+        except httpx.HTTPError as exc:
+            raise SmrApiError(
+                f"Failed to download workspace archive: {exc}",
+                status_code=getattr(getattr(exc, "response", None), "status_code", None),
+                response_text=getattr(getattr(exc, "response", None), "text", None),
+            ) from exc
+        return {
+            "output_path": str(path),
+            "commit_sha": info.get("commit_sha"),
+            "archive_key": info.get("archive_key"),
+            "bytes_written": path.stat().st_size,
+        }
 
     def attach_source_repo(
         self,

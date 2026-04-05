@@ -75,7 +75,11 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
         ),
         ToolDefinition(
             name="smr_get_capabilities",
-            description="Fetch server capabilities for parity-safe client behavior.",
+            description=(
+                "Fetch server capabilities for parity-safe client behavior. "
+                "Run trigger maps backend ``error_code`` payloads (limits, routing, "
+                "credits, project budget, managed inference) to structured MCP results."
+            ),
             input_schema=tool_schema({}, required=[]),
             handler=server._tool_get_capabilities,
         ),
@@ -84,6 +88,64 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
             description="Fetch resource limits for the authenticated org's plan. Returns each resource with its cap, window, refresh cadence, and whether it is unlimited.",
             input_schema=tool_schema({}, required=[]),
             handler=server._tool_get_limits,
+        ),
+        ToolDefinition(
+            name="smr_get_workspace_download_url",
+            description=(
+                "Return a short-lived presigned URL to download the project workspace as a tarball "
+                "(git snapshot archived by the backend). Use smr_download_workspace_archive to save "
+                "the file locally in one step, or fetch download_url with curl yourself."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "api_key": {"type": "string", "description": "Optional Synth API key override."},
+                    "backend_base": {"type": "string", "description": "Optional backend base override."},
+                },
+                required=["project_id"],
+            ),
+            handler=server._tool_get_workspace_download_url,
+        ),
+        ToolDefinition(
+            name="smr_get_project_git",
+            description=(
+                "Read-only git metadata for the project workspace (commit, branch, remote-related fields). "
+                "Pair with smr_get_workspace_download_url or smr_download_workspace_archive to retrieve files."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "api_key": {"type": "string", "description": "Optional Synth API key override."},
+                    "backend_base": {"type": "string", "description": "Optional backend base override."},
+                },
+                required=["project_id"],
+            ),
+            handler=server._tool_get_project_git,
+        ),
+        ToolDefinition(
+            name="smr_download_workspace_archive",
+            description=(
+                "Download the project workspace tarball to a path on the machine running this MCP server "
+                "(presigned URL under the hood). Parent directories are created. Large repos may take minutes; "
+                "raise timeout_seconds if needed (default 600)."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "output_path": {
+                        "type": "string",
+                        "description": "Absolute or home-relative path for the .tar.gz file (e.g. ~/smr-workspace.tar.gz).",
+                    },
+                    "timeout_seconds": {
+                        "type": "integer",
+                        "description": "HTTP timeout for the presigned download in seconds (default 600).",
+                    },
+                    "api_key": {"type": "string", "description": "Optional Synth API key override."},
+                    "backend_base": {"type": "string", "description": "Optional backend base override."},
+                },
+                required=["project_id", "output_path"],
+            ),
+            handler=server._tool_download_workspace_archive,
         ),
     ]
 

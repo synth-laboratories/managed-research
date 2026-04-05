@@ -35,5 +35,26 @@ class ProjectsAPI(_ClientNamespace):
     def get_limits(self) -> dict[str, Any]:
         return self._client.get_limits()
 
+    def get_workspace_download_url(self, project_id: str) -> dict[str, Any]:
+        return self._client.get_workspace_download_url(project_id)
+
+    def get_git(self, project_id: str) -> dict[str, Any]:
+        return self._client.get_project_git(project_id)
+
+    def download_workspace_archive(
+        self,
+        project_id: str,
+        output_path: str,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> dict[str, Any]:
+        if timeout_seconds is not None:
+            return self._client.download_workspace_archive(
+                project_id,
+                output_path,
+                timeout_seconds=timeout_seconds,
+            )
+        return self._client.download_workspace_archive(project_id, output_path)
+
 
 __all__ = ["ProjectsAPI"]

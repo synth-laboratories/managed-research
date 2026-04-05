@@ -1,6 +1,14 @@
 """Public Managed Research package."""
 
-from managed_research.errors import SmrApiError
+from managed_research.errors import (
+    SmrApiError,
+    SmrFundingLaneInvariantError,
+    SmrInsufficientCreditsError,
+    SmrLimitExceededError,
+    SmrManagedInferenceUnavailableError,
+    SmrProjectMonthlyBudgetExhaustedError,
+    SmrStructuredDenialError,
+)
 from managed_research.models import (
     ProjectReadiness,
     RecommendedAction,
@@ -51,6 +59,12 @@ __all__ = [
     "RunProgress",
     "RunsAPI",
     "SmrApiError",
+    "SmrFundingLaneInvariantError",
+    "SmrInsufficientCreditsError",
+    "SmrLimitExceededError",
+    "SmrManagedInferenceUnavailableError",
+    "SmrProjectMonthlyBudgetExhaustedError",
+    "SmrStructuredDenialError",
     "SmrControlClient",
     "UsageAnalyticsBreakdown",
     "UsageAnalyticsBucket",

@@ -18,12 +18,32 @@ from managed_research.mcp.tools.projects import build_project_tools
 from managed_research.mcp.tools.runs import build_run_tools
 from managed_research.mcp.tools.usage import build_usage_tools
 from managed_research.mcp.tools.workspace_inputs import build_workspace_input_tools
+from managed_research.errors import SmrApiError
 from managed_research.sdk.client import SmrControlClient
 from managed_research.version import __version__
 
 SUPPORTED_PROTOCOL_VERSIONS = ("2025-06-18", "2024-11-05")
 DEFAULT_PROTOCOL_VERSION = SUPPORTED_PROTOCOL_VERSIONS[0]
 SERVER_NAME = "managed-research"
+
+
+def _mcp_structured_trigger_error_payload(exc: BaseException) -> dict[str, Any] | None:
+    """If *exc* carries a FastAPI-style ``detail`` dict with ``error_code``, shape an MCP result."""
+    detail = getattr(exc, "detail", None)
+    if not isinstance(detail, dict):
+        return None
+    code = detail.get("error_code")
+    if not isinstance(code, str) or not code.strip():
+        return None
+    out: dict[str, Any] = {
+        "error": code.strip(),
+        "detail": detail,
+        "message": str(exc),
+    }
+    status = getattr(exc, "status_code", None)
+    if isinstance(status, int):
+        out["http_status"] = status
+    return out
 
 
 class _UsageAnalyticsSubjectKind(str, Enum):
@@ -202,6 +222,30 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.get_limits()
 
+    def _tool_get_workspace_download_url(self, args: JSONDict) -> Any:
+        project_id = _require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.get_workspace_download_url(project_id)
+
+    def _tool_get_project_git(self, args: JSONDict) -> Any:
+        project_id = _require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_git(project_id)
+
+    def _tool_download_workspace_archive(self, args: JSONDict) -> Any:
+        project_id = _require_string(args, "project_id")
+        output_path = _require_string(args, "output_path")
+        timeout_raw = _optional_int(args, "timeout_seconds")
+        timeout_seconds = float(timeout_raw) if timeout_raw is not None else None
+        with self._client_from_args(args) as client:
+            if timeout_seconds is not None:
+                return client.download_workspace_archive(
+                    project_id,
+                    output_path,
+                    timeout_seconds=timeout_seconds,
+                )
+            return client.download_workspace_archive(project_id, output_path)
+
     def _tool_get_usage_analytics(self, args: JSONDict) -> Any:
         subject_kind = _optional_string(args, "subject_kind")
         org_id = _optional_string(args, "org_id")
@@ -272,17 +316,23 @@ class ManagedResearchMcpServer:
         sandbox_override = (
             args.get("sandbox_override") if isinstance(args.get("sandbox_override"), dict) else None
         )
-        with self._client_from_args(args) as client:
-            return client.trigger_run(
-                project_id,
-                work_mode=work_mode,
-                timebox_seconds=timebox_seconds,
-                agent_model=agent_model,
-                agent_kind=agent_kind,
-                prompt=prompt,
-                workflow=workflow,
-                sandbox_override=sandbox_override,
-            )
+        try:
+            with self._client_from_args(args) as client:
+                return client.trigger_run(
+                    project_id,
+                    work_mode=work_mode,
+                    timebox_seconds=timebox_seconds,
+                    agent_model=agent_model,
+                    agent_kind=agent_kind,
+                    prompt=prompt,
+                    workflow=workflow,
+                    sandbox_override=sandbox_override,
+                )
+        except SmrApiError as exc:
+            payload = _mcp_structured_trigger_error_payload(exc)
+            if payload is not None:
+                return payload
+            raise
 
     def _tool_list_runs(self, args: JSONDict) -> Any:
         project_id = _require_string(args, "project_id")
