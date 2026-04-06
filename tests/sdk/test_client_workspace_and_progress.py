@@ -4,9 +4,7 @@ import base64
 from pathlib import Path
 
 import pytest
-
-from managed_research import SmrApiError
-from managed_research import SmrControlClient
+from managed_research import SmrApiError, SmrControlClient
 
 
 def test_get_workspace_download_url_calls_backend_route(monkeypatch) -> None:
@@ -47,6 +45,51 @@ def test_get_project_git_calls_backend_route(monkeypatch) -> None:
     client.close()
 
 
+def test_project_lifecycle_routes_match_backend_surface(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    seen: list[tuple[str, str]] = []
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        del kwargs
+        seen.append((method, path))
+        return {"ok": True}
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    assert client.pause_project("proj_123") == {"ok": True}
+    assert client.resume_project("proj_123") == {"ok": True}
+    assert client.archive_project("proj_123") == {"ok": True}
+    assert client.unarchive_project("proj_123") == {"ok": True}
+    assert seen == [
+        ("POST", "/smr/projects/proj_123/pause"),
+        ("POST", "/smr/projects/proj_123/resume"),
+        ("POST", "/smr/projects/proj_123/archive"),
+        ("POST", "/smr/projects/proj_123/unarchive"),
+    ]
+    client.close()
+
+
+def test_project_notes_routes_match_backend_surface(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    captured: list[tuple[str, str, object | None]] = []
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        captured.append((method, path, kwargs.get("json_body")))
+        return {"notes": "ok"}
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    assert client.get_project_notes("proj_123") == {"notes": "ok"}
+    assert client.set_project_notes("proj_123", "fresh notes") == {"notes": "ok"}
+    assert client.append_project_notes("proj_123", "delta") == {"notes": "ok"}
+    assert captured == [
+        ("GET", "/smr/projects/proj_123/notes", None),
+        ("PUT", "/smr/projects/proj_123/notes", {"notes": "fresh notes"}),
+        ("POST", "/smr/projects/proj_123/notes/append", {"notes": "delta"}),
+    ]
+    client.close()
+
+
 def test_download_workspace_archive_writes_stream(monkeypatch, tmp_path: Path) -> None:
     client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
     out = tmp_path / "out.tar.gz"
@@ -62,7 +105,7 @@ def test_download_workspace_archive_writes_stream(monkeypatch, tmp_path: Path) -
     monkeypatch.setattr(client, "get_workspace_download_url", fake_get_workspace_download_url)
 
     class _FakeStream:
-        def __enter__(self) -> "_FakeStream":
+        def __enter__(self) -> _FakeStream:
             return self
 
         def __exit__(self, *args: object) -> None:
@@ -78,7 +121,7 @@ def test_download_workspace_archive_writes_stream(monkeypatch, tmp_path: Path) -
         def __init__(self, *args: object, **kwargs: object) -> None:
             pass
 
-        def __enter__(self) -> "_FakeHttpxClient":
+        def __enter__(self) -> _FakeHttpxClient:
             return self
 
         def __exit__(self, *args: object) -> None:
@@ -112,7 +155,9 @@ def test_attach_source_repo_calls_workspace_input_route(monkeypatch) -> None:
 
     monkeypatch.setattr(client, "_request_json", fake_request_json)
 
-    response = client.attach_source_repo("proj_123", "https://github.com/synth/foo", default_branch="main")
+    response = client.attach_source_repo(
+        "proj_123", "https://github.com/synth/foo", default_branch="main"
+    )
 
     assert response == {"ok": True}
     assert captured["method"] == "PUT"
@@ -173,6 +218,127 @@ def test_progress_routes_match_remigration_surface(monkeypatch) -> None:
         ("GET", "/smr/projects/proj_123/readiness"),
         ("GET", "/smr/projects/proj_123/runs/run_123/progress"),
     ]
+    client.close()
+
+
+def test_capacity_lane_preview_calls_backend_route(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    captured: dict[str, object] = {}
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        captured["method"] = method
+        captured["path"] = path
+        return {"resolved_lane": "openai_chatgpt_pool"}
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    response = client.get_capacity_lane_preview("proj_123")
+
+    assert response["resolved_lane"] == "openai_chatgpt_pool"
+    assert captured == {
+        "method": "GET",
+        "path": "/smr/projects/proj_123/capacity-lane-preview",
+    }
+    client.close()
+
+
+def test_run_start_blockers_uses_trigger_compatible_payload(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    captured: dict[str, object] = {}
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        captured["method"] = method
+        captured["path"] = path
+        captured["json_body"] = kwargs.get("json_body")
+        return {"clear_to_trigger": False, "blockers": [{"error_code": "smr_limit_exceeded"}]}
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    response = client.get_run_start_blockers(
+        "proj_123",
+        host_kind="daytona",
+        work_mode="directed_effort",
+        worker_pool_id="pool_123",
+        timebox_seconds=1800,
+        agent_profile="ap_worker",
+        agent_model="gpt-5.4",
+        agent_kind="codex",
+        agent_model_params={"reasoning_effort": "high"},
+        initial_runtime_messages=[
+            {"body": "Check the failing CI lane.", "mode": "queue"},
+        ],
+        sandbox_override={"image": "synth/smr:latest"},
+        idempotency_key_run_create="idem_123",
+    )
+
+    assert response["clear_to_trigger"] is False
+    assert captured["method"] == "POST"
+    assert captured["path"] == "/smr/projects/proj_123/run-start-blockers"
+    assert captured["json_body"] == {
+        "host_kind": "daytona",
+        "work_mode": "directed_effort",
+        "worker_pool_id": "pool_123",
+        "timebox_seconds": 1800,
+        "agent_profile": "ap_worker",
+        "agent_model": "gpt-5.4",
+        "agent_kind": "codex",
+        "agent_model_params": {"reasoning_effort": "high"},
+        "initial_runtime_messages": [
+            {"body": "Check the failing CI lane.", "mode": "queue"},
+        ],
+        "sandbox_override": {"image": "synth/smr:latest"},
+        "idempotency_key_run_create": "idem_123",
+    }
+    client.close()
+
+
+def test_trigger_run_uses_project_trigger_payload(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    captured: dict[str, object] = {}
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        captured["method"] = method
+        captured["path"] = path
+        captured["json_body"] = kwargs.get("json_body")
+        return {"run_id": "run_123"}
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    response = client.trigger_run(
+        "proj_123",
+        host_kind="daytona",
+        work_mode="directed_effort",
+        worker_pool_id="pool_123",
+        timebox_seconds=1800,
+        agent_profile="ap_worker",
+        agent_model="gpt-5.4",
+        agent_kind="codex",
+        agent_model_params={"reasoning_effort": "high"},
+        initial_runtime_messages=[
+            {"body": "Start with the highest-confidence repro.", "mode": "queue"},
+        ],
+        sandbox_override={"image": "synth/smr:latest"},
+        idempotency_key="idem_legacy",
+    )
+
+    assert response["run_id"] == "run_123"
+    assert captured["method"] == "POST"
+    assert captured["path"] == "/smr/projects/proj_123/trigger"
+    assert captured["json_body"] == {
+        "host_kind": "daytona",
+        "work_mode": "directed_effort",
+        "worker_pool_id": "pool_123",
+        "timebox_seconds": 1800,
+        "agent_profile": "ap_worker",
+        "agent_model": "gpt-5.4",
+        "agent_kind": "codex",
+        "agent_model_params": {"reasoning_effort": "high"},
+        "initial_runtime_messages": [
+            {"body": "Start with the highest-confidence repro.", "mode": "queue"},
+        ],
+        "sandbox_override": {"image": "synth/smr:latest"},
+        "idempotency_key": "idem_legacy",
+    }
     client.close()
 
 

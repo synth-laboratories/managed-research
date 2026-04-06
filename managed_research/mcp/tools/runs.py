@@ -11,23 +11,64 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
     return [
         ToolDefinition(
             name="smr_trigger_run",
-            description="Trigger a managed research run.",
+            description=(
+                "Trigger a managed research run. Call smr_get_capacity_lane_preview and "
+                "smr_get_run_start_blockers first when you want a user-facing launch check, "
+                "and always branch on result.error in MCP clients."
+            ),
             input_schema=tool_schema(
                 {
                     "project_id": {"type": "string", "description": "Managed research project id."},
+                    "host_kind": {
+                        "type": "string",
+                        "description": "Execution substrate for this run: local, docker, or daytona.",
+                    },
                     "work_mode": {
                         "type": "string",
                         "enum": ["open_ended_discovery", "directed_effort"],
                         "description": "Run work mode.",
                     },
+                    "worker_pool_id": {
+                        "type": "string",
+                        "description": "Optional worker pool override.",
+                    },
                     "timebox_seconds": {"type": "integer", "description": "Optional run timebox."},
-                    "agent_model": {"type": "string", "description": "Optional run-level agent model override."},
-                    "agent_kind": {"type": "string", "description": "Optional run-level agent kind override."},
-                    "prompt": {"type": "string", "description": "Optional bootstrap prompt override."},
+                    "agent_profile": {
+                        "type": "string",
+                        "description": "Optional agent profile override.",
+                    },
+                    "agent_model": {
+                        "type": "string",
+                        "description": "Optional run-level agent model override.",
+                    },
+                    "agent_kind": {
+                        "type": "string",
+                        "description": "Optional run-level agent kind override.",
+                    },
+                    "agent_model_params": {
+                        "type": "object",
+                        "description": "Optional agent model params override (for example reasoning_effort).",
+                    },
+                    "initial_runtime_messages": {
+                        "type": "array",
+                        "description": "Optional kickoff runtime messages to enqueue durably before the run starts. Use this instead of the removed prompt field.",
+                        "items": {"type": "object"},
+                    },
                     "workflow": {"type": "object", "description": "Optional workflow override."},
-                    "sandbox_override": {"type": "object", "description": "Optional sandbox override."},
+                    "sandbox_override": {
+                        "type": "object",
+                        "description": "Optional sandbox override.",
+                    },
+                    "idempotency_key_run_create": {
+                        "type": "string",
+                        "description": "Optional idempotency key for the launch request.",
+                    },
+                    "idempotency_key": {
+                        "type": "string",
+                        "description": "Deprecated compatibility alias for idempotency_key_run_create.",
+                    },
                 },
-                required=["project_id", "work_mode"],
+                required=["project_id", "host_kind", "work_mode"],
             ),
             handler=server._tool_trigger_run,
         ),
@@ -51,7 +92,10 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             input_schema=tool_schema(
                 {
                     "run_id": {"type": "string", "description": "Run id."},
-                    "project_id": {"type": "string", "description": "Optional project-scoped route enforcement."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
                 },
                 required=["run_id"],
             ),
@@ -72,8 +116,14 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             input_schema=tool_schema(
                 {
                     "run_id": {"type": "string", "description": "Run id."},
-                    "project_id": {"type": "string", "description": "Optional project-scoped route enforcement."},
-                    "status_filter": {"type": "string", "description": "Optional question status filter."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
+                    "status_filter": {
+                        "type": "string",
+                        "description": "Optional question status filter.",
+                    },
                     "limit": {"type": "integer", "description": "Maximum questions to return."},
                 },
                 required=["run_id"],
@@ -86,8 +136,14 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             input_schema=tool_schema(
                 {
                     "run_id": {"type": "string", "description": "Run id."},
-                    "project_id": {"type": "string", "description": "Optional project-scoped route enforcement."},
-                    "checkpoint_id": {"type": "string", "description": "Optional checkpoint id override."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
+                    "checkpoint_id": {
+                        "type": "string",
+                        "description": "Optional checkpoint id override.",
+                    },
                     "reason": {"type": "string", "description": "Optional checkpoint reason."},
                 },
                 required=["run_id"],
@@ -100,7 +156,10 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             input_schema=tool_schema(
                 {
                     "run_id": {"type": "string", "description": "Run id."},
-                    "project_id": {"type": "string", "description": "Optional project-scoped route enforcement."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
                 },
                 required=["run_id"],
             ),
@@ -112,8 +171,14 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             input_schema=tool_schema(
                 {
                     "run_id": {"type": "string", "description": "Run id."},
-                    "project_id": {"type": "string", "description": "Optional project-scoped route enforcement."},
-                    "checkpoint_id": {"type": "string", "description": "Optional checkpoint id override."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
+                    "checkpoint_id": {
+                        "type": "string",
+                        "description": "Optional checkpoint id override.",
+                    },
                     "reason": {"type": "string", "description": "Optional restore reason."},
                 },
                 required=["run_id"],

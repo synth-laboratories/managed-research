@@ -87,6 +87,98 @@ def _coerce_list(payload: Any, *, label: str) -> list[dict[str, Any]]:
     raise SmrApiError(f"Expected list response for {label}, received {type(payload).__name__}")
 
 
+def _require_non_empty_string(value: str | None, *, field_name: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        raise ValueError(f"{field_name} is required")
+    return text
+
+
+def _optional_mapping(
+    payload: Mapping[str, Any] | dict[str, Any] | None,
+    *,
+    field_name: str,
+) -> dict[str, Any] | None:
+    if payload is None:
+        return None
+    if not isinstance(payload, Mapping):
+        raise ValueError(f"{field_name} must be a mapping when provided")
+    return dict(payload)
+
+
+def _optional_mapping_list(
+    payload: Iterable[Mapping[str, Any] | dict[str, Any]] | None,
+    *,
+    field_name: str,
+) -> list[dict[str, Any]]:
+    if payload is None:
+        return []
+    normalized: list[dict[str, Any]] = []
+    for item in payload:
+        if not isinstance(item, Mapping):
+            raise ValueError(f"{field_name} entries must be mappings")
+        normalized.append(dict(item))
+    return normalized
+
+
+def _build_project_run_payload(
+    *,
+    host_kind: str,
+    work_mode: str,
+    worker_pool_id: str | None = None,
+    timebox_seconds: int | None = None,
+    agent_profile: str | None = None,
+    agent_model: str | None = None,
+    agent_kind: str | None = None,
+    agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
+    initial_runtime_messages: Iterable[Mapping[str, Any] | dict[str, Any]] | None = None,
+    workflow: Mapping[str, Any] | dict[str, Any] | None = None,
+    sandbox_override: Mapping[str, Any] | dict[str, Any] | None = None,
+    idempotency_key_run_create: str | None = None,
+    idempotency_key: str | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "host_kind": _require_non_empty_string(host_kind, field_name="host_kind"),
+        "work_mode": _require_non_empty_string(work_mode, field_name="work_mode"),
+    }
+    if worker_pool_id and worker_pool_id.strip():
+        payload["worker_pool_id"] = worker_pool_id.strip()
+    if timebox_seconds is not None:
+        payload["timebox_seconds"] = int(timebox_seconds)
+    if agent_profile and agent_profile.strip():
+        payload["agent_profile"] = agent_profile.strip()
+    if agent_model and agent_model.strip():
+        payload["agent_model"] = agent_model.strip()
+    if agent_kind and agent_kind.strip():
+        payload["agent_kind"] = agent_kind.strip()
+    normalized_agent_model_params = _optional_mapping(
+        agent_model_params,
+        field_name="agent_model_params",
+    )
+    if normalized_agent_model_params:
+        payload["agent_model_params"] = normalized_agent_model_params
+    normalized_initial_runtime_messages = _optional_mapping_list(
+        initial_runtime_messages,
+        field_name="initial_runtime_messages",
+    )
+    if normalized_initial_runtime_messages:
+        payload["initial_runtime_messages"] = normalized_initial_runtime_messages
+    normalized_workflow = _optional_mapping(workflow, field_name="workflow")
+    if normalized_workflow:
+        payload["workflow"] = normalized_workflow
+    normalized_sandbox_override = _optional_mapping(
+        sandbox_override,
+        field_name="sandbox_override",
+    )
+    if normalized_sandbox_override:
+        payload["sandbox_override"] = normalized_sandbox_override
+    if idempotency_key_run_create and idempotency_key_run_create.strip():
+        payload["idempotency_key_run_create"] = idempotency_key_run_create.strip()
+    if idempotency_key and idempotency_key.strip():
+        payload["idempotency_key"] = idempotency_key.strip()
+    return payload
+
+
 def _guess_content_type(path: str) -> str:
     guessed, _ = mimetypes.guess_type(path)
     return guessed or "application/octet-stream"
@@ -252,7 +344,9 @@ class SmrControlClient:
         )
 
     def create_project(self, payload: dict[str, Any]) -> dict[str, Any]:
-        return _coerce_dict(self._request_json("POST", "/smr/projects", json_body=payload), label="create_project")
+        return _coerce_dict(
+            self._request_json("POST", "/smr/projects", json_body=payload), label="create_project"
+        )
 
     def list_projects(
         self,
@@ -266,15 +360,69 @@ class SmrControlClient:
             limit=limit,
             cursor=cursor,
         )
-        return _coerce_list(self._request_json("GET", "/smr/projects", params=params), label="list_projects")
+        return _coerce_list(
+            self._request_json("GET", "/smr/projects", params=params), label="list_projects"
+        )
 
     def get_project(self, project_id: str) -> dict[str, Any]:
-        return _coerce_dict(self._request_json("GET", f"/smr/projects/{project_id}"), label="get_project")
+        return _coerce_dict(
+            self._request_json("GET", f"/smr/projects/{project_id}"), label="get_project"
+        )
 
     def patch_project(self, project_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         return _coerce_dict(
             self._request_json("PATCH", f"/smr/projects/{project_id}", json_body=payload),
             label="patch_project",
+        )
+
+    def pause_project(self, project_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("POST", f"/smr/projects/{project_id}/pause"),
+            label="pause_project",
+        )
+
+    def resume_project(self, project_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("POST", f"/smr/projects/{project_id}/resume"),
+            label="resume_project",
+        )
+
+    def archive_project(self, project_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("POST", f"/smr/projects/{project_id}/archive"),
+            label="archive_project",
+        )
+
+    def unarchive_project(self, project_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("POST", f"/smr/projects/{project_id}/unarchive"),
+            label="unarchive_project",
+        )
+
+    def get_project_notes(self, project_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("GET", f"/smr/projects/{project_id}/notes"),
+            label="get_project_notes",
+        )
+
+    def set_project_notes(self, project_id: str, notes: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "PUT",
+                f"/smr/projects/{project_id}/notes",
+                json_body={"notes": str(notes)},
+            ),
+            label="set_project_notes",
+        )
+
+    def append_project_notes(self, project_id: str, notes: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/notes/append",
+                json_body={"notes": str(notes)},
+            ),
+            label="append_project_notes",
         )
 
     def get_project_status(self, project_id: str) -> dict[str, Any]:
@@ -296,10 +444,18 @@ class SmrControlClient:
         )
 
     def get_capabilities(self) -> dict[str, Any]:
-        return _coerce_dict(self._request_json("GET", "/smr/capabilities"), label="get_capabilities")
+        return _coerce_dict(
+            self._request_json("GET", "/smr/capabilities"), label="get_capabilities"
+        )
 
     def get_limits(self) -> dict[str, Any]:
         return _coerce_dict(self._request_json("GET", "/smr/limits"), label="get_limits")
+
+    def get_capacity_lane_preview(self, project_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("GET", f"/smr/projects/{project_id}/capacity-lane-preview"),
+            label="get_capacity_lane_preview",
+        )
 
     def get_workspace_download_url(self, project_id: str) -> dict[str, Any]:
         """Return a presigned URL and metadata for the project workspace tarball."""
@@ -337,12 +493,14 @@ class SmrControlClient:
         path = Path(output_path).expanduser().resolve()
         path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            with httpx.Client(timeout=timeout_seconds) as http_client:
-                with http_client.stream("GET", url.strip()) as response:
-                    response.raise_for_status()
-                    with path.open("wb") as file_handle:
-                        for chunk in response.iter_bytes():
-                            file_handle.write(chunk)
+            with (
+                httpx.Client(timeout=timeout_seconds) as http_client,
+                http_client.stream("GET", url.strip()) as response,
+                path.open("wb") as file_handle,
+            ):
+                response.raise_for_status()
+                for chunk in response.iter_bytes():
+                    file_handle.write(chunk)
         except httpx.HTTPError as exc:
             raise SmrApiError(
                 f"Failed to download workspace archive: {exc}",
@@ -425,31 +583,81 @@ class SmrControlClient:
             label="get_project_readiness",
         )
 
+    def get_run_start_blockers(
+        self,
+        project_id: str,
+        *,
+        host_kind: str,
+        work_mode: str,
+        worker_pool_id: str | None = None,
+        timebox_seconds: int | None = None,
+        agent_profile: str | None = None,
+        agent_model: str | None = None,
+        agent_kind: str | None = None,
+        agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
+        initial_runtime_messages: Iterable[Mapping[str, Any] | dict[str, Any]] | None = None,
+        workflow: Mapping[str, Any] | dict[str, Any] | None = None,
+        sandbox_override: Mapping[str, Any] | dict[str, Any] | None = None,
+        idempotency_key_run_create: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        payload = _build_project_run_payload(
+            host_kind=host_kind,
+            work_mode=work_mode,
+            worker_pool_id=worker_pool_id,
+            timebox_seconds=timebox_seconds,
+            agent_profile=agent_profile,
+            agent_model=agent_model,
+            agent_kind=agent_kind,
+            agent_model_params=agent_model_params,
+            initial_runtime_messages=initial_runtime_messages,
+            workflow=workflow,
+            sandbox_override=sandbox_override,
+            idempotency_key_run_create=idempotency_key_run_create,
+            idempotency_key=idempotency_key,
+        )
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/run-start-blockers",
+                json_body=payload,
+            ),
+            label="get_run_start_blockers",
+        )
+
     def trigger_run(
         self,
         project_id: str,
         *,
+        host_kind: str,
         work_mode: str,
+        worker_pool_id: str | None = None,
         timebox_seconds: int | None = None,
+        agent_profile: str | None = None,
         agent_model: str | None = None,
         agent_kind: str | None = None,
-        prompt: str | None = None,
-        workflow: dict[str, Any] | None = None,
-        sandbox_override: dict[str, Any] | None = None,
+        agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
+        initial_runtime_messages: Iterable[Mapping[str, Any] | dict[str, Any]] | None = None,
+        workflow: Mapping[str, Any] | dict[str, Any] | None = None,
+        sandbox_override: Mapping[str, Any] | dict[str, Any] | None = None,
+        idempotency_key_run_create: str | None = None,
+        idempotency_key: str | None = None,
     ) -> dict[str, Any]:
-        payload: dict[str, Any] = {"work_mode": work_mode}
-        if timebox_seconds is not None:
-            payload["timebox_seconds"] = int(timebox_seconds)
-        if agent_model and agent_model.strip():
-            payload["agent_model"] = agent_model.strip()
-        if agent_kind and agent_kind.strip():
-            payload["agent_kind"] = agent_kind.strip()
-        if prompt and prompt.strip():
-            payload["prompt"] = prompt.strip()
-        if workflow:
-            payload["workflow"] = workflow
-        if sandbox_override:
-            payload["sandbox_override"] = sandbox_override
+        payload = _build_project_run_payload(
+            host_kind=host_kind,
+            work_mode=work_mode,
+            worker_pool_id=worker_pool_id,
+            timebox_seconds=timebox_seconds,
+            agent_profile=agent_profile,
+            agent_model=agent_model,
+            agent_kind=agent_kind,
+            agent_model_params=agent_model_params,
+            initial_runtime_messages=initial_runtime_messages,
+            workflow=workflow,
+            sandbox_override=sandbox_override,
+            idempotency_key_run_create=idempotency_key_run_create,
+            idempotency_key=idempotency_key,
+        )
         return _coerce_dict(
             self._request_json("POST", f"/smr/projects/{project_id}/trigger", json_body=payload),
             label="trigger_run",

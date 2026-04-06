@@ -1,11 +1,6 @@
-"""CLI entrypoint for the stdio MCP server."""
+"""Allow ``python -m managed_research.mcp`` to start the stdio MCP server."""
 
-from managed_research.mcp.server import ManagedResearchMcpServer
-
-
-def main() -> None:
-    ManagedResearchMcpServer().serve_stdio()
-
+from managed_research.mcp.server import main
 
 if __name__ == "__main__":
     main()

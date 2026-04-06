@@ -32,4 +32,11 @@ def sync_public_schemas(
     return copied
 
 
-__all__ = ["sync_public_schemas"]
+def main() -> None:
+    """CLI entrypoint: sync quarantined legacy schemas into the generated folder."""
+    copied = sync_public_schemas()
+    for path in copied:
+        print(path)
+
+
+__all__ = ["main", "sync_public_schemas"]

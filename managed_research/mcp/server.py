@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import json
 import sys
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from managed_research.auth import get_api_key
+from managed_research.errors import SmrApiError
 from managed_research.mcp.registry import JSONDict, ToolDefinition
 from managed_research.mcp.tools.approvals import build_approval_tools
 from managed_research.mcp.tools.artifacts import build_artifact_tools
@@ -18,7 +19,6 @@ from managed_research.mcp.tools.projects import build_project_tools
 from managed_research.mcp.tools.runs import build_run_tools
 from managed_research.mcp.tools.usage import build_usage_tools
 from managed_research.mcp.tools.workspace_inputs import build_workspace_input_tools
-from managed_research.errors import SmrApiError
 from managed_research.sdk.client import SmrControlClient
 from managed_research.version import __version__
 
@@ -46,7 +46,7 @@ def _mcp_structured_trigger_error_payload(exc: BaseException) -> dict[str, Any] 
     return out
 
 
-class _UsageAnalyticsSubjectKind(str, Enum):
+class _UsageAnalyticsSubjectKind(StrEnum):
     ORG = "org"
     MANAGED_ACCOUNT = "managed_account"
 
@@ -59,9 +59,7 @@ def _resolve_usage_analytics_subject_kind(
     try:
         return _UsageAnalyticsSubjectKind(value)
     except ValueError as exc:
-        raise ValueError(
-            "'subject_kind' must be either 'org' or 'managed_account'"
-        ) from exc
+        raise ValueError("'subject_kind' must be either 'org' or 'managed_account'") from exc
 
 
 class RpcError(Exception):
@@ -96,6 +94,15 @@ def _optional_int(payload: JSONDict, key: str) -> int | None:
     if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError(f"'{key}' must be an integer when provided")
     return value
+
+
+def _reject_legacy_prompt_arg(payload: JSONDict) -> None:
+    if "prompt" in payload:
+        raise ValueError(
+            "The `prompt` field is no longer supported; use "
+            "`initial_runtime_messages` to enqueue kickoff text on the runtime "
+            "message queue."
+        )
 
 
 def _optional_bool(payload: JSONDict, key: str, *, default: bool = False) -> bool:
@@ -204,6 +211,14 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.get_project(project_id)
 
+    def _tool_patch_project(self, args: JSONDict) -> Any:
+        project_id = _require_string(args, "project_id")
+        config = args.get("config")
+        if not isinstance(config, dict):
+            raise ValueError("'config' is required and must be an object")
+        with self._client_from_args(args) as client:
+            return client.patch_project(project_id, dict(config))
+
     def _tool_get_project_status(self, args: JSONDict) -> Any:
         project_id = _require_string(args, "project_id")
         with self._client_from_args(args) as client:
@@ -214,6 +229,43 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.get_project_entitlement(project_id)
 
+    def _tool_get_project_notes(self, args: JSONDict) -> Any:
+        project_id = _require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_notes(project_id)
+
+    def _tool_set_project_notes(self, args: JSONDict) -> Any:
+        project_id = _require_string(args, "project_id")
+        notes = _require_string(args, "notes")
+        with self._client_from_args(args) as client:
+            return client.set_project_notes(project_id, notes)
+
+    def _tool_append_project_notes(self, args: JSONDict) -> Any:
+        project_id = _require_string(args, "project_id")
+        notes = _require_string(args, "notes")
+        with self._client_from_args(args) as client:
+            return client.append_project_notes(project_id, notes)
+
+    def _tool_pause_project(self, args: JSONDict) -> Any:
+        project_id = _require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.pause_project(project_id)
+
+    def _tool_resume_project(self, args: JSONDict) -> Any:
+        project_id = _require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.resume_project(project_id)
+
+    def _tool_archive_project(self, args: JSONDict) -> Any:
+        project_id = _require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.archive_project(project_id)
+
+    def _tool_unarchive_project(self, args: JSONDict) -> Any:
+        project_id = _require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.unarchive_project(project_id)
+
     def _tool_get_capabilities(self, args: JSONDict) -> Any:
         with self._client_from_args(args) as client:
             return client.get_capabilities()
@@ -221,6 +273,59 @@ class ManagedResearchMcpServer:
     def _tool_get_limits(self, args: JSONDict) -> Any:
         with self._client_from_args(args) as client:
             return client.get_limits()
+
+    def _tool_get_capacity_lane_preview(self, args: JSONDict) -> Any:
+        project_id = _require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.get_capacity_lane_preview(project_id)
+
+    def _tool_get_run_start_blockers(self, args: JSONDict) -> Any:
+        _reject_legacy_prompt_arg(args)
+        project_id = _require_string(args, "project_id")
+        host_kind = _require_string(args, "host_kind")
+        work_mode = _require_string(args, "work_mode")
+        worker_pool_id = _optional_string(args, "worker_pool_id")
+        timebox_seconds = _optional_int(args, "timebox_seconds")
+        agent_profile = _optional_string(args, "agent_profile")
+        agent_model = _optional_string(args, "agent_model")
+        agent_kind = _optional_string(args, "agent_kind")
+        agent_model_params = (
+            args.get("agent_model_params")
+            if isinstance(args.get("agent_model_params"), dict)
+            else None
+        )
+        initial_runtime_messages = (
+            [
+                dict(item)
+                for item in args.get("initial_runtime_messages", [])
+                if isinstance(item, dict)
+            ]
+            if isinstance(args.get("initial_runtime_messages"), list)
+            else None
+        )
+        workflow = args.get("workflow") if isinstance(args.get("workflow"), dict) else None
+        sandbox_override = (
+            args.get("sandbox_override") if isinstance(args.get("sandbox_override"), dict) else None
+        )
+        idempotency_key_run_create = _optional_string(args, "idempotency_key_run_create")
+        idempotency_key = _optional_string(args, "idempotency_key")
+        with self._client_from_args(args) as client:
+            return client.get_run_start_blockers(
+                project_id,
+                host_kind=host_kind,
+                work_mode=work_mode,
+                worker_pool_id=worker_pool_id,
+                timebox_seconds=timebox_seconds,
+                agent_profile=agent_profile,
+                agent_model=agent_model,
+                agent_kind=agent_kind,
+                agent_model_params=agent_model_params,
+                initial_runtime_messages=initial_runtime_messages,
+                workflow=workflow,
+                sandbox_override=sandbox_override,
+                idempotency_key_run_create=idempotency_key_run_create,
+                idempotency_key=idempotency_key,
+            )
 
     def _tool_get_workspace_download_url(self, args: JSONDict) -> Any:
         project_id = _require_string(args, "project_id")
@@ -306,27 +411,52 @@ class ManagedResearchMcpServer:
             return client.upload_workspace_files(project_id, normalized)
 
     def _tool_trigger_run(self, args: JSONDict) -> Any:
+        _reject_legacy_prompt_arg(args)
         project_id = _require_string(args, "project_id")
+        host_kind = _require_string(args, "host_kind")
         work_mode = _require_string(args, "work_mode")
+        worker_pool_id = _optional_string(args, "worker_pool_id")
         timebox_seconds = _optional_int(args, "timebox_seconds")
+        agent_profile = _optional_string(args, "agent_profile")
         agent_model = _optional_string(args, "agent_model")
         agent_kind = _optional_string(args, "agent_kind")
-        prompt = _optional_string(args, "prompt")
+        agent_model_params = (
+            args.get("agent_model_params")
+            if isinstance(args.get("agent_model_params"), dict)
+            else None
+        )
+        initial_runtime_messages = (
+            [
+                dict(item)
+                for item in args.get("initial_runtime_messages", [])
+                if isinstance(item, dict)
+            ]
+            if isinstance(args.get("initial_runtime_messages"), list)
+            else None
+        )
         workflow = args.get("workflow") if isinstance(args.get("workflow"), dict) else None
         sandbox_override = (
             args.get("sandbox_override") if isinstance(args.get("sandbox_override"), dict) else None
         )
+        idempotency_key_run_create = _optional_string(args, "idempotency_key_run_create")
+        idempotency_key = _optional_string(args, "idempotency_key")
         try:
             with self._client_from_args(args) as client:
                 return client.trigger_run(
                     project_id,
+                    host_kind=host_kind,
                     work_mode=work_mode,
+                    worker_pool_id=worker_pool_id,
                     timebox_seconds=timebox_seconds,
+                    agent_profile=agent_profile,
                     agent_model=agent_model,
                     agent_kind=agent_kind,
-                    prompt=prompt,
+                    agent_model_params=agent_model_params,
+                    initial_runtime_messages=initial_runtime_messages,
                     workflow=workflow,
                     sandbox_override=sandbox_override,
+                    idempotency_key_run_create=idempotency_key_run_create,
+                    idempotency_key=idempotency_key,
                 )
         except SmrApiError as exc:
             payload = _mcp_structured_trigger_error_payload(exc)
@@ -501,10 +631,16 @@ class ManagedResearchMcpServer:
             }
 
 
+def main() -> None:
+    """CLI entrypoint for the stdio MCP server."""
+    ManagedResearchMcpServer().serve_stdio()
+
+
 __all__ = [
     "DEFAULT_PROTOCOL_VERSION",
     "ManagedResearchMcpServer",
     "SERVER_NAME",
     "SUPPORTED_PROTOCOL_VERSIONS",
     "_read_message",
+    "main",
 ]

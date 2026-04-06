@@ -14,9 +14,18 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
             description="Return a connectivity and setup report for the managed-research MCP server.",
             input_schema=tool_schema(
                 {
-                    "project_id": {"type": "string", "description": "Optional project id to verify access."},
-                    "api_key": {"type": "string", "description": "Optional Synth API key override."},
-                    "backend_base": {"type": "string", "description": "Optional backend base override."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project id to verify access.",
+                    },
+                    "api_key": {
+                        "type": "string",
+                        "description": "Optional Synth API key override.",
+                    },
+                    "backend_base": {
+                        "type": "string",
+                        "description": "Optional backend base override.",
+                    },
                 },
                 required=[],
             ),
@@ -28,7 +37,10 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
             input_schema=tool_schema(
                 {
                     "name": {"type": "string", "description": "Human-readable project name."},
-                    "config": {"type": "object", "description": "Additional project configuration payload."},
+                    "config": {
+                        "type": "object",
+                        "description": "Additional project configuration payload.",
+                    },
                 },
                 required=[],
             ),
@@ -39,7 +51,10 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
             description="List managed research projects.",
             input_schema=tool_schema(
                 {
-                    "include_archived": {"type": "boolean", "description": "Include archived projects."},
+                    "include_archived": {
+                        "type": "boolean",
+                        "description": "Include archived projects.",
+                    },
                     "limit": {"type": "integer", "description": "Maximum projects to return."},
                 },
                 required=[],
@@ -54,6 +69,21 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
                 required=["project_id"],
             ),
             handler=server._tool_get_project,
+        ),
+        ToolDefinition(
+            name="smr_patch_project",
+            description="Patch a managed research project.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "config": {
+                        "type": "object",
+                        "description": "Partial project fields to update.",
+                    },
+                },
+                required=["project_id", "config"],
+            ),
+            handler=server._tool_patch_project,
         ),
         ToolDefinition(
             name="smr_get_project_status",
@@ -74,6 +104,75 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_get_project_entitlement,
         ),
         ToolDefinition(
+            name="smr_get_project_notes",
+            description="Fetch the durable notebook text for a managed research project.",
+            input_schema=tool_schema(
+                {"project_id": {"type": "string", "description": "Managed research project id."}},
+                required=["project_id"],
+            ),
+            handler=server._tool_get_project_notes,
+        ),
+        ToolDefinition(
+            name="smr_set_project_notes",
+            description="Replace the durable notebook text for a managed research project.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "notes": {"type": "string", "description": "Notebook text to store."},
+                },
+                required=["project_id", "notes"],
+            ),
+            handler=server._tool_set_project_notes,
+        ),
+        ToolDefinition(
+            name="smr_append_project_notes",
+            description="Append text to the durable notebook for a managed research project.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "notes": {"type": "string", "description": "Notebook text to append."},
+                },
+                required=["project_id", "notes"],
+            ),
+            handler=server._tool_append_project_notes,
+        ),
+        ToolDefinition(
+            name="smr_pause_project",
+            description="Pause a managed research project so new runs cannot start.",
+            input_schema=tool_schema(
+                {"project_id": {"type": "string", "description": "Managed research project id."}},
+                required=["project_id"],
+            ),
+            handler=server._tool_pause_project,
+        ),
+        ToolDefinition(
+            name="smr_resume_project",
+            description="Resume a paused managed research project.",
+            input_schema=tool_schema(
+                {"project_id": {"type": "string", "description": "Managed research project id."}},
+                required=["project_id"],
+            ),
+            handler=server._tool_resume_project,
+        ),
+        ToolDefinition(
+            name="smr_archive_project",
+            description="Archive a managed research project.",
+            input_schema=tool_schema(
+                {"project_id": {"type": "string", "description": "Managed research project id."}},
+                required=["project_id"],
+            ),
+            handler=server._tool_archive_project,
+        ),
+        ToolDefinition(
+            name="smr_unarchive_project",
+            description="Unarchive a managed research project.",
+            input_schema=tool_schema(
+                {"project_id": {"type": "string", "description": "Managed research project id."}},
+                required=["project_id"],
+            ),
+            handler=server._tool_unarchive_project,
+        ),
+        ToolDefinition(
             name="smr_get_capabilities",
             description=(
                 "Fetch server capabilities for parity-safe client behavior. "
@@ -85,9 +184,101 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
         ),
         ToolDefinition(
             name="smr_get_limits",
-            description="Fetch resource limits for the authenticated org's plan. Returns each resource with its cap, window, refresh cadence, and whether it is unlimited.",
+            description="Fetch resource limits for the authenticated org's plan. This is informative only; trigger and blockers remain authoritative.",
             input_schema=tool_schema({}, required=[]),
             handler=server._tool_get_limits,
+        ),
+        ToolDefinition(
+            name="smr_get_capacity_lane_preview",
+            description=(
+                "Preview the preferred/resolved capacity lane before launch. "
+                "Call this before smr_get_run_start_blockers or smr_trigger_run when you need a user-facing launch check."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "api_key": {
+                        "type": "string",
+                        "description": "Optional Synth API key override.",
+                    },
+                    "backend_base": {
+                        "type": "string",
+                        "description": "Optional backend base override.",
+                    },
+                },
+                required=["project_id"],
+            ),
+            handler=server._tool_get_capacity_lane_preview,
+        ),
+        ToolDefinition(
+            name="smr_get_run_start_blockers",
+            description=(
+                "Return ordered launch blockers for the same payload shape used by smr_trigger_run. "
+                "Use this before trigger when you want a clear 'can I launch?' answer."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "host_kind": {
+                        "type": "string",
+                        "description": "Execution substrate for this run: local, docker, or daytona.",
+                    },
+                    "work_mode": {
+                        "type": "string",
+                        "enum": ["open_ended_discovery", "directed_effort"],
+                        "description": "Run work mode.",
+                    },
+                    "worker_pool_id": {
+                        "type": "string",
+                        "description": "Optional worker pool override.",
+                    },
+                    "timebox_seconds": {"type": "integer", "description": "Optional run timebox."},
+                    "agent_profile": {
+                        "type": "string",
+                        "description": "Optional agent profile override.",
+                    },
+                    "agent_model": {
+                        "type": "string",
+                        "description": "Optional run-level agent model override.",
+                    },
+                    "agent_kind": {
+                        "type": "string",
+                        "description": "Optional run-level agent kind override.",
+                    },
+                    "agent_model_params": {
+                        "type": "object",
+                        "description": "Optional agent model params override (for example reasoning_effort).",
+                    },
+                    "initial_runtime_messages": {
+                        "type": "array",
+                        "description": "Optional kickoff runtime messages to enqueue durably before the run starts. Use this instead of the removed prompt field.",
+                        "items": {"type": "object"},
+                    },
+                    "workflow": {"type": "object", "description": "Optional workflow override."},
+                    "sandbox_override": {
+                        "type": "object",
+                        "description": "Optional sandbox override.",
+                    },
+                    "idempotency_key_run_create": {
+                        "type": "string",
+                        "description": "Optional idempotency key for the launch request.",
+                    },
+                    "idempotency_key": {
+                        "type": "string",
+                        "description": "Deprecated compatibility alias for idempotency_key_run_create.",
+                    },
+                    "api_key": {
+                        "type": "string",
+                        "description": "Optional Synth API key override.",
+                    },
+                    "backend_base": {
+                        "type": "string",
+                        "description": "Optional backend base override.",
+                    },
+                },
+                required=["project_id", "host_kind", "work_mode"],
+            ),
+            handler=server._tool_get_run_start_blockers,
         ),
         ToolDefinition(
             name="smr_get_workspace_download_url",
@@ -99,8 +290,14 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
             input_schema=tool_schema(
                 {
                     "project_id": {"type": "string", "description": "Managed research project id."},
-                    "api_key": {"type": "string", "description": "Optional Synth API key override."},
-                    "backend_base": {"type": "string", "description": "Optional backend base override."},
+                    "api_key": {
+                        "type": "string",
+                        "description": "Optional Synth API key override.",
+                    },
+                    "backend_base": {
+                        "type": "string",
+                        "description": "Optional backend base override.",
+                    },
                 },
                 required=["project_id"],
             ),
@@ -115,8 +312,14 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
             input_schema=tool_schema(
                 {
                     "project_id": {"type": "string", "description": "Managed research project id."},
-                    "api_key": {"type": "string", "description": "Optional Synth API key override."},
-                    "backend_base": {"type": "string", "description": "Optional backend base override."},
+                    "api_key": {
+                        "type": "string",
+                        "description": "Optional Synth API key override.",
+                    },
+                    "backend_base": {
+                        "type": "string",
+                        "description": "Optional backend base override.",
+                    },
                 },
                 required=["project_id"],
             ),
@@ -140,8 +343,14 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
                         "type": "integer",
                         "description": "HTTP timeout for the presigned download in seconds (default 600).",
                     },
-                    "api_key": {"type": "string", "description": "Optional Synth API key override."},
-                    "backend_base": {"type": "string", "description": "Optional backend base override."},
+                    "api_key": {
+                        "type": "string",
+                        "description": "Optional Synth API key override.",
+                    },
+                    "backend_base": {
+                        "type": "string",
+                        "description": "Optional backend base override.",
+                    },
                 },
                 required=["project_id", "output_path"],
             ),

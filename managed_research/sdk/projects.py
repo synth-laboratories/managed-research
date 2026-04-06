@@ -20,6 +20,27 @@ class ProjectsAPI(_ClientNamespace):
     def patch(self, project_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         return self._client.patch_project(project_id, payload)
 
+    def pause(self, project_id: str) -> dict[str, Any]:
+        return self._client.pause_project(project_id)
+
+    def resume(self, project_id: str) -> dict[str, Any]:
+        return self._client.resume_project(project_id)
+
+    def archive(self, project_id: str) -> dict[str, Any]:
+        return self._client.archive_project(project_id)
+
+    def unarchive(self, project_id: str) -> dict[str, Any]:
+        return self._client.unarchive_project(project_id)
+
+    def get_notes(self, project_id: str) -> dict[str, Any]:
+        return self._client.get_project_notes(project_id)
+
+    def set_notes(self, project_id: str, notes: str) -> dict[str, Any]:
+        return self._client.set_project_notes(project_id, notes)
+
+    def append_notes(self, project_id: str, notes: str) -> dict[str, Any]:
+        return self._client.append_project_notes(project_id, notes)
+
     def get_status(self, project_id: str) -> dict[str, Any]:
         return self._client.get_project_status(project_id)
 
@@ -35,11 +56,17 @@ class ProjectsAPI(_ClientNamespace):
     def get_limits(self) -> dict[str, Any]:
         return self._client.get_limits()
 
+    def get_capacity_lane_preview(self, project_id: str) -> dict[str, Any]:
+        return self._client.get_capacity_lane_preview(project_id)
+
     def get_workspace_download_url(self, project_id: str) -> dict[str, Any]:
         return self._client.get_workspace_download_url(project_id)
 
     def get_git(self, project_id: str) -> dict[str, Any]:
         return self._client.get_project_git(project_id)
+
+    def get_run_start_blockers(self, project_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.get_run_start_blockers(project_id, **kwargs)
 
     def download_workspace_archive(
         self,

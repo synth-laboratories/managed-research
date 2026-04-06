@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "synth-managed-research"
-version = "0.1.0"
+version = "0.2025.0405"
 description = "Public SDK, MCP, and schemas for Managed Research."
 readme = "PACKAGE_README.md"
 requires-python = ">=3.11"
@@ -22,6 +22,10 @@ dev = [
     "ruff>=0.15.0",
     "ty>=0.0.28",
 ]
+
+[project.scripts]
+managed-research-mcp = "managed_research.mcp.server:main"
+managed-research-sync-schemas = "managed_research.schema_sync:main"
 
 [project.urls]
 Homepage = "https://github.com/synth-laboratories/managed-research"
