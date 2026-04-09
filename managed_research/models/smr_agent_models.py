@@ -1,0 +1,43 @@
+"""Generated public SMR agent model enum.
+
+Source of truth: backend/config/smr_public_models.json
+"""
+
+from __future__ import annotations
+
+from enum import StrEnum
+
+
+class SmrAgentModel(StrEnum):
+    GPT_5_3_CODEX = "gpt-5.3-codex"
+    GPT_5_3_CODEX_SPARK = "gpt-5.3-codex-spark"
+    GPT_5_4 = "gpt-5.4"
+    GPT_5_4_MINI = "gpt-5.4-mini"
+    GPT_5_4_NANO = "gpt-5.4-nano"
+    GPT_OSS_120B = "gpt-oss-120b"
+
+
+SMR_AGENT_MODEL_VALUES: tuple[str, ...] = tuple(model.value for model in SmrAgentModel)
+
+
+def coerce_smr_agent_model(
+    value: SmrAgentModel | str | None,
+    *,
+    field_name: str = "agent_model",
+) -> SmrAgentModel | None:
+    if value is None:
+        return None
+    if isinstance(value, SmrAgentModel):
+        return value
+    normalized = str(value).strip()
+    if not normalized:
+        return None
+    try:
+        return SmrAgentModel(normalized)
+    except ValueError as exc:
+        raise ValueError(
+            f"{field_name} must be one of: {', '.join(SMR_AGENT_MODEL_VALUES)}"
+        ) from exc
+
+
+__all__ = ["SMR_AGENT_MODEL_VALUES", "SmrAgentModel", "coerce_smr_agent_model"]

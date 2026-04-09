@@ -5,6 +5,40 @@ from __future__ import annotations
 from typing import Any
 
 from managed_research.mcp.registry import ToolDefinition, tool_schema
+from managed_research.models.smr_agent_models import SMR_AGENT_MODEL_VALUES
+from managed_research.models.smr_actor_models import (
+    SMR_ACTOR_SUBTYPE_VALUES,
+    SMR_ACTOR_TYPE_VALUES,
+)
+from managed_research.models.smr_host_kinds import SMR_HOST_KIND_VALUES
+
+
+def _actor_model_assignment_schema(*, field_label: str) -> dict[str, Any]:
+    return {
+        "type": "array",
+        "description": field_label,
+        "items": {
+            "type": "object",
+            "properties": {
+                "actor_type": {
+                    "type": "string",
+                    "enum": list(SMR_ACTOR_TYPE_VALUES),
+                },
+                "actor_subtype": {
+                    "type": "string",
+                    "enum": list(SMR_ACTOR_SUBTYPE_VALUES),
+                },
+                "agent_model": {
+                    "type": "string",
+                    "enum": list(SMR_AGENT_MODEL_VALUES),
+                },
+                "agent_model_params": {
+                    "type": "object",
+                },
+            },
+            "required": ["actor_type", "actor_subtype", "agent_model"],
+        },
+    }
 
 
 def build_run_tools(server: Any) -> list[ToolDefinition]:
@@ -21,6 +55,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                     "project_id": {"type": "string", "description": "Managed research project id."},
                     "host_kind": {
                         "type": "string",
+                        "enum": list(SMR_HOST_KIND_VALUES),
                         "description": "Execution substrate for this run: local, docker, or daytona.",
                     },
                     "work_mode": {
@@ -35,11 +70,12 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                     "timebox_seconds": {"type": "integer", "description": "Optional run timebox."},
                     "agent_profile": {
                         "type": "string",
-                        "description": "Optional agent profile override.",
+                        "description": "Optional agent profile override. Prefer this when you want an exact backend-managed preset.",
                     },
                     "agent_model": {
                         "type": "string",
-                        "description": "Optional run-level agent model override.",
+                        "enum": list(SMR_AGENT_MODEL_VALUES),
+                        "description": "Optional run-level agent model override using a public model id such as gpt-5.4, gpt-5.4-nano, or gpt-oss-120b.",
                     },
                     "agent_kind": {
                         "type": "string",
@@ -49,6 +85,12 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "type": "object",
                         "description": "Optional agent model params override (for example reasoning_effort).",
                     },
+                    "actor_model_overrides": _actor_model_assignment_schema(
+                        field_label=(
+                            "Optional actor-scoped model overrides keyed by actor_type "
+                            "and actor_subtype."
+                        )
+                    ),
                     "initial_runtime_messages": {
                         "type": "array",
                         "description": "Optional kickoff runtime messages to enqueue durably before the run starts. Use this instead of the removed prompt field.",

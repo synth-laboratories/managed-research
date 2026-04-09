@@ -10,6 +10,9 @@ from typing import Any
 from managed_research.auth import get_api_key
 from managed_research.errors import SmrApiError
 from managed_research.mcp.registry import JSONDict, ToolDefinition
+from managed_research.models.smr_agent_models import coerce_smr_agent_model
+from managed_research.models.smr_actor_models import normalize_actor_model_assignments
+from managed_research.models.smr_host_kinds import coerce_smr_host_kind
 from managed_research.mcp.tools.approvals import build_approval_tools
 from managed_research.mcp.tools.artifacts import build_artifact_tools
 from managed_research.mcp.tools.integrations import build_integration_tools
@@ -85,6 +88,28 @@ def _optional_string(payload: JSONDict, key: str) -> str | None:
         raise ValueError(f"'{key}' must be a string when provided")
     stripped = value.strip()
     return stripped or None
+
+
+def _optional_smr_agent_model(payload: JSONDict, key: str) -> str | None:
+    value = _optional_string(payload, key)
+    model = coerce_smr_agent_model(value, field_name=key)
+    return model.value if model is not None else None
+
+
+def _require_smr_host_kind(payload: JSONDict, key: str) -> str:
+    value = _require_string(payload, key)
+    host_kind = coerce_smr_host_kind(value, field_name=key)
+    if host_kind is None:
+        raise ValueError(f"'{key}' is required")
+    return host_kind.value
+
+
+def _optional_actor_model_assignments(payload: JSONDict, key: str) -> list[dict[str, Any]] | None:
+    value = payload.get(key)
+    normalized = normalize_actor_model_assignments(value, field_name=key)
+    if not normalized:
+        return None
+    return [item.as_payload() for item in normalized]
 
 
 def _optional_int(payload: JSONDict, key: str) -> int | None:
@@ -195,10 +220,17 @@ class ManagedResearchMcpServer:
         payload = args.get("config")
         config = dict(payload) if isinstance(payload, dict) else {}
         name = _optional_string(args, "name")
+        actor_model_assignments = _optional_actor_model_assignments(
+            args,
+            "actor_model_assignments",
+        )
         if name:
             config["name"] = name
         with self._client_from_args(args) as client:
-            return client.create_project(config)
+            return client.create_project(
+                config,
+                actor_model_assignments=actor_model_assignments,
+            )
 
     def _tool_list_projects(self, args: JSONDict) -> Any:
         include_archived = _optional_bool(args, "include_archived", default=False)
@@ -216,8 +248,16 @@ class ManagedResearchMcpServer:
         config = args.get("config")
         if not isinstance(config, dict):
             raise ValueError("'config' is required and must be an object")
+        actor_model_assignments = _optional_actor_model_assignments(
+            args,
+            "actor_model_assignments",
+        )
         with self._client_from_args(args) as client:
-            return client.patch_project(project_id, dict(config))
+            return client.patch_project(
+                project_id,
+                dict(config),
+                actor_model_assignments=actor_model_assignments,
+            )
 
     def _tool_get_project_status(self, args: JSONDict) -> Any:
         project_id = _require_string(args, "project_id")
@@ -306,17 +346,21 @@ class ManagedResearchMcpServer:
     def _tool_get_run_start_blockers(self, args: JSONDict) -> Any:
         _reject_legacy_prompt_arg(args)
         project_id = _require_string(args, "project_id")
-        host_kind = _require_string(args, "host_kind")
+        host_kind = _require_smr_host_kind(args, "host_kind")
         work_mode = _require_string(args, "work_mode")
         worker_pool_id = _optional_string(args, "worker_pool_id")
         timebox_seconds = _optional_int(args, "timebox_seconds")
         agent_profile = _optional_string(args, "agent_profile")
-        agent_model = _optional_string(args, "agent_model")
+        agent_model = _optional_smr_agent_model(args, "agent_model")
         agent_kind = _optional_string(args, "agent_kind")
         agent_model_params = (
             args.get("agent_model_params")
             if isinstance(args.get("agent_model_params"), dict)
             else None
+        )
+        actor_model_overrides = _optional_actor_model_assignments(
+            args,
+            "actor_model_overrides",
         )
         initial_runtime_messages = (
             [
@@ -344,6 +388,7 @@ class ManagedResearchMcpServer:
                 agent_model=agent_model,
                 agent_kind=agent_kind,
                 agent_model_params=agent_model_params,
+                actor_model_overrides=actor_model_overrides,
                 initial_runtime_messages=initial_runtime_messages,
                 workflow=workflow,
                 sandbox_override=sandbox_override,
@@ -437,17 +482,21 @@ class ManagedResearchMcpServer:
     def _tool_trigger_run(self, args: JSONDict) -> Any:
         _reject_legacy_prompt_arg(args)
         project_id = _require_string(args, "project_id")
-        host_kind = _require_string(args, "host_kind")
+        host_kind = _require_smr_host_kind(args, "host_kind")
         work_mode = _require_string(args, "work_mode")
         worker_pool_id = _optional_string(args, "worker_pool_id")
         timebox_seconds = _optional_int(args, "timebox_seconds")
         agent_profile = _optional_string(args, "agent_profile")
-        agent_model = _optional_string(args, "agent_model")
+        agent_model = _optional_smr_agent_model(args, "agent_model")
         agent_kind = _optional_string(args, "agent_kind")
         agent_model_params = (
             args.get("agent_model_params")
             if isinstance(args.get("agent_model_params"), dict)
             else None
+        )
+        actor_model_overrides = _optional_actor_model_assignments(
+            args,
+            "actor_model_overrides",
         )
         initial_runtime_messages = (
             [
@@ -476,6 +525,7 @@ class ManagedResearchMcpServer:
                     agent_model=agent_model,
                     agent_kind=agent_kind,
                     agent_model_params=agent_model_params,
+                    actor_model_overrides=actor_model_overrides,
                     initial_runtime_messages=initial_runtime_messages,
                     workflow=workflow,
                     sandbox_override=sandbox_override,

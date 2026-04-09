@@ -14,7 +14,23 @@ import httpx
 
 from managed_research.auth import BACKEND_URL_BASE, get_api_key, normalize_backend_base
 from managed_research.errors import SmrApiError
+from managed_research.models.smr_agent_models import SmrAgentModel, coerce_smr_agent_model
+from managed_research.models.smr_actor_models import (
+    SmrActorModelAssignment,
+    normalize_actor_model_assignments,
+    validate_shared_top_level_agent_model,
+)
+from managed_research.models.smr_credential_providers import (
+    SmrCredentialProvider,
+    coerce_smr_credential_provider,
+)
+from managed_research.models.smr_funding_sources import (
+    SmrFundingSource,
+    coerce_smr_funding_source,
+)
+from managed_research.models.smr_host_kinds import SmrHostKind, coerce_smr_host_kind
 from managed_research.models import UsageAnalyticsPayload, UsageAnalyticsSubject
+from managed_research.models.smr_run_policy import SmrRunPolicy, coerce_smr_run_policy
 from managed_research.sdk.approvals import ApprovalsAPI
 from managed_research.sdk.artifacts import ArtifactsAPI
 from managed_research.sdk.integrations import IntegrationsAPI
@@ -121,34 +137,130 @@ def _optional_mapping_list(
     return normalized
 
 
+def _require_smr_credential_provider(
+    value: SmrCredentialProvider | str | None,
+    *,
+    field_name: str = "provider",
+) -> SmrCredentialProvider:
+    provider = coerce_smr_credential_provider(value, field_name=field_name)
+    if provider is None:
+        raise ValueError(f"{field_name} is required")
+    return provider
+
+
+def _require_smr_funding_source(
+    value: SmrFundingSource | str | None,
+    *,
+    field_name: str = "funding_source",
+) -> SmrFundingSource:
+    funding_source = coerce_smr_funding_source(value, field_name=field_name)
+    if funding_source is None:
+        raise ValueError(f"{field_name} is required")
+    return funding_source
+
+
+def _normalized_actor_model_assignment_payloads(
+    payload: Iterable[SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]] | None,
+    *,
+    field_name: str,
+) -> list[dict[str, Any]]:
+    normalized = normalize_actor_model_assignments(
+        list(payload) if payload is not None else None,
+        field_name=field_name,
+    )
+    return [item.as_payload() for item in normalized]
+
+
+def _merge_execution_actor_model_assignments(
+    payload: Mapping[str, Any] | dict[str, Any],
+    *,
+    actor_model_assignments: Iterable[SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]]
+    | None,
+) -> dict[str, Any]:
+    normalized_payload = dict(payload)
+    assignment_payloads = _normalized_actor_model_assignment_payloads(
+        actor_model_assignments,
+        field_name="actor_model_assignments",
+    )
+    if not assignment_payloads:
+        return normalized_payload
+    execution = (
+        dict(normalized_payload.get("execution"))
+        if isinstance(normalized_payload.get("execution"), Mapping)
+        else {}
+    )
+    if any(
+        execution.get(key)
+        for key in (
+            "agent_kind",
+            "agent_model",
+            "agent_model_params",
+            "agent_profiles",
+        )
+    ):
+        raise ValueError(
+            "actor_model_assignments cannot be combined with shared execution.agent_kind/"
+            "agent_model/agent_model_params/agent_profiles"
+        )
+    execution["actor_model_assignments"] = assignment_payloads
+    normalized_payload["execution"] = execution
+    return normalized_payload
+
+
 def _build_project_run_payload(
     *,
-    host_kind: str,
+    host_kind: SmrHostKind,
     work_mode: str,
     worker_pool_id: str | None = None,
     timebox_seconds: int | None = None,
     agent_profile: str | None = None,
-    agent_model: str | None = None,
+    agent_model: SmrAgentModel | None = None,
     agent_kind: str | None = None,
     agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
+    actor_model_overrides: Iterable[
+        SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]
+    ]
+    | None = None,
     initial_runtime_messages: Iterable[Mapping[str, Any] | dict[str, Any]] | None = None,
     workflow: Mapping[str, Any] | dict[str, Any] | None = None,
     sandbox_override: Mapping[str, Any] | dict[str, Any] | None = None,
+    run_policy: SmrRunPolicy | Mapping[str, Any] | dict[str, Any] | None = None,
     idempotency_key_run_create: str | None = None,
     idempotency_key: str | None = None,
 ) -> dict[str, Any]:
+    normalized_host_kind = coerce_smr_host_kind(host_kind, field_name="host_kind")
+    if normalized_host_kind is None:
+        raise ValueError("host_kind is required")
     payload: dict[str, Any] = {
-        "host_kind": _require_non_empty_string(host_kind, field_name="host_kind"),
+        "host_kind": normalized_host_kind.value,
         "work_mode": _require_non_empty_string(work_mode, field_name="work_mode"),
     }
+    normalized_actor_model_overrides = _normalized_actor_model_assignment_payloads(
+        actor_model_overrides,
+        field_name="actor_model_overrides",
+    )
     if worker_pool_id and worker_pool_id.strip():
         payload["worker_pool_id"] = worker_pool_id.strip()
     if timebox_seconds is not None:
         payload["timebox_seconds"] = int(timebox_seconds)
     if agent_profile and agent_profile.strip():
         payload["agent_profile"] = agent_profile.strip()
-    if agent_model and agent_model.strip():
-        payload["agent_model"] = agent_model.strip()
+    if normalized_actor_model_overrides and (
+        (agent_profile and agent_profile.strip())
+        or agent_model is not None
+        or (agent_kind and agent_kind.strip())
+        or agent_model_params is not None
+    ):
+        raise ValueError(
+            "actor_model_overrides cannot be combined with shared top-level "
+            "agent_profile/agent_model/agent_kind/agent_model_params"
+        )
+    normalized_agent_model = validate_shared_top_level_agent_model(
+        agent_model,
+        field_name="agent_model",
+    )
+    if normalized_agent_model is not None:
+        payload["agent_model"] = normalized_agent_model.value
     if agent_kind and agent_kind.strip():
         payload["agent_kind"] = agent_kind.strip()
     normalized_agent_model_params = _optional_mapping(
@@ -157,6 +269,8 @@ def _build_project_run_payload(
     )
     if normalized_agent_model_params:
         payload["agent_model_params"] = normalized_agent_model_params
+    if normalized_actor_model_overrides:
+        payload["actor_model_overrides"] = normalized_actor_model_overrides
     normalized_initial_runtime_messages = _optional_mapping_list(
         initial_runtime_messages,
         field_name="initial_runtime_messages",
@@ -172,6 +286,9 @@ def _build_project_run_payload(
     )
     if normalized_sandbox_override:
         payload["sandbox_override"] = normalized_sandbox_override
+    normalized_run_policy = coerce_smr_run_policy(run_policy, field_name="run_policy")
+    if normalized_run_policy is not None:
+        payload["run_policy"] = normalized_run_policy
     if idempotency_key_run_create and idempotency_key_run_create.strip():
         payload["idempotency_key_run_create"] = idempotency_key_run_create.strip()
     if idempotency_key and idempotency_key.strip():
@@ -343,9 +460,22 @@ class SmrControlClient:
             allow_not_found=allow_not_found,
         )
 
-    def create_project(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def create_project(
+        self,
+        payload: dict[str, Any],
+        *,
+        actor_model_assignments: Iterable[
+            SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]
+        ]
+        | None = None,
+    ) -> dict[str, Any]:
+        normalized_payload = _merge_execution_actor_model_assignments(
+            payload,
+            actor_model_assignments=actor_model_assignments,
+        )
         return _coerce_dict(
-            self._request_json("POST", "/smr/projects", json_body=payload), label="create_project"
+            self._request_json("POST", "/smr/projects", json_body=normalized_payload),
+            label="create_project",
         )
 
     def list_projects(
@@ -369,9 +499,26 @@ class SmrControlClient:
             self._request_json("GET", f"/smr/projects/{project_id}"), label="get_project"
         )
 
-    def patch_project(self, project_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def patch_project(
+        self,
+        project_id: str,
+        payload: dict[str, Any],
+        *,
+        actor_model_assignments: Iterable[
+            SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]
+        ]
+        | None = None,
+    ) -> dict[str, Any]:
+        normalized_payload = _merge_execution_actor_model_assignments(
+            payload,
+            actor_model_assignments=actor_model_assignments,
+        )
         return _coerce_dict(
-            self._request_json("PATCH", f"/smr/projects/{project_id}", json_body=payload),
+            self._request_json(
+                "PATCH",
+                f"/smr/projects/{project_id}",
+                json_body=normalized_payload,
+            ),
             label="patch_project",
         )
 
@@ -619,14 +766,18 @@ class SmrControlClient:
         self,
         project_id: str,
         *,
-        host_kind: str,
+        host_kind: SmrHostKind,
         work_mode: str,
         worker_pool_id: str | None = None,
         timebox_seconds: int | None = None,
         agent_profile: str | None = None,
-        agent_model: str | None = None,
+        agent_model: SmrAgentModel | None = None,
         agent_kind: str | None = None,
         agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
+        actor_model_overrides: Iterable[
+            SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]
+        ]
+        | None = None,
         initial_runtime_messages: Iterable[Mapping[str, Any] | dict[str, Any]] | None = None,
         workflow: Mapping[str, Any] | dict[str, Any] | None = None,
         sandbox_override: Mapping[str, Any] | dict[str, Any] | None = None,
@@ -642,6 +793,7 @@ class SmrControlClient:
             agent_model=agent_model,
             agent_kind=agent_kind,
             agent_model_params=agent_model_params,
+            actor_model_overrides=actor_model_overrides,
             initial_runtime_messages=initial_runtime_messages,
             workflow=workflow,
             sandbox_override=sandbox_override,
@@ -661,14 +813,18 @@ class SmrControlClient:
         self,
         project_id: str,
         *,
-        host_kind: str,
+        host_kind: SmrHostKind,
         work_mode: str,
         worker_pool_id: str | None = None,
         timebox_seconds: int | None = None,
         agent_profile: str | None = None,
-        agent_model: str | None = None,
+        agent_model: SmrAgentModel | None = None,
         agent_kind: str | None = None,
         agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
+        actor_model_overrides: Iterable[
+            SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]
+        ]
+        | None = None,
         initial_runtime_messages: Iterable[Mapping[str, Any] | dict[str, Any]] | None = None,
         workflow: Mapping[str, Any] | dict[str, Any] | None = None,
         sandbox_override: Mapping[str, Any] | dict[str, Any] | None = None,
@@ -684,6 +840,7 @@ class SmrControlClient:
             agent_model=agent_model,
             agent_kind=agent_kind,
             agent_model_params=agent_model_params,
+            actor_model_overrides=actor_model_overrides,
             initial_runtime_messages=initial_runtime_messages,
             workflow=workflow,
             sandbox_override=sandbox_override,

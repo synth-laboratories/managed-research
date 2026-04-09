@@ -36,7 +36,14 @@ uv add synth-managed-research
 ```python
 from pathlib import Path
 
-from managed_research.sdk.client import SmrControlClient
+from managed_research import (
+    SmrActorModelAssignment,
+    SmrActorType,
+    SmrAgentModel,
+    SmrControlClient,
+    SmrHostKind,
+    SmrWorkerSubtype,
+)
 
 client = SmrControlClient(api_key="sk_...")
 project = client.create_project({"name": "nanohorizon-demo"})
@@ -65,19 +72,17 @@ client.get_project_readiness(project_id)
 client.get_capacity_lane_preview(project_id)
 blockers = client.get_run_start_blockers(
     project_id,
-    host_kind="daytona",
+    host_kind=SmrHostKind.DAYTONA,
     work_mode="directed_effort",
-    agent_kind="codex",
-    agent_model="gpt-5.4",
+    agent_profile="codex_gpt_5_4_medium",
     initial_runtime_messages=kickoff,
 )
 if blockers["clear_to_trigger"]:
     run = client.trigger_run(
         project_id,
-        host_kind="daytona",
+        host_kind=SmrHostKind.DAYTONA,
         work_mode="directed_effort",
-        agent_kind="codex",
-        agent_model="gpt-5.4",
+        agent_profile="codex_gpt_5_4_medium",
         initial_runtime_messages=kickoff,
     )
     client.download_workspace_archive(project_id, Path("nanohorizon-workspace.tar.gz"))
@@ -85,6 +90,49 @@ if blockers["clear_to_trigger"]:
 
 If you need org-wide durable context instead of project-scoped knowledge, use
 `set_org_knowledge(...)` and `get_org_knowledge()`.
+
+## Launch Models
+
+Use `agent_profile` when you want an exact backend-managed preset. If you need
+to pass `agent_model` directly, use one of these public model ids:
+
+- standard Codex models: `gpt-5.3-codex`, `gpt-5.3-codex-spark`, `gpt-5.4`, `gpt-5.4-mini`
+- additional first-launch choices: `gpt-5.4-nano`, `gpt-oss-120b`
+
+Shared top-level launch selection is intentionally narrower:
+
+- top-level `agent_model` on `trigger_run(...)` / `get_run_start_blockers(...)` supports `gpt-5.4-mini`, `gpt-5.4`, `gpt-5.4-nano`, and `gpt-oss-120b`
+- `gpt-5.3-codex` and `gpt-5.3-codex-spark` are `worker:engineer` only and must be assigned through actor-scoped config
+
+Python callers should use the enum-backed surface:
+
+```python
+client.trigger_run(
+    project_id,
+    host_kind=SmrHostKind.DAYTONA,
+    work_mode="directed_effort",
+    agent_model=SmrAgentModel.GPT_OSS_120B,
+    initial_runtime_messages=kickoff,
+)
+```
+
+Actor-scoped engineer selection:
+
+```python
+client.trigger_run(
+    project_id,
+    host_kind=SmrHostKind.DAYTONA,
+    work_mode="directed_effort",
+    actor_model_overrides=[
+        SmrActorModelAssignment(
+            actor_type=SmrActorType.WORKER,
+            actor_subtype=SmrWorkerSubtype.ENGINEER,
+            agent_model=SmrAgentModel.GPT_5_3_CODEX,
+        )
+    ],
+    initial_runtime_messages=kickoff,
+)
+```
 
 ## MCP
 
@@ -201,6 +249,6 @@ structured shape as the preferred case, not the only case.
 - `managed_research/sdk`
 - `managed_research/mcp`
 - `managed_research/models`
+- `managed_research/schema_sync.py`
 - `managed_research/transport`
 - `managed_research/_internal`
-- `managed_research/schema_sync.py`

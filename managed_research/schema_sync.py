@@ -1,7 +1,9 @@
-"""Schema sync helpers for the rewritten package surface."""
+"""Schema and enum sync helpers for the rewritten package surface."""
 
 from __future__ import annotations
 
+import json
+import re
 import shutil
 from pathlib import Path
 
@@ -32,11 +34,240 @@ def sync_public_schemas(
     return copied
 
 
+def _enum_member_name(model_id: str) -> str:
+    name = re.sub(r"[^A-Za-z0-9]+", "_", model_id).strip("_").upper()
+    if not name:
+        raise ValueError(f"Unable to derive enum name for '{model_id}'")
+    if name[0].isdigit():
+        name = f"MODEL_{name}"
+    return name
+
+
+def _default_backend_manifest_path() -> Path:
+    repo_root = Path(__file__).resolve().parent.parent
+    return repo_root.parent / "backend" / "config" / "smr_public_models.json"
+
+
+_STATIC_ENUM_SPECS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
+    (
+        "smr_funding_sources.py",
+        "SmrFundingSource",
+        "funding_source",
+        ("synth_managed", "customer_byok", "user_connected"),
+    ),
+    (
+        "smr_usage_types.py",
+        "SmrUsageType",
+        "usage_type",
+        (
+            "inference",
+            "metered_tool",
+            "metered_infra",
+            "sandbox",
+            "coding_agent",
+            "research",
+            "other",
+        ),
+    ),
+    (
+        "smr_credential_providers.py",
+        "SmrCredentialProvider",
+        "provider",
+        ("openai", "openrouter", "tinker"),
+    ),
+    (
+        "smr_inference_providers.py",
+        "SmrInferenceProvider",
+        "inference_provider",
+        ("openai", "google", "groq"),
+    ),
+    (
+        "smr_tool_providers.py",
+        "SmrToolProvider",
+        "tool_provider",
+        ("tinker", "sublinear", "linear"),
+    ),
+    (
+        "smr_resource_providers.py",
+        "SmrResourceProvider",
+        "resource_provider",
+        ("runpod", "modal"),
+    ),
+    (
+        "smr_resource_kinds.py",
+        "SmrResourceKind",
+        "resource_kind",
+        ("pod", "sandbox", "app"),
+    ),
+)
+
+
+def _render_static_enum_module(
+    *,
+    class_name: str,
+    field_name: str,
+    values: tuple[str, ...],
+    docstring: str,
+) -> str:
+    values_constant_name = re.sub(r"[^A-Za-z0-9]+", "_", class_name).strip("_").upper()
+    values_constant_name = f"{values_constant_name}_VALUES"
+    lines = [
+        f'"""{docstring}."""',
+        "",
+        "from __future__ import annotations",
+        "",
+        "from enum import StrEnum",
+        "",
+        "",
+        f"class {class_name}(StrEnum):",
+    ]
+    for value in values:
+        lines.append(f'    {_enum_member_name(value)} = "{value}"')
+    lines.extend(
+        [
+            "",
+            "",
+            f"{values_constant_name}: tuple[str, ...] = tuple(value.value for value in {class_name})",
+            "",
+            "",
+            f"def coerce_{re.sub(r'(?<!^)(?=[A-Z])', '_', class_name).lower()}(",
+            f"    value: {class_name} | str | None,",
+            "    *,",
+            f'    field_name: str = "{field_name}",',
+            f") -> {class_name} | None:",
+            "    if value is None:",
+            "        return None",
+            f"    if isinstance(value, {class_name}):",
+            "        return value",
+            "    normalized = str(value).strip()",
+            "    if not normalized:",
+            "        return None",
+            "    try:",
+            f"        return {class_name}(normalized)",
+            "    except ValueError as exc:",
+            "        raise ValueError(",
+            f'            f"{{field_name}} must be one of: {{\', \'.join({values_constant_name})}}"',
+            "        ) from exc",
+            "",
+            "",
+            f'__all__ = ["{values_constant_name}", "{class_name}", "coerce_{re.sub(r\'(?<!^)(?=[A-Z])\', \'_\', class_name).lower()}"]',
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def sync_smr_layered_enums(
+    *,
+    destination_dir: Path | None = None,
+) -> list[Path]:
+    target_dir = destination_dir or (Path(__file__).resolve().parent / "models")
+    target_dir.mkdir(parents=True, exist_ok=True)
+    generated: list[Path] = []
+    for filename, class_name, field_name, values in _STATIC_ENUM_SPECS:
+        target = target_dir / filename
+        target.write_text(
+            _render_static_enum_module(
+                class_name=class_name,
+                field_name=field_name,
+                values=values,
+                docstring=f"Public {field_name.replace('_', '-')} enum",
+            ),
+            encoding="utf-8",
+        )
+        generated.append(target)
+    return generated
+
+
+def sync_smr_agent_models(
+    *,
+    source_manifest: Path | None = None,
+    destination_file: Path | None = None,
+) -> Path:
+    """Generate the public SMR model enum from the backend manifest."""
+
+    source = source_manifest or _default_backend_manifest_path()
+    destination = destination_file or (
+        Path(__file__).resolve().parent / "models" / "smr_agent_models.py"
+    )
+    raw = json.loads(source.read_text(encoding="utf-8"))
+    models = raw.get("models")
+    if not isinstance(models, list) or not models:
+        raise ValueError("SMR public model manifest must contain a non-empty models list")
+
+    model_ids = [
+        str(item.get("id") or "").strip()
+        for item in models
+        if isinstance(item, dict) and bool(item.get("public", True))
+    ]
+    if not model_ids or any(not model_id for model_id in model_ids):
+        raise ValueError("SMR public model manifest entries require non-empty ids")
+
+    lines = [
+        '"""Generated public SMR agent model enum.',
+        "",
+        "Source of truth: backend/config/smr_public_models.json",
+        '"""',
+        "",
+        "from __future__ import annotations",
+        "",
+        "from enum import StrEnum",
+        "",
+        "",
+        "class SmrAgentModel(StrEnum):",
+    ]
+    for model_id in model_ids:
+        lines.append(f'    {_enum_member_name(model_id)} = "{model_id}"')
+    lines.extend(
+        [
+            "",
+            "",
+            "SMR_AGENT_MODEL_VALUES: tuple[str, ...] = tuple(model.value for model in SmrAgentModel)",
+            "",
+            "",
+            "def coerce_smr_agent_model(",
+            "    value: SmrAgentModel | str | None,",
+            '    *,',
+            '    field_name: str = "agent_model",',
+            ") -> SmrAgentModel | None:",
+            "    if value is None:",
+            "        return None",
+            "    if isinstance(value, SmrAgentModel):",
+            "        return value",
+            "    normalized = str(value).strip()",
+            "    if not normalized:",
+            "        return None",
+            "    try:",
+            "        return SmrAgentModel(normalized)",
+            "    except ValueError as exc:",
+            '        raise ValueError(',
+            '            f"{field_name} must be one of: {\', \'.join(SMR_AGENT_MODEL_VALUES)}"',
+            "        ) from exc",
+            "",
+            "",
+            '__all__ = ["SMR_AGENT_MODEL_VALUES", "SmrAgentModel", "coerce_smr_agent_model"]',
+            "",
+        ]
+    )
+    destination.write_text("\n".join(lines), encoding="utf-8")
+    return destination
+
+
 def main() -> None:
-    """CLI entrypoint: sync quarantined legacy schemas into the generated folder."""
+    """CLI entrypoint: sync tracked generated artifacts."""
     copied = sync_public_schemas()
+    static_enums = sync_smr_layered_enums()
+    generated = sync_smr_agent_models()
     for path in copied:
         print(path)
+    for path in static_enums:
+        print(path)
+    print(generated)
 
 
-__all__ = ["main", "sync_public_schemas"]
+__all__ = [
+    "main",
+    "sync_public_schemas",
+    "sync_smr_agent_models",
+    "sync_smr_layered_enums",
+]

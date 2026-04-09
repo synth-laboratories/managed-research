@@ -8,8 +8,8 @@ from managed_research.sdk._base import _ClientNamespace
 
 
 class ProjectsAPI(_ClientNamespace):
-    def create(self, payload: dict[str, Any]) -> dict[str, Any]:
-        return self._client.create_project(payload)
+    def create(self, payload: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        return self._client.create_project(payload, **kwargs)
 
     def list(self, *, include_archived: bool = False, limit: int = 100) -> list[dict[str, Any]]:
         return self._client.list_projects(include_archived=include_archived, limit=limit)
@@ -17,8 +17,8 @@ class ProjectsAPI(_ClientNamespace):
     def get(self, project_id: str) -> dict[str, Any]:
         return self._client.get_project(project_id)
 
-    def patch(self, project_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        return self._client.patch_project(project_id, payload)
+    def patch(self, project_id: str, payload: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        return self._client.patch_project(project_id, payload, **kwargs)
 
     def pause(self, project_id: str) -> dict[str, Any]:
         return self._client.pause_project(project_id)
