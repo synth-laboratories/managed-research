@@ -204,6 +204,3 @@ structured shape as the preferred case, not the only case.
 - `managed_research/transport`
 - `managed_research/_internal`
 - `managed_research/schema_sync.py`
-
-Legacy code from the previous public package remains quarantined under
-[`/Users/joshpurtell/Documents/GitHub/managed-research/old`](/Users/joshpurtell/Documents/GitHub/managed-research/old).
