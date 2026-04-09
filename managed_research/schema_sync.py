@@ -50,6 +50,12 @@ def _default_backend_manifest_path() -> Path:
 
 _STATIC_ENUM_SPECS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
     (
+        "smr_agent_kinds.py",
+        "SmrAgentKind",
+        "agent_kind",
+        ("codex",),
+    ),
+    (
         "smr_funding_sources.py",
         "SmrFundingSource",
         "funding_source",
@@ -88,6 +94,12 @@ _STATIC_ENUM_SPECS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
         ("tinker", "sublinear", "linear"),
     ),
     (
+        "smr_work_modes.py",
+        "SmrWorkMode",
+        "work_mode",
+        ("open_ended_discovery", "directed_effort"),
+    ),
+    (
         "smr_resource_providers.py",
         "SmrResourceProvider",
         "resource_provider",
@@ -111,6 +123,7 @@ def _render_static_enum_module(
 ) -> str:
     values_constant_name = re.sub(r"[^A-Za-z0-9]+", "_", class_name).strip("_").upper()
     values_constant_name = f"{values_constant_name}_VALUES"
+    coerce_name = "coerce_" + re.sub(r"(?<!^)(?=[A-Z])", "_", class_name).lower()
     lines = [
         f'"""{docstring}."""',
         "",
@@ -130,7 +143,7 @@ def _render_static_enum_module(
             f"{values_constant_name}: tuple[str, ...] = tuple(value.value for value in {class_name})",
             "",
             "",
-            f"def coerce_{re.sub(r'(?<!^)(?=[A-Z])', '_', class_name).lower()}(",
+            f"def {coerce_name}(",
             f"    value: {class_name} | str | None,",
             "    *,",
             f'    field_name: str = "{field_name}",',
@@ -150,7 +163,7 @@ def _render_static_enum_module(
             "        ) from exc",
             "",
             "",
-            f'__all__ = ["{values_constant_name}", "{class_name}", "coerce_{re.sub(r\'(?<!^)(?=[A-Z])\', \'_\', class_name).lower()}"]',
+            f'__all__ = ["{values_constant_name}", "{class_name}", "{coerce_name}"]',
             "",
         ]
     )

@@ -1,6 +1,5 @@
 """Public typed models for the rewritten SDK surface."""
 
-from managed_research.models.smr_agent_models import SmrAgentModel
 from managed_research.models.smr_actor_models import (
     SmrActorModelAssignment,
     SmrActorSubtype,
@@ -9,6 +8,8 @@ from managed_research.models.smr_actor_models import (
     SmrReviewerSubtype,
     SmrWorkerSubtype,
 )
+from managed_research.models.smr_agent_kinds import SmrAgentKind
+from managed_research.models.smr_agent_models import SmrAgentModel
 from managed_research.models.smr_credential_providers import SmrCredentialProvider
 from managed_research.models.smr_funding_sources import SmrFundingSource
 from managed_research.models.smr_host_kinds import SmrHostKind
@@ -22,8 +23,10 @@ from managed_research.models.smr_run_policy import (
 )
 from managed_research.models.smr_tool_providers import SmrToolProvider
 from managed_research.models.smr_usage_types import SmrUsageType
+from managed_research.models.smr_work_modes import SmrWorkMode
 from managed_research.models.types import (
     ProjectReadiness,
+    ProviderKeyStatus,
     RecommendedAction,
     RunProgress,
     UsageAnalyticsBreakdown,
@@ -42,8 +45,10 @@ from managed_research.models.types import (
 
 __all__ = [
     "ProjectReadiness",
+    "ProviderKeyStatus",
     "RecommendedAction",
     "RunProgress",
+    "SmrAgentKind",
     "SmrAgentModel",
     "SmrActorModelAssignment",
     "SmrActorSubtype",
@@ -61,6 +66,7 @@ __all__ = [
     "SmrRunPolicyLimits",
     "SmrToolProvider",
     "SmrUsageType",
+    "SmrWorkMode",
     "SmrWorkerSubtype",
     "UsageAnalyticsBreakdown",
     "UsageAnalyticsBucket",

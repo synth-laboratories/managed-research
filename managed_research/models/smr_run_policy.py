@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping, TypeVar
+from typing import Any, TypeVar
 
 from managed_research.models.smr_credential_providers import (
     SmrCredentialProvider,
@@ -21,7 +22,6 @@ from managed_research.models.smr_tool_providers import (
     SmrToolProvider,
     coerce_smr_tool_provider,
 )
-
 
 _ProviderEnumT = TypeVar("_ProviderEnumT")
 
@@ -180,12 +180,11 @@ def coerce_smr_run_policy(
     value: SmrRunPolicy | Mapping[str, Any] | None,
     *,
     field_name: str = "run_policy",
-) -> dict[str, Any] | None:
+) -> SmrRunPolicy | None:
     if value is None:
         return None
     if isinstance(value, SmrRunPolicy):
-        payload = value.to_dict()
-        return payload or {}
+        return value
     if not isinstance(value, Mapping):
         raise ValueError(f"{field_name} must be a mapping when provided")
     funding_source = coerce_smr_funding_source(
@@ -200,14 +199,11 @@ def coerce_smr_run_policy(
         value.get("limits") if isinstance(value.get("limits"), Mapping) else value.get("limits"),
         field_name=f"{field_name}.limits",
     )
-    payload: dict[str, Any] = {}
-    if funding_source is not None:
-        payload["funding_source"] = funding_source.value
-    if access is not None:
-        payload["access"] = access.to_dict()
-    if limits is not None:
-        payload["limits"] = limits.to_dict()
-    return payload or {}
+    return SmrRunPolicy(
+        funding_source=funding_source,
+        access=access,
+        limits=limits,
+    )
 
 
 __all__ = [

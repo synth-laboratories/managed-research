@@ -8,7 +8,9 @@ def test_top_level_public_exports_match_rewritten_surface() -> None:
     assert managed_research.__version__
     assert managed_research.SmrControlClient is SmrControlClient
     assert {
+        "ProjectReadiness",
         "ProgressAPI",
+        "RunProgress",
         "SmrControlClient",
         "WorkspaceInputsAPI",
         "WorkspaceInputsState",

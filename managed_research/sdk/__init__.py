@@ -1,5 +1,29 @@
 """SDK exports for the rewritten Managed Research package."""
 
+from managed_research.models.smr_actor_models import (
+    SmrActorModelAssignment,
+    SmrActorSubtype,
+    SmrActorType,
+    SmrOrchestratorSubtype,
+    SmrReviewerSubtype,
+    SmrWorkerSubtype,
+)
+from managed_research.models.smr_agent_kinds import SmrAgentKind
+from managed_research.models.smr_agent_models import SmrAgentModel
+from managed_research.models.smr_credential_providers import SmrCredentialProvider
+from managed_research.models.smr_funding_sources import SmrFundingSource
+from managed_research.models.smr_host_kinds import SmrHostKind
+from managed_research.models.smr_inference_providers import SmrInferenceProvider
+from managed_research.models.smr_resource_kinds import SmrResourceKind
+from managed_research.models.smr_resource_providers import SmrResourceProvider
+from managed_research.models.smr_run_policy import (
+    SmrRunPolicy,
+    SmrRunPolicyAccess,
+    SmrRunPolicyLimits,
+)
+from managed_research.models.smr_tool_providers import SmrToolProvider
+from managed_research.models.smr_usage_types import SmrUsageType
+from managed_research.models.smr_work_modes import SmrWorkMode
 from managed_research.sdk.approvals import ApprovalsAPI
 from managed_research.sdk.artifacts import ArtifactsAPI
 from managed_research.sdk.client import (
@@ -16,28 +40,6 @@ from managed_research.sdk.projects import ProjectsAPI
 from managed_research.sdk.runs import RunsAPI
 from managed_research.sdk.usage import UsageAPI
 from managed_research.sdk.workspace_inputs import WorkspaceInputsAPI
-from managed_research.models.smr_agent_models import SmrAgentModel
-from managed_research.models.smr_actor_models import (
-    SmrActorModelAssignment,
-    SmrActorSubtype,
-    SmrActorType,
-    SmrOrchestratorSubtype,
-    SmrReviewerSubtype,
-    SmrWorkerSubtype,
-)
-from managed_research.models.smr_credential_providers import SmrCredentialProvider
-from managed_research.models.smr_funding_sources import SmrFundingSource
-from managed_research.models.smr_host_kinds import SmrHostKind
-from managed_research.models.smr_inference_providers import SmrInferenceProvider
-from managed_research.models.smr_resource_kinds import SmrResourceKind
-from managed_research.models.smr_resource_providers import SmrResourceProvider
-from managed_research.models.smr_run_policy import (
-    SmrRunPolicy,
-    SmrRunPolicyAccess,
-    SmrRunPolicyLimits,
-)
-from managed_research.models.smr_tool_providers import SmrToolProvider
-from managed_research.models.smr_usage_types import SmrUsageType
 
 __all__ = [
     "ACTIVE_RUN_STATES",
@@ -50,6 +52,7 @@ __all__ = [
     "ProgressAPI",
     "ProjectsAPI",
     "RunsAPI",
+    "SmrAgentKind",
     "SmrAgentModel",
     "SmrActorModelAssignment",
     "SmrActorSubtype",
@@ -67,6 +70,7 @@ __all__ = [
     "SmrRunPolicyLimits",
     "SmrToolProvider",
     "SmrUsageType",
+    "SmrWorkMode",
     "SmrWorkerSubtype",
     "SmrControlClient",
     "UsageAPI",

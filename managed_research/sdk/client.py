@@ -14,12 +14,14 @@ import httpx
 
 from managed_research.auth import BACKEND_URL_BASE, get_api_key, normalize_backend_base
 from managed_research.errors import SmrApiError
-from managed_research.models.smr_agent_models import SmrAgentModel, coerce_smr_agent_model
+from managed_research.models import UsageAnalyticsPayload, UsageAnalyticsSubject
 from managed_research.models.smr_actor_models import (
     SmrActorModelAssignment,
     normalize_actor_model_assignments,
     validate_shared_top_level_agent_model,
 )
+from managed_research.models.smr_agent_kinds import SmrAgentKind, coerce_smr_agent_kind
+from managed_research.models.smr_agent_models import SmrAgentModel
 from managed_research.models.smr_credential_providers import (
     SmrCredentialProvider,
     coerce_smr_credential_provider,
@@ -29,8 +31,8 @@ from managed_research.models.smr_funding_sources import (
     coerce_smr_funding_source,
 )
 from managed_research.models.smr_host_kinds import SmrHostKind, coerce_smr_host_kind
-from managed_research.models import UsageAnalyticsPayload, UsageAnalyticsSubject
 from managed_research.models.smr_run_policy import SmrRunPolicy, coerce_smr_run_policy
+from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
 from managed_research.sdk.approvals import ApprovalsAPI
 from managed_research.sdk.artifacts import ArtifactsAPI
 from managed_research.sdk.integrations import IntegrationsAPI
@@ -82,24 +84,11 @@ def _coerce_dict(payload: Any, *, label: str) -> dict[str, Any]:
     raise SmrApiError(f"Expected object response for {label}, received {type(payload).__name__}")
 
 
-def _coerce_list(payload: Any, *, label: str) -> list[dict[str, Any]]:
+def _coerce_dict_list(payload: Any, *, label: str) -> list[dict[str, Any]]:
     if isinstance(payload, list):
-        return [item for item in payload if isinstance(item, dict)]
-    if isinstance(payload, dict):
-        for key in (
-            "items",
-            "data",
-            "results",
-            "projects",
-            "runs",
-            "questions",
-            "artifacts",
-            "approvals",
-            "uploaded_files",
-        ):
-            candidate = payload.get(key)
-            if isinstance(candidate, list):
-                return [item for item in candidate if isinstance(item, dict)]
+        if not all(isinstance(item, dict) for item in payload):
+            raise SmrApiError(f"Expected {label} entries to be objects")
+        return list(payload)
     raise SmrApiError(f"Expected list response for {label}, received {type(payload).__name__}")
 
 
@@ -210,12 +199,12 @@ def _merge_execution_actor_model_assignments(
 def _build_project_run_payload(
     *,
     host_kind: SmrHostKind,
-    work_mode: str,
+    work_mode: SmrWorkMode,
     worker_pool_id: str | None = None,
     timebox_seconds: int | None = None,
     agent_profile: str | None = None,
     agent_model: SmrAgentModel | None = None,
-    agent_kind: str | None = None,
+    agent_kind: SmrAgentKind | None = None,
     agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
     actor_model_overrides: Iterable[
         SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]
@@ -231,9 +220,12 @@ def _build_project_run_payload(
     normalized_host_kind = coerce_smr_host_kind(host_kind, field_name="host_kind")
     if normalized_host_kind is None:
         raise ValueError("host_kind is required")
+    normalized_work_mode = coerce_smr_work_mode(work_mode, field_name="work_mode")
+    if normalized_work_mode is None:
+        raise ValueError("work_mode is required")
     payload: dict[str, Any] = {
         "host_kind": normalized_host_kind.value,
-        "work_mode": _require_non_empty_string(work_mode, field_name="work_mode"),
+        "work_mode": normalized_work_mode.value,
     }
     normalized_actor_model_overrides = _normalized_actor_model_assignment_payloads(
         actor_model_overrides,
@@ -248,7 +240,7 @@ def _build_project_run_payload(
     if normalized_actor_model_overrides and (
         (agent_profile and agent_profile.strip())
         or agent_model is not None
-        or (agent_kind and agent_kind.strip())
+        or agent_kind is not None
         or agent_model_params is not None
     ):
         raise ValueError(
@@ -261,8 +253,9 @@ def _build_project_run_payload(
     )
     if normalized_agent_model is not None:
         payload["agent_model"] = normalized_agent_model.value
-    if agent_kind and agent_kind.strip():
-        payload["agent_kind"] = agent_kind.strip()
+    normalized_agent_kind = coerce_smr_agent_kind(agent_kind, field_name="agent_kind")
+    if normalized_agent_kind is not None:
+        payload["agent_kind"] = normalized_agent_kind.value
     normalized_agent_model_params = _optional_mapping(
         agent_model_params,
         field_name="agent_model_params",
@@ -288,7 +281,7 @@ def _build_project_run_payload(
         payload["sandbox_override"] = normalized_sandbox_override
     normalized_run_policy = coerce_smr_run_policy(run_policy, field_name="run_policy")
     if normalized_run_policy is not None:
-        payload["run_policy"] = normalized_run_policy
+        payload["run_policy"] = normalized_run_policy.to_dict()
     if idempotency_key_run_create and idempotency_key_run_create.strip():
         payload["idempotency_key_run_create"] = idempotency_key_run_create.strip()
     if idempotency_key and idempotency_key.strip():
@@ -490,7 +483,7 @@ class SmrControlClient:
             limit=limit,
             cursor=cursor,
         )
-        return _coerce_list(
+        return _coerce_dict_list(
             self._request_json("GET", "/smr/projects", params=params), label="list_projects"
         )
 
@@ -762,17 +755,79 @@ class SmrControlClient:
             label="get_project_readiness",
         )
 
+    def set_provider_key(
+        self,
+        project_id: str,
+        *,
+        provider: SmrCredentialProvider | str,
+        funding_source: SmrFundingSource | str = SmrFundingSource.CUSTOMER_BYOK,
+        api_key: str | None = None,
+        encrypted_key_b64: str | None = None,
+    ) -> dict[str, Any]:
+        normalized_provider = _require_smr_credential_provider(
+            provider,
+            field_name="provider",
+        )
+        normalized_funding_source = _require_smr_funding_source(
+            funding_source,
+            field_name="funding_source",
+        )
+        payload: dict[str, Any] = {
+            "provider": normalized_provider.value,
+            "funding_source": normalized_funding_source.value,
+        }
+        if api_key and api_key.strip():
+            payload["api_key"] = api_key.strip()
+        if encrypted_key_b64 and encrypted_key_b64.strip():
+            payload["encrypted_key_b64"] = encrypted_key_b64.strip()
+        if "api_key" not in payload and "encrypted_key_b64" not in payload:
+            raise ValueError("set_provider_key requires api_key or encrypted_key_b64")
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/provider_keys",
+                json_body=payload,
+            ),
+            label="set_provider_key",
+        )
+
+    def get_provider_key_status(
+        self,
+        project_id: str,
+        *,
+        provider: SmrCredentialProvider | str,
+        funding_source: SmrFundingSource | str = SmrFundingSource.CUSTOMER_BYOK,
+    ) -> dict[str, Any]:
+        normalized_provider = _require_smr_credential_provider(
+            provider,
+            field_name="provider",
+        )
+        normalized_funding_source = _require_smr_funding_source(
+            funding_source,
+            field_name="funding_source",
+        )
+        return _coerce_dict(
+            self._request_json(
+                "GET",
+                (
+                    f"/smr/projects/{project_id}/provider_keys/"
+                    f"{normalized_provider.value}/{normalized_funding_source.value}/status"
+                ),
+            ),
+            label="get_provider_key_status",
+        )
+
     def get_run_start_blockers(
         self,
         project_id: str,
         *,
         host_kind: SmrHostKind,
-        work_mode: str,
+        work_mode: SmrWorkMode,
         worker_pool_id: str | None = None,
         timebox_seconds: int | None = None,
         agent_profile: str | None = None,
         agent_model: SmrAgentModel | None = None,
-        agent_kind: str | None = None,
+        agent_kind: SmrAgentKind | None = None,
         agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
         actor_model_overrides: Iterable[
             SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]
@@ -781,6 +836,7 @@ class SmrControlClient:
         initial_runtime_messages: Iterable[Mapping[str, Any] | dict[str, Any]] | None = None,
         workflow: Mapping[str, Any] | dict[str, Any] | None = None,
         sandbox_override: Mapping[str, Any] | dict[str, Any] | None = None,
+        run_policy: SmrRunPolicy | Mapping[str, Any] | dict[str, Any] | None = None,
         idempotency_key_run_create: str | None = None,
         idempotency_key: str | None = None,
     ) -> dict[str, Any]:
@@ -797,6 +853,7 @@ class SmrControlClient:
             initial_runtime_messages=initial_runtime_messages,
             workflow=workflow,
             sandbox_override=sandbox_override,
+            run_policy=run_policy,
             idempotency_key_run_create=idempotency_key_run_create,
             idempotency_key=idempotency_key,
         )
@@ -814,12 +871,12 @@ class SmrControlClient:
         project_id: str,
         *,
         host_kind: SmrHostKind,
-        work_mode: str,
+        work_mode: SmrWorkMode,
         worker_pool_id: str | None = None,
         timebox_seconds: int | None = None,
         agent_profile: str | None = None,
         agent_model: SmrAgentModel | None = None,
-        agent_kind: str | None = None,
+        agent_kind: SmrAgentKind | None = None,
         agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
         actor_model_overrides: Iterable[
             SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]
@@ -828,6 +885,7 @@ class SmrControlClient:
         initial_runtime_messages: Iterable[Mapping[str, Any] | dict[str, Any]] | None = None,
         workflow: Mapping[str, Any] | dict[str, Any] | None = None,
         sandbox_override: Mapping[str, Any] | dict[str, Any] | None = None,
+        run_policy: SmrRunPolicy | Mapping[str, Any] | dict[str, Any] | None = None,
         idempotency_key_run_create: str | None = None,
         idempotency_key: str | None = None,
     ) -> dict[str, Any]:
@@ -844,6 +902,7 @@ class SmrControlClient:
             initial_runtime_messages=initial_runtime_messages,
             workflow=workflow,
             sandbox_override=sandbox_override,
+            run_policy=run_policy,
             idempotency_key_run_create=idempotency_key_run_create,
             idempotency_key=idempotency_key,
         )
@@ -864,13 +923,13 @@ class SmrControlClient:
         if active_only:
             return self.list_active_runs(project_id)
         params = build_query_params(state=state, limit=limit, cursor=cursor)
-        return _coerce_list(
+        return _coerce_dict_list(
             self._request_json("GET", f"/smr/projects/{project_id}/runs", params=params),
             label="list_runs",
         )
 
     def list_active_runs(self, project_id: str) -> list[dict[str, Any]]:
-        return _coerce_list(
+        return _coerce_dict_list(
             self._request_json("GET", f"/smr/projects/{project_id}/runs/active"),
             label="list_active_runs",
         )
@@ -910,8 +969,8 @@ class SmrControlClient:
                 allow_not_found=True,
             )
             if scoped is not None:
-                return _coerce_list(scoped, label="list_project_run_questions")
-        return _coerce_list(
+                return _coerce_dict_list(scoped, label="list_project_run_questions")
+        return _coerce_dict_list(
             self._request_json("GET", f"/smr/runs/{run_id}/questions", params=params),
             label="list_run_questions",
         )
@@ -946,11 +1005,11 @@ class SmrControlClient:
         project_id: str | None = None,
     ) -> list[dict[str, Any]]:
         if project_id:
-            return _coerce_list(
+            return _coerce_dict_list(
                 self._request_json("GET", f"/smr/projects/{project_id}/runs/{run_id}/checkpoints"),
                 label="list_project_run_checkpoints",
             )
-        return _coerce_list(
+        return _coerce_dict_list(
             self._request_json("GET", f"/smr/runs/{run_id}/checkpoints"),
             label="list_run_checkpoints",
         )
@@ -979,7 +1038,7 @@ class SmrControlClient:
         )
 
     def list_run_log_archives(self, project_id: str, run_id: str) -> list[dict[str, Any]]:
-        return _coerce_list(
+        return _coerce_dict_list(
             self._request_json("GET", f"/smr/projects/{project_id}/runs/{run_id}/logs/archives"),
             label="list_run_log_archives",
         )

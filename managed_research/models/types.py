@@ -4,74 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, TypedDict
-
-
-class RecommendedAction(TypedDict, total=False):
-    tool_name: str
-    arguments: dict[str, Any]
-    description: str
-
-
-class WorkspaceSourceRepo(TypedDict, total=False):
-    kind: str
-    url: str
-    display_url: str
-    default_branch: str | None
-    public: bool
-    auth_mode: str
-    bootstrap_mode: str
-    remote_name: str
-
-
-class WorkspaceFileInput(TypedDict, total=False):
-    path: str
-    content: str
-    content_type: str
-    encoding: str
-
-
-class WorkspaceInputsState(TypedDict, total=False):
-    project_id: str
-    state: str
-    source_repo: WorkspaceSourceRepo | None
-    files: list[WorkspaceFileInput]
-    file_count: int
-    project_repo: dict[str, Any]
-    updated_at: str
-
-
-class WorkspaceUploadResult(TypedDict, total=False):
-    project_id: str
-    file_count: int
-    bytes_uploaded: int
-    uploaded_files: list[WorkspaceFileInput]
-
-
-class ProjectReadiness(TypedDict, total=False):
-    state: str
-    blockers: list[str]
-    recommended_actions: list[RecommendedAction]
-    entitlement: dict[str, Any]
-    capabilities: dict[str, Any]
-    workspace_inputs: WorkspaceInputsState
-    provider_key_status: dict[str, Any]
-    repo_status: dict[str, Any]
-    run_target: dict[str, Any]
-
-
-class RunProgress(TypedDict, total=False):
-    state: str
-    phase: str
-    stalled_reason: str | None
-    last_progress_at: str | None
-    blocked_task_count: int
-    pending_approval_ids: list[str]
-    pending_question_ids: list[str]
-    recent_artifact_ids: list[str]
-    recent_event_summary: list[dict[str, Any]]
-    recommended_actions: list[RecommendedAction]
+from enum import StrEnum
 
 
 def _require_mapping(payload: object, *, label: str) -> Mapping[str, object]:
@@ -119,6 +52,12 @@ def _object_dict(payload: object) -> dict[str, object]:
     return dict(mapping)
 
 
+def _optional_object_dict(payload: object) -> dict[str, object]:
+    if payload is None:
+        return {}
+    return _object_dict(payload)
+
+
 def _require_array(payload: Mapping[str, object], key: str, *, label: str) -> list[object]:
     value = payload.get(key)
     if not isinstance(value, list):
@@ -126,7 +65,253 @@ def _require_array(payload: Mapping[str, object], key: str, *, label: str) -> li
     return value
 
 
-class UsageAnalyticsSubjectKind(str, Enum):
+def _optional_array(payload: Mapping[str, object], key: str) -> list[object]:
+    value = payload.get(key)
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError(f"{key} must be an array when provided")
+    return value
+
+
+def _optional_int(payload: Mapping[str, object], key: str) -> int | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{key} must be an integer when provided")
+    return value
+
+
+def _optional_bool(payload: Mapping[str, object], key: str) -> bool | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, bool):
+        raise ValueError(f"{key} must be a boolean when provided")
+    return value
+
+
+@dataclass(frozen=True)
+class RecommendedAction:
+    tool_name: str | None = None
+    arguments: dict[str, object] = field(default_factory=dict)
+    description: str | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> RecommendedAction:
+        mapping = _require_mapping(payload, label="recommended action")
+        return cls(
+            tool_name=_optional_string(mapping, "tool_name"),
+            arguments=_optional_object_dict(mapping.get("arguments")),
+            description=_optional_string(mapping, "description"),
+        )
+
+
+@dataclass(frozen=True)
+class WorkspaceSourceRepo:
+    kind: str | None = None
+    url: str | None = None
+    display_url: str | None = None
+    default_branch: str | None = None
+    public: bool | None = None
+    auth_mode: str | None = None
+    bootstrap_mode: str | None = None
+    remote_name: str | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> WorkspaceSourceRepo | None:
+        if payload is None:
+            return None
+        mapping = _require_mapping(payload, label="workspace source repo")
+        return cls(
+            kind=_optional_string(mapping, "kind"),
+            url=_optional_string(mapping, "url"),
+            display_url=_optional_string(mapping, "display_url"),
+            default_branch=_optional_string(mapping, "default_branch"),
+            public=_optional_bool(mapping, "public"),
+            auth_mode=_optional_string(mapping, "auth_mode"),
+            bootstrap_mode=_optional_string(mapping, "bootstrap_mode"),
+            remote_name=_optional_string(mapping, "remote_name"),
+        )
+
+
+@dataclass(frozen=True)
+class WorkspaceFileInput:
+    path: str | None = None
+    content: str | None = None
+    content_type: str | None = None
+    encoding: str | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> WorkspaceFileInput:
+        mapping = _require_mapping(payload, label="workspace file input")
+        return cls(
+            path=_optional_string(mapping, "path"),
+            content=_optional_string(mapping, "content"),
+            content_type=_optional_string(mapping, "content_type"),
+            encoding=_optional_string(mapping, "encoding"),
+        )
+
+
+@dataclass(frozen=True)
+class WorkspaceInputsState:
+    project_id: str | None = None
+    state: str | None = None
+    source_repo: WorkspaceSourceRepo | None = None
+    files: list[WorkspaceFileInput] = field(default_factory=list)
+    file_count: int | None = None
+    project_repo: dict[str, object] = field(default_factory=dict)
+    updated_at: str | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> WorkspaceInputsState:
+        mapping = _require_mapping(payload, label="workspace inputs state")
+        files_payload = _optional_array(mapping, "files")
+        return cls(
+            project_id=_optional_string(mapping, "project_id"),
+            state=_optional_string(mapping, "state"),
+            source_repo=WorkspaceSourceRepo.from_wire(mapping.get("source_repo")),
+            files=[WorkspaceFileInput.from_wire(item) for item in files_payload],
+            file_count=_optional_int(mapping, "file_count"),
+            project_repo=_optional_object_dict(mapping.get("project_repo")),
+            updated_at=_optional_string(mapping, "updated_at"),
+        )
+
+
+@dataclass(frozen=True)
+class WorkspaceUploadResult:
+    project_id: str | None = None
+    file_count: int | None = None
+    bytes_uploaded: int | None = None
+    uploaded_files: list[WorkspaceFileInput] = field(default_factory=list)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> WorkspaceUploadResult:
+        mapping = _require_mapping(payload, label="workspace upload result")
+        uploaded_files_payload = _optional_array(mapping, "uploaded_files")
+        return cls(
+            project_id=_optional_string(mapping, "project_id"),
+            file_count=_optional_int(mapping, "file_count"),
+            bytes_uploaded=_optional_int(mapping, "bytes_uploaded"),
+            uploaded_files=[
+                WorkspaceFileInput.from_wire(item) for item in uploaded_files_payload
+            ],
+        )
+
+
+@dataclass(frozen=True)
+class ProviderKeyStatus:
+    ok: bool | None = None
+    project_id: str | None = None
+    provider: str | None = None
+    funding_source: str | None = None
+    configured: bool | None = None
+    required: bool | None = None
+    auth_mechanism: str | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ProviderKeyStatus:
+        mapping = _require_mapping(payload, label="provider key status")
+        return cls(
+            ok=_optional_bool(mapping, "ok"),
+            project_id=_optional_string(mapping, "project_id"),
+            provider=_optional_string(mapping, "provider"),
+            funding_source=_optional_string(mapping, "funding_source"),
+            configured=_optional_bool(mapping, "configured"),
+            required=_optional_bool(mapping, "required"),
+            auth_mechanism=_optional_string(mapping, "auth_mechanism"),
+        )
+
+
+@dataclass(frozen=True)
+class ProjectReadiness:
+    project_id: str | None = None
+    state: str | None = None
+    blockers: list[str] = field(default_factory=list)
+    recommended_actions: list[RecommendedAction] = field(default_factory=list)
+    entitlement: dict[str, object] = field(default_factory=dict)
+    capabilities: dict[str, object] = field(default_factory=dict)
+    workspace_inputs: WorkspaceInputsState | None = None
+    provider_key_status: ProviderKeyStatus | None = None
+    repo_status: dict[str, object] = field(default_factory=dict)
+    run_target: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ProjectReadiness:
+        mapping = _require_mapping(payload, label="project readiness")
+        blockers_payload = _optional_array(mapping, "blockers")
+        recommended_actions_payload = _optional_array(mapping, "recommended_actions")
+        return cls(
+            project_id=_optional_string(mapping, "project_id"),
+            state=_optional_string(mapping, "state"),
+            blockers=[str(item) for item in blockers_payload if isinstance(item, str)],
+            recommended_actions=[
+                RecommendedAction.from_wire(item) for item in recommended_actions_payload
+            ],
+            entitlement=_optional_object_dict(mapping.get("entitlement")),
+            capabilities=_optional_object_dict(mapping.get("capabilities")),
+            workspace_inputs=(
+                WorkspaceInputsState.from_wire(mapping.get("workspace_inputs"))
+                if mapping.get("workspace_inputs") is not None
+                else None
+            ),
+            provider_key_status=(
+                ProviderKeyStatus.from_wire(mapping.get("provider_key_status"))
+                if mapping.get("provider_key_status") is not None
+                else None
+            ),
+            repo_status=_optional_object_dict(mapping.get("repo_status")),
+            run_target=_optional_object_dict(mapping.get("run_target")),
+        )
+
+
+@dataclass(frozen=True)
+class RunProgress:
+    state: str | None = None
+    phase: str | None = None
+    stalled_reason: str | None = None
+    last_progress_at: str | None = None
+    blocked_task_count: int | None = None
+    pending_approval_ids: list[str] = field(default_factory=list)
+    pending_question_ids: list[str] = field(default_factory=list)
+    recent_artifact_ids: list[str] = field(default_factory=list)
+    recent_event_summary: list[dict[str, object]] = field(default_factory=list)
+    recommended_actions: list[RecommendedAction] = field(default_factory=list)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> RunProgress:
+        mapping = _require_mapping(payload, label="run progress")
+        recommended_actions_payload = _optional_array(mapping, "recommended_actions")
+        pending_approval_ids = _optional_array(mapping, "pending_approval_ids")
+        pending_question_ids = _optional_array(mapping, "pending_question_ids")
+        recent_artifact_ids = _optional_array(mapping, "recent_artifact_ids")
+        recent_event_summary = _optional_array(mapping, "recent_event_summary")
+        return cls(
+            state=_optional_string(mapping, "state"),
+            phase=_optional_string(mapping, "phase"),
+            stalled_reason=_optional_string(mapping, "stalled_reason"),
+            last_progress_at=_optional_string(mapping, "last_progress_at"),
+            blocked_task_count=_optional_int(mapping, "blocked_task_count"),
+            pending_approval_ids=[
+                str(item) for item in pending_approval_ids if isinstance(item, str)
+            ],
+            pending_question_ids=[
+                str(item) for item in pending_question_ids if isinstance(item, str)
+            ],
+            recent_artifact_ids=[
+                str(item) for item in recent_artifact_ids if isinstance(item, str)
+            ],
+            recent_event_summary=[
+                _object_dict(item) for item in recent_event_summary if isinstance(item, Mapping)
+            ],
+            recommended_actions=[
+                RecommendedAction.from_wire(item) for item in recommended_actions_payload
+            ],
+        )
+
+
+class UsageAnalyticsSubjectKind(StrEnum):
     ORG = "org"
     MANAGED_ACCOUNT = "managed_account"
 
@@ -170,16 +355,18 @@ class UsageAnalyticsSubject:
             ) from exc
         org_id = _optional_string(mapping, "orgId")
         managed_account_id = _optional_string(mapping, "managedAccountId")
-        if kind is UsageAnalyticsSubjectKind.ORG:
-            if org_id is None or managed_account_id is not None:
-                raise ValueError(
-                    "usage analytics org subject requires orgId and forbids managedAccountId"
-                )
-        if kind is UsageAnalyticsSubjectKind.MANAGED_ACCOUNT:
-            if managed_account_id is None or org_id is not None:
-                raise ValueError(
-                    "usage analytics managed_account subject requires managedAccountId and forbids orgId"
-                )
+        if kind is UsageAnalyticsSubjectKind.ORG and (
+            org_id is None or managed_account_id is not None
+        ):
+            raise ValueError(
+                "usage analytics org subject requires orgId and forbids managedAccountId"
+            )
+        if kind is UsageAnalyticsSubjectKind.MANAGED_ACCOUNT and (
+            managed_account_id is None or org_id is not None
+        ):
+            raise ValueError(
+                "usage analytics managed_account subject requires managedAccountId and forbids orgId"
+            )
         return cls(
             kind=kind,
             org_id=org_id,
@@ -420,6 +607,7 @@ class UsageAnalyticsPayload:
 
 __all__ = [
     "ProjectReadiness",
+    "ProviderKeyStatus",
     "RecommendedAction",
     "RunProgress",
     "UsageAnalyticsBreakdown",

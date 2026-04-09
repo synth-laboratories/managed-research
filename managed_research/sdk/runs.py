@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from managed_research.models.types import RunProgress
 from managed_research.sdk._base import _ClientNamespace
 
 
@@ -20,8 +21,8 @@ class RunsAPI(_ClientNamespace):
     def get(self, run_id: str, *, project_id: str | None = None) -> dict[str, Any]:
         return self._client.get_run(run_id, project_id=project_id)
 
-    def get_progress(self, project_id: str, run_id: str) -> dict[str, Any]:
-        return self._client.get_run_progress(project_id, run_id)
+    def get_progress(self, project_id: str, run_id: str) -> RunProgress:
+        return RunProgress.from_wire(self._client.get_run_progress(project_id, run_id))
 
     def list_questions(self, run_id: str, *, project_id: str | None = None, **kwargs: Any) -> list[dict[str, Any]]:
         return self._client.list_run_questions(run_id, project_id=project_id, **kwargs)

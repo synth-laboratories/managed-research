@@ -5,9 +5,10 @@ Source of truth: backend/config/smr_actor_model_policy.json
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Mapping
+from typing import Any
 
 from managed_research.models.smr_agent_models import SmrAgentModel, coerce_smr_agent_model
 

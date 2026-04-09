@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from managed_research.models.types import ProviderKeyStatus
 from managed_research.sdk._base import _ClientNamespace
 
 
@@ -73,6 +74,16 @@ class ProjectsAPI(_ClientNamespace):
 
     def get_run_start_blockers(self, project_id: str, **kwargs: Any) -> dict[str, Any]:
         return self._client.get_run_start_blockers(project_id, **kwargs)
+
+    def set_provider_key(self, project_id: str, **kwargs: Any) -> ProviderKeyStatus:
+        return ProviderKeyStatus.from_wire(
+            self._client.set_provider_key(project_id, **kwargs)
+        )
+
+    def get_provider_key_status(self, project_id: str, **kwargs: Any) -> ProviderKeyStatus:
+        return ProviderKeyStatus.from_wire(
+            self._client.get_provider_key_status(project_id, **kwargs)
+        )
 
     def download_workspace_archive(
         self,

@@ -25,7 +25,6 @@ dev = [
 
 [project.scripts]
 managed-research-mcp = "managed_research.mcp.server:main"
-managed-research-sync-schemas = "managed_research.schema_sync:main"
 
 [project.urls]
 Homepage = "https://github.com/synth-laboratories/managed-research"

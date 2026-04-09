@@ -17,6 +17,7 @@ def test_rewritten_mcp_server_exposes_progress_and_workspace_tools() -> None:
         "smr_get_project_entitlement",
         "smr_get_project_git",
         "smr_get_project_notes",
+        "smr_get_provider_key_status",
         "smr_get_project_readiness",
         "smr_get_run_start_blockers",
         "smr_download_workspace_archive",
@@ -34,6 +35,7 @@ def test_rewritten_mcp_server_exposes_progress_and_workspace_tools() -> None:
         "smr_list_run_log_archives",
         "smr_list_run_questions",
         "smr_restore_run_checkpoint",
+        "smr_set_provider_key",
         "smr_upload_workspace_files",
     }.issubset(names)
 
@@ -88,6 +90,37 @@ def test_usage_tool_requires_explicit_managed_account_subject(monkeypatch) -> No
     assert captured["subject"] == {
         "kind": "managed_account",
         "managedAccountId": "acct_123",
+    }
+
+
+def test_health_check_surfaces_api_key_resolution_failure(monkeypatch) -> None:
+    server = ManagedResearchMcpServer()
+
+    class _FakeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            del exc_type
+            del exc
+            del tb
+
+        def get_capabilities(self) -> dict[str, str]:
+            return {"version": "test"}
+
+    monkeypatch.setattr(
+        "managed_research.mcp.server.get_api_key",
+        lambda required=False: (_ for _ in ()).throw(ValueError("bad config")),
+    )
+    monkeypatch.setattr(server, "_client_from_args", lambda args: _FakeClient())
+
+    out = server._tool_health_check({})
+
+    assert out["ok"] is True
+    assert out["checks"]["api_key"] == {
+        "status": "fail",
+        "configured": False,
+        "message": "bad config",
     }
 
 
@@ -266,7 +299,13 @@ def test_project_patch_and_notes_tools_delegate_to_client(monkeypatch) -> None:
             del exc
             del tb
 
-        def patch_project(self, project_id: str, payload: dict[str, object]):
+        def patch_project(
+            self,
+            project_id: str,
+            payload: dict[str, object],
+            **kwargs,
+        ):
+            assert kwargs == {"actor_model_assignments": None}
             captured["patch"] = (project_id, payload)
             return {"project_id": project_id, **payload}
 
@@ -306,6 +345,24 @@ def test_project_patch_and_notes_tools_delegate_to_client(monkeypatch) -> None:
         "set_notes": ("pid_1", "fresh notes"),
         "append_notes": ("pid_1", "delta"),
     }
+
+
+def test_create_project_rejects_non_object_config(monkeypatch) -> None:
+    server = ManagedResearchMcpServer()
+
+    class _UnusedClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            del exc_type
+            del exc
+            del tb
+
+    monkeypatch.setattr(server, "_client_from_args", lambda args: _UnusedClient())
+
+    with pytest.raises(ValueError, match="'config' must be an object when provided"):
+        server._tool_create_project({"name": "x", "config": "bad"})
 
 
 def test_project_lifecycle_tools_delegate_to_client(monkeypatch) -> None:
@@ -391,6 +448,7 @@ def test_get_run_start_blockers_delegates_to_client(monkeypatch) -> None:
             "agent_model_params": {"reasoning_effort": "high"},
             "initial_runtime_messages": [{"body": "Check staging first.", "mode": "queue"}],
             "sandbox_override": {"image": "synth/smr:latest"},
+            "run_policy": {"limits": {"total_cost_cents": 1800}},
         }
     )
     assert out == {"clear_to_trigger": False, "blockers": [{"stage": "limits"}]}
@@ -404,9 +462,11 @@ def test_get_run_start_blockers_delegates_to_client(monkeypatch) -> None:
         "agent_model": None,
         "agent_kind": None,
         "agent_model_params": {"reasoning_effort": "high"},
+        "actor_model_overrides": None,
         "initial_runtime_messages": [{"body": "Check staging first.", "mode": "queue"}],
         "workflow": None,
         "sandbox_override": {"image": "synth/smr:latest"},
+        "run_policy": {"limits": {"total_cost_cents": 1800}},
         "idempotency_key_run_create": None,
         "idempotency_key": None,
     }
@@ -440,6 +500,7 @@ def test_trigger_run_delegates_initial_runtime_messages_to_client(monkeypatch) -
             "initial_runtime_messages": [
                 {"body": "Start with the launch blocker.", "mode": "queue"}
             ],
+            "run_policy": {"access": {"tool_providers": ["tinker"]}},
         }
     )
 
@@ -454,12 +515,74 @@ def test_trigger_run_delegates_initial_runtime_messages_to_client(monkeypatch) -
         "agent_model": None,
         "agent_kind": None,
         "agent_model_params": None,
+        "actor_model_overrides": None,
         "initial_runtime_messages": [{"body": "Start with the launch blocker.", "mode": "queue"}],
         "workflow": None,
         "sandbox_override": None,
+        "run_policy": {"access": {"tool_providers": ["tinker"]}},
         "idempotency_key_run_create": None,
         "idempotency_key": None,
     }
+
+
+def test_provider_key_tools_delegate_to_client(monkeypatch) -> None:
+    server = ManagedResearchMcpServer()
+    captured: list[tuple[str, str, dict[str, object]]] = []
+
+    class _FakeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            del exc_type
+            del exc
+            del tb
+
+        def set_provider_key(self, project_id: str, **kwargs):
+            captured.append(("set", project_id, kwargs))
+            return {"configured": True}
+
+        def get_provider_key_status(self, project_id: str, **kwargs):
+            captured.append(("status", project_id, kwargs))
+            return {"configured": False}
+
+    monkeypatch.setattr(server, "_client_from_args", lambda args: _FakeClient())
+
+    assert server._tool_set_provider_key(
+        {
+            "project_id": "pid_1",
+            "provider": "openrouter",
+            "funding_source": "customer_byok",
+            "api_key": "sk-test-key",
+        }
+    ) == {"configured": True}
+    assert server._tool_get_provider_key_status(
+        {
+            "project_id": "pid_1",
+            "provider": "openrouter",
+            "funding_source": "customer_byok",
+        }
+    ) == {"configured": False}
+    assert captured == [
+        (
+            "set",
+            "pid_1",
+            {
+                "provider": "openrouter",
+                "funding_source": "customer_byok",
+                "api_key": "sk-test-key",
+                "encrypted_key_b64": None,
+            },
+        ),
+        (
+            "status",
+            "pid_1",
+            {
+                "provider": "openrouter",
+                "funding_source": "customer_byok",
+            },
+        ),
+    ]
 
 
 def test_trigger_run_rejects_legacy_prompt_arg(monkeypatch) -> None:

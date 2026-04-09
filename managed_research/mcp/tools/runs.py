@@ -5,12 +5,15 @@ from __future__ import annotations
 from typing import Any
 
 from managed_research.mcp.registry import ToolDefinition, tool_schema
-from managed_research.models.smr_agent_models import SMR_AGENT_MODEL_VALUES
+from managed_research.mcp.tools.smr_policy_schemas import run_policy_input_schema
 from managed_research.models.smr_actor_models import (
     SMR_ACTOR_SUBTYPE_VALUES,
     SMR_ACTOR_TYPE_VALUES,
 )
+from managed_research.models.smr_agent_kinds import SMR_AGENT_KIND_VALUES
+from managed_research.models.smr_agent_models import SMR_AGENT_MODEL_VALUES
 from managed_research.models.smr_host_kinds import SMR_HOST_KIND_VALUES
+from managed_research.models.smr_work_modes import SMR_WORK_MODE_VALUES
 
 
 def _actor_model_assignment_schema(*, field_label: str) -> dict[str, Any]:
@@ -60,7 +63,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                     },
                     "work_mode": {
                         "type": "string",
-                        "enum": ["open_ended_discovery", "directed_effort"],
+                        "enum": list(SMR_WORK_MODE_VALUES),
                         "description": "Run work mode.",
                     },
                     "worker_pool_id": {
@@ -79,7 +82,11 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                     },
                     "agent_kind": {
                         "type": "string",
-                        "description": "Optional run-level agent kind override.",
+                        "enum": list(SMR_AGENT_KIND_VALUES),
+                        "description": (
+                            "Optional run-level agent kind override. "
+                            "Public managed-research currently supports only codex."
+                        ),
                     },
                     "agent_model_params": {
                         "type": "object",
@@ -101,6 +108,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "type": "object",
                         "description": "Optional sandbox override.",
                     },
+                    "run_policy": run_policy_input_schema(),
                     "idempotency_key_run_create": {
                         "type": "string",
                         "description": "Optional idempotency key for the launch request.",

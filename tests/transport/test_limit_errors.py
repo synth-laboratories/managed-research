@@ -6,7 +6,6 @@ from collections.abc import Callable
 
 import httpx
 import pytest
-
 from managed_research.errors import (
     SmrApiError,
     SmrFundingLaneInvariantError,

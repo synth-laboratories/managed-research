@@ -18,6 +18,8 @@ def test_namespace_properties_are_stable() -> None:
     assert isinstance(client.usage, UsageAPI)
     assert callable(client.projects.get_capacity_lane_preview)
     assert callable(client.projects.get_run_start_blockers)
+    assert callable(client.projects.set_provider_key)
+    assert callable(client.projects.get_provider_key_status)
     assert callable(client.projects.pause)
     assert callable(client.projects.resume)
     assert callable(client.projects.archive)

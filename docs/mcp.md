@@ -133,6 +133,10 @@ Use the same payload for blockers and trigger, typically:
 - `agent_kind="codex"`
 - kickoff text in `initial_runtime_messages`
 
+Valid `host_kind` values are `local`, `docker`, and `daytona`.
+Valid `work_mode` values are `open_ended_discovery` and `directed_effort`.
+Valid public `agent_kind` values are just `codex`.
+
 `smr_get_run_progress` remains available on newer remigration surfaces, but the
 launch-day walkthrough uses `smr_get_run` because it is supported across the
 current backend deployments we rehearse against.

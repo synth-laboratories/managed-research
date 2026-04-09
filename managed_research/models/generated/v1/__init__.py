@@ -2,6 +2,7 @@
 
 from managed_research.models.types import (
     ProjectReadiness,
+    ProviderKeyStatus,
     RecommendedAction,
     RunProgress,
     WorkspaceFileInput,
@@ -12,6 +13,7 @@ from managed_research.models.types import (
 
 __all__ = [
     "ProjectReadiness",
+    "ProviderKeyStatus",
     "RecommendedAction",
     "RunProgress",
     "WorkspaceFileInput",

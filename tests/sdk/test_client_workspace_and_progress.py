@@ -4,7 +4,21 @@ import base64
 from pathlib import Path
 
 import pytest
-from managed_research import SmrApiError, SmrControlClient
+from managed_research import (
+    ProjectReadiness,
+    RunProgress,
+    SmrApiError,
+    SmrControlClient,
+    SmrCredentialProvider,
+    SmrFundingSource,
+    SmrInferenceProvider,
+    SmrRunPolicy,
+    SmrRunPolicyAccess,
+    SmrRunPolicyLimits,
+    SmrToolProvider,
+    WorkspaceInputsState,
+    WorkspaceUploadResult,
+)
 
 
 def test_get_workspace_download_url_calls_backend_route(monkeypatch) -> None:
@@ -202,6 +216,40 @@ def test_upload_workspace_directory_encodes_binary_files(monkeypatch, tmp_path: 
     client.close()
 
 
+def test_workspace_inputs_namespace_returns_typed_models(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        if method == "GET":
+            return {
+                "project_id": "proj_123",
+                "state": "ready",
+                "files": [{"path": "README.md", "content_type": "text/markdown"}],
+                "file_count": 1,
+            }
+        return {
+            "project_id": "proj_123",
+            "file_count": 1,
+            "bytes_uploaded": 7,
+            "uploaded_files": [{"path": "README.md", "encoding": "utf-8"}],
+        }
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    state = client.workspace_inputs.get("proj_123")
+    uploaded = client.workspace_inputs.upload_files(
+        "proj_123",
+        [{"path": "README.md", "content": "updated", "content_type": "text/markdown"}],
+    )
+
+    assert isinstance(state, WorkspaceInputsState)
+    assert state.file_count == 1
+    assert isinstance(uploaded, WorkspaceUploadResult)
+    assert uploaded.bytes_uploaded == 7
+    assert uploaded.uploaded_files[0].path == "README.md"
+    client.close()
+
+
 def test_progress_routes_match_remigration_surface(monkeypatch) -> None:
     client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
     seen: list[tuple[str, str]] = []
@@ -218,6 +266,39 @@ def test_progress_routes_match_remigration_surface(monkeypatch) -> None:
         ("GET", "/smr/projects/proj_123/readiness"),
         ("GET", "/smr/projects/proj_123/runs/run_123/progress"),
     ]
+    client.close()
+
+
+def test_progress_namespace_returns_typed_models(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        del method
+        del kwargs
+        if path.endswith("/readiness"):
+            return {
+                "state": "ready",
+                "blockers": [],
+                "recommended_actions": [{"tool_name": "smr_trigger_run"}],
+                "workspace_inputs": {"state": "ready", "files": [], "file_count": 0},
+            }
+        return {
+            "state": "running",
+            "phase": "executing",
+            "pending_approval_ids": ["ap_123"],
+            "recommended_actions": [{"description": "wait"}],
+        }
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    readiness = client.progress.get_project_readiness("proj_123")
+    progress = client.progress.get_run_progress("proj_123", "run_123")
+
+    assert isinstance(readiness, ProjectReadiness)
+    assert readiness.state == "ready"
+    assert isinstance(progress, RunProgress)
+    assert progress.phase == "executing"
+    assert progress.pending_approval_ids == ["ap_123"]
     client.close()
 
 
@@ -268,6 +349,15 @@ def test_run_start_blockers_uses_trigger_compatible_payload(monkeypatch) -> None
             {"body": "Check the failing CI lane.", "mode": "queue"},
         ],
         sandbox_override={"image": "synth/smr:latest"},
+        run_policy=SmrRunPolicy(
+            funding_source=SmrFundingSource.CUSTOMER_BYOK,
+            access=SmrRunPolicyAccess(
+                credential_providers=(SmrCredentialProvider.OPENROUTER,),
+                inference_providers=(SmrInferenceProvider.GOOGLE,),
+                tool_providers=(SmrToolProvider.TINKER,),
+            ),
+            limits=SmrRunPolicyLimits(total_cost_cents=2500),
+        ),
         idempotency_key_run_create="idem_123",
     )
 
@@ -287,6 +377,15 @@ def test_run_start_blockers_uses_trigger_compatible_payload(monkeypatch) -> None
             {"body": "Check the failing CI lane.", "mode": "queue"},
         ],
         "sandbox_override": {"image": "synth/smr:latest"},
+        "run_policy": {
+            "funding_source": "customer_byok",
+            "access": {
+                "credential_providers": ["openrouter"],
+                "inference_providers": ["google"],
+                "tool_providers": ["tinker"],
+            },
+            "limits": {"total_cost_cents": 2500},
+        },
         "idempotency_key_run_create": "idem_123",
     }
     client.close()
@@ -318,6 +417,7 @@ def test_trigger_run_uses_project_trigger_payload(monkeypatch) -> None:
             {"body": "Start with the highest-confidence repro.", "mode": "queue"},
         ],
         sandbox_override={"image": "synth/smr:latest"},
+        run_policy={"limits": {"total_cost_cents": 1500}},
         idempotency_key="idem_legacy",
     )
 
@@ -337,7 +437,97 @@ def test_trigger_run_uses_project_trigger_payload(monkeypatch) -> None:
             {"body": "Start with the highest-confidence repro.", "mode": "queue"},
         ],
         "sandbox_override": {"image": "synth/smr:latest"},
+        "run_policy": {"limits": {"total_cost_cents": 1500}},
         "idempotency_key": "idem_legacy",
+    }
+    client.close()
+
+
+def test_provider_key_routes_match_backend_surface(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    seen: list[tuple[str, str, object | None]] = []
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        seen.append((method, path, kwargs.get("json_body")))
+        return {"ok": True, "configured": method == "POST"}
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    assert client.set_provider_key(
+        "proj_123",
+        provider=SmrCredentialProvider.OPENROUTER,
+        funding_source=SmrFundingSource.CUSTOMER_BYOK,
+        api_key="sk-test-key",
+    )["configured"] is True
+    assert client.get_provider_key_status(
+        "proj_123",
+        provider="openrouter",
+        funding_source="customer_byok",
+    )["ok"] is True
+    assert seen == [
+        (
+            "POST",
+            "/smr/projects/proj_123/provider_keys",
+            {
+                "provider": "openrouter",
+                "funding_source": "customer_byok",
+                "api_key": "sk-test-key",
+            },
+        ),
+        (
+            "GET",
+            "/smr/projects/proj_123/provider_keys/openrouter/customer_byok/status",
+            None,
+        ),
+    ]
+    client.close()
+
+
+def test_list_projects_rejects_heuristic_envelopes(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        del method
+        del path
+        del kwargs
+        return {"projects": [{"project_id": "proj_123"}]}
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    with pytest.raises(SmrApiError, match="Expected list response for list_projects"):
+        client.list_projects()
+
+    client.close()
+
+
+def test_run_policy_coercion_stays_typed_until_serialization(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    captured: dict[str, object] = {}
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        captured["method"] = method
+        captured["path"] = path
+        captured["json_body"] = kwargs.get("json_body")
+        return {"run_id": "run_123"}
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    policy = SmrRunPolicy(
+        funding_source=SmrFundingSource.CUSTOMER_BYOK,
+        limits=SmrRunPolicyLimits(total_cost_cents=321),
+    )
+
+    response = client.trigger_run(
+        "proj_123",
+        host_kind="daytona",
+        work_mode="directed_effort",
+        run_policy=policy,
+    )
+
+    assert response["run_id"] == "run_123"
+    assert captured["json_body"]["run_policy"] == {
+        "funding_source": "customer_byok",
+        "limits": {"total_cost_cents": 321},
     }
     client.close()
 

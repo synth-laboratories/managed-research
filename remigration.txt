@@ -54,7 +54,6 @@ This repo should contain only the public managed research surface area:
 - `managed_research/mcp/...`
 - `managed_research/models/...`
 - `managed_research/transport/...`
-- `managed_research/schema_sync.py`
 - docs focused on MR only
 
 `synth-ai` should then depend on this package instead of owning the source of

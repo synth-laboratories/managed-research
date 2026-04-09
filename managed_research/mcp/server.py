@@ -10,9 +10,17 @@ from typing import Any
 from managed_research.auth import get_api_key
 from managed_research.errors import SmrApiError
 from managed_research.mcp.registry import JSONDict, ToolDefinition
-from managed_research.models.smr_agent_models import coerce_smr_agent_model
-from managed_research.models.smr_actor_models import normalize_actor_model_assignments
-from managed_research.models.smr_host_kinds import coerce_smr_host_kind
+from managed_research.mcp.request_models import (
+    ProjectMutationRequest,
+    ProviderKeyRequest,
+    RunLaunchRequest,
+    UsageAnalyticsRequest,
+    WorkspaceFileUploadRequest,
+    optional_bool,
+    optional_int,
+    optional_string,
+    require_string,
+)
 from managed_research.mcp.tools.approvals import build_approval_tools
 from managed_research.mcp.tools.artifacts import build_artifact_tools
 from managed_research.mcp.tools.integrations import build_integration_tools
@@ -73,72 +81,6 @@ class RpcError(Exception):
         self.data = data
 
 
-def _require_string(payload: JSONDict, key: str) -> str:
-    value = payload.get(key)
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f"'{key}' is required and must be a non-empty string")
-    return value.strip()
-
-
-def _optional_string(payload: JSONDict, key: str) -> str | None:
-    value = payload.get(key)
-    if value is None:
-        return None
-    if not isinstance(value, str):
-        raise ValueError(f"'{key}' must be a string when provided")
-    stripped = value.strip()
-    return stripped or None
-
-
-def _optional_smr_agent_model(payload: JSONDict, key: str) -> str | None:
-    value = _optional_string(payload, key)
-    model = coerce_smr_agent_model(value, field_name=key)
-    return model.value if model is not None else None
-
-
-def _require_smr_host_kind(payload: JSONDict, key: str) -> str:
-    value = _require_string(payload, key)
-    host_kind = coerce_smr_host_kind(value, field_name=key)
-    if host_kind is None:
-        raise ValueError(f"'{key}' is required")
-    return host_kind.value
-
-
-def _optional_actor_model_assignments(payload: JSONDict, key: str) -> list[dict[str, Any]] | None:
-    value = payload.get(key)
-    normalized = normalize_actor_model_assignments(value, field_name=key)
-    if not normalized:
-        return None
-    return [item.as_payload() for item in normalized]
-
-
-def _optional_int(payload: JSONDict, key: str) -> int | None:
-    value = payload.get(key)
-    if value is None:
-        return None
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise ValueError(f"'{key}' must be an integer when provided")
-    return value
-
-
-def _reject_legacy_prompt_arg(payload: JSONDict) -> None:
-    if "prompt" in payload:
-        raise ValueError(
-            "The `prompt` field is no longer supported; use "
-            "`initial_runtime_messages` to enqueue kickoff text on the runtime "
-            "message queue."
-        )
-
-
-def _optional_bool(payload: JSONDict, key: str, *, default: bool = False) -> bool:
-    value = payload.get(key)
-    if value is None:
-        return default
-    if not isinstance(value, bool):
-        raise ValueError(f"'{key}' must be a boolean when provided")
-    return value
-
-
 def _read_message(stream: Any) -> tuple[JSONDict, str] | None:
     """Read either JSONL or content-length framed JSON-RPC from stdin."""
 
@@ -178,8 +120,8 @@ class ManagedResearchMcpServer:
 
     def _client_from_args(self, args: JSONDict) -> SmrControlClient:
         return SmrControlClient(
-            api_key=_optional_string(args, "api_key"),
-            backend_base=_optional_string(args, "backend_base"),
+            api_key=optional_string(args, "api_key"),
+            backend_base=optional_string(args, "backend_base"),
         )
 
     def _build_tools(self) -> list[ToolDefinition]:
@@ -196,16 +138,21 @@ class ManagedResearchMcpServer:
         ]
 
     def _tool_health_check(self, args: JSONDict) -> Any:
-        project_id = _optional_string(args, "project_id")
+        project_id = optional_string(args, "project_id")
         checks: dict[str, Any] = {}
         try:
-            api_key = _optional_string(args, "api_key") or get_api_key(required=False)
-        except Exception:
+            api_key = optional_string(args, "api_key") or get_api_key(required=False)
+            checks["api_key"] = {
+                "status": "pass" if api_key else "warn",
+                "configured": bool(api_key),
+            }
+        except ValueError as exc:
+            checks["api_key"] = {
+                "status": "fail",
+                "configured": False,
+                "message": str(exc),
+            }
             api_key = None
-        checks["api_key"] = {
-            "status": "pass" if api_key else "warn",
-            "configured": bool(api_key),
-        }
         with self._client_from_args(args) as client:
             capabilities = client.get_capabilities()
             checks["backend_ping"] = {
@@ -217,72 +164,57 @@ class ManagedResearchMcpServer:
         return {"ok": True, "checks": checks}
 
     def _tool_create_project(self, args: JSONDict) -> Any:
-        payload = args.get("config")
-        config = dict(payload) if isinstance(payload, dict) else {}
-        name = _optional_string(args, "name")
-        actor_model_assignments = _optional_actor_model_assignments(
-            args,
-            "actor_model_assignments",
-        )
-        if name:
-            config["name"] = name
+        request = ProjectMutationRequest.for_create(args)
         with self._client_from_args(args) as client:
             return client.create_project(
-                config,
-                actor_model_assignments=actor_model_assignments,
+                request.config,
+                actor_model_assignments=request.actor_model_assignments,
             )
 
     def _tool_list_projects(self, args: JSONDict) -> Any:
-        include_archived = _optional_bool(args, "include_archived", default=False)
-        limit = _optional_int(args, "limit") or 100
+        include_archived = optional_bool(args, "include_archived", default=False)
+        limit = optional_int(args, "limit") or 100
         with self._client_from_args(args) as client:
             return client.list_projects(include_archived=include_archived, limit=limit)
 
     def _tool_get_project(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
+        project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.get_project(project_id)
 
     def _tool_patch_project(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
-        config = args.get("config")
-        if not isinstance(config, dict):
-            raise ValueError("'config' is required and must be an object")
-        actor_model_assignments = _optional_actor_model_assignments(
-            args,
-            "actor_model_assignments",
-        )
+        request = ProjectMutationRequest.for_patch(args)
         with self._client_from_args(args) as client:
             return client.patch_project(
-                project_id,
-                dict(config),
-                actor_model_assignments=actor_model_assignments,
+                request.project_id,
+                request.config,
+                actor_model_assignments=request.actor_model_assignments,
             )
 
     def _tool_get_project_status(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
+        project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.get_project_status(project_id)
 
     def _tool_get_project_entitlement(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
+        project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.get_project_entitlement(project_id)
 
     def _tool_get_project_notes(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
+        project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.get_project_notes(project_id)
 
     def _tool_set_project_notes(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
-        notes = _require_string(args, "notes")
+        project_id = require_string(args, "project_id")
+        notes = require_string(args, "notes")
         with self._client_from_args(args) as client:
             return client.set_project_notes(project_id, notes)
 
     def _tool_append_project_notes(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
-        notes = _require_string(args, "notes")
+        project_id = require_string(args, "project_id")
+        notes = require_string(args, "notes")
         with self._client_from_args(args) as client:
             return client.append_project_notes(project_id, notes)
 
@@ -291,42 +223,38 @@ class ManagedResearchMcpServer:
             return client.get_org_knowledge()
 
     def _tool_set_org_knowledge(self, args: JSONDict) -> Any:
-        content = args.get("content")
-        if not isinstance(content, str):
-            raise ValueError("'content' is required and must be a string")
+        content = require_string(args, "content")
         with self._client_from_args(args) as client:
             return client.set_org_knowledge(content)
 
     def _tool_get_project_knowledge(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
+        project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.get_project_knowledge(project_id)
 
     def _tool_set_project_knowledge(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
-        content = args.get("content")
-        if not isinstance(content, str):
-            raise ValueError("'content' is required and must be a string")
+        project_id = require_string(args, "project_id")
+        content = require_string(args, "content")
         with self._client_from_args(args) as client:
             return client.set_project_knowledge(project_id, content)
 
     def _tool_pause_project(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
+        project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.pause_project(project_id)
 
     def _tool_resume_project(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
+        project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.resume_project(project_id)
 
     def _tool_archive_project(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
+        project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.archive_project(project_id)
 
     def _tool_unarchive_project(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
+        project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.unarchive_project(project_id)
 
@@ -339,77 +267,52 @@ class ManagedResearchMcpServer:
             return client.get_limits()
 
     def _tool_get_capacity_lane_preview(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
+        project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.get_capacity_lane_preview(project_id)
 
+    def _tool_set_provider_key(self, args: JSONDict) -> Any:
+        request = ProviderKeyRequest.from_payload(args)
+        with self._client_from_args(args) as client:
+            return client.set_provider_key(
+                request.project_id,
+                provider=request.provider,
+                funding_source=request.funding_source,
+                api_key=request.api_key,
+                encrypted_key_b64=request.encrypted_key_b64,
+            )
+
+    def _tool_get_provider_key_status(self, args: JSONDict) -> Any:
+        request = ProviderKeyRequest.from_payload(args)
+        with self._client_from_args(args) as client:
+            return client.get_provider_key_status(
+                request.project_id,
+                provider=request.provider,
+                funding_source=request.funding_source,
+            )
+
     def _tool_get_run_start_blockers(self, args: JSONDict) -> Any:
-        _reject_legacy_prompt_arg(args)
-        project_id = _require_string(args, "project_id")
-        host_kind = _require_smr_host_kind(args, "host_kind")
-        work_mode = _require_string(args, "work_mode")
-        worker_pool_id = _optional_string(args, "worker_pool_id")
-        timebox_seconds = _optional_int(args, "timebox_seconds")
-        agent_profile = _optional_string(args, "agent_profile")
-        agent_model = _optional_smr_agent_model(args, "agent_model")
-        agent_kind = _optional_string(args, "agent_kind")
-        agent_model_params = (
-            args.get("agent_model_params")
-            if isinstance(args.get("agent_model_params"), dict)
-            else None
-        )
-        actor_model_overrides = _optional_actor_model_assignments(
-            args,
-            "actor_model_overrides",
-        )
-        initial_runtime_messages = (
-            [
-                dict(item)
-                for item in args.get("initial_runtime_messages", [])
-                if isinstance(item, dict)
-            ]
-            if isinstance(args.get("initial_runtime_messages"), list)
-            else None
-        )
-        workflow = args.get("workflow") if isinstance(args.get("workflow"), dict) else None
-        sandbox_override = (
-            args.get("sandbox_override") if isinstance(args.get("sandbox_override"), dict) else None
-        )
-        idempotency_key_run_create = _optional_string(args, "idempotency_key_run_create")
-        idempotency_key = _optional_string(args, "idempotency_key")
+        request = RunLaunchRequest.from_payload(args)
         with self._client_from_args(args) as client:
             return client.get_run_start_blockers(
-                project_id,
-                host_kind=host_kind,
-                work_mode=work_mode,
-                worker_pool_id=worker_pool_id,
-                timebox_seconds=timebox_seconds,
-                agent_profile=agent_profile,
-                agent_model=agent_model,
-                agent_kind=agent_kind,
-                agent_model_params=agent_model_params,
-                actor_model_overrides=actor_model_overrides,
-                initial_runtime_messages=initial_runtime_messages,
-                workflow=workflow,
-                sandbox_override=sandbox_override,
-                idempotency_key_run_create=idempotency_key_run_create,
-                idempotency_key=idempotency_key,
+                request.project_id,
+                **request.client_kwargs(),
             )
 
     def _tool_get_workspace_download_url(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
+        project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.get_workspace_download_url(project_id)
 
     def _tool_get_project_git(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
+        project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.get_project_git(project_id)
 
     def _tool_download_workspace_archive(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
-        output_path = _require_string(args, "output_path")
-        timeout_raw = _optional_int(args, "timeout_seconds")
+        project_id = require_string(args, "project_id")
+        output_path = require_string(args, "output_path")
+        timeout_raw = optional_int(args, "timeout_seconds")
         timeout_seconds = float(timeout_raw) if timeout_raw is not None else None
         with self._client_from_args(args) as client:
             if timeout_seconds is not None:
@@ -421,116 +324,54 @@ class ManagedResearchMcpServer:
             return client.download_workspace_archive(project_id, output_path)
 
     def _tool_get_usage_analytics(self, args: JSONDict) -> Any:
-        subject_kind = _optional_string(args, "subject_kind")
-        org_id = _optional_string(args, "org_id")
-        managed_account_id = _optional_string(args, "managed_account_id")
-        start_at = _require_string(args, "start_at")
-        end_at = _require_string(args, "end_at")
-        bucket = _require_string(args, "bucket").upper()
-        first = _optional_int(args, "first")
-        if first is None:
-            raise ValueError("'first' is required")
-        after = _optional_string(args, "after")
+        request = UsageAnalyticsRequest.from_payload(args)
         resolved_subject_kind = _resolve_usage_analytics_subject_kind(
-            subject_kind,
+            request.subject_kind,
         )
         with self._client_from_args(args) as client:
             if resolved_subject_kind is _UsageAnalyticsSubjectKind.MANAGED_ACCOUNT:
-                if not managed_account_id:
+                if not request.managed_account_id:
                     raise ValueError(
                         "'managed_account_id' is required for managed_account usage analytics"
                     )
-                subject = client.usage.subject_for_managed_account(managed_account_id)
+                subject = client.usage.subject_for_managed_account(request.managed_account_id)
             else:
-                if not org_id:
+                if not request.org_id:
                     raise ValueError("'org_id' is required for org usage analytics")
-                subject = client.usage.subject_for_org(org_id)
+                subject = client.usage.subject_for_org(request.org_id)
             return client.get_usage_analytics(
                 subject,
-                start_at=start_at,
-                end_at=end_at,
-                bucket=bucket,
-                first=first,
-                after=after,
+                start_at=request.start_at,
+                end_at=request.end_at,
+                bucket=request.bucket,
+                first=request.first,
+                after=request.after,
             )
 
     def _tool_attach_source_repo(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
-        url = _require_string(args, "url")
-        default_branch = _optional_string(args, "default_branch")
+        project_id = require_string(args, "project_id")
+        url = require_string(args, "url")
+        default_branch = optional_string(args, "default_branch")
         with self._client_from_args(args) as client:
             return client.attach_source_repo(project_id, url, default_branch=default_branch)
 
     def _tool_get_workspace_inputs(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
+        project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.get_workspace_inputs(project_id)
 
     def _tool_upload_workspace_files(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
-        files = args.get("files")
-        if not isinstance(files, list) or not files:
-            raise ValueError("'files' must be a non-empty array")
-        normalized: list[JSONDict] = []
-        for item in files:
-            if not isinstance(item, dict):
-                raise ValueError("each file entry must be an object")
-            normalized.append(item)
+        request = WorkspaceFileUploadRequest.from_payload(args)
         with self._client_from_args(args) as client:
-            return client.upload_workspace_files(project_id, normalized)
+            return client.upload_workspace_files(request.project_id, request.files)
 
     def _tool_trigger_run(self, args: JSONDict) -> Any:
-        _reject_legacy_prompt_arg(args)
-        project_id = _require_string(args, "project_id")
-        host_kind = _require_smr_host_kind(args, "host_kind")
-        work_mode = _require_string(args, "work_mode")
-        worker_pool_id = _optional_string(args, "worker_pool_id")
-        timebox_seconds = _optional_int(args, "timebox_seconds")
-        agent_profile = _optional_string(args, "agent_profile")
-        agent_model = _optional_smr_agent_model(args, "agent_model")
-        agent_kind = _optional_string(args, "agent_kind")
-        agent_model_params = (
-            args.get("agent_model_params")
-            if isinstance(args.get("agent_model_params"), dict)
-            else None
-        )
-        actor_model_overrides = _optional_actor_model_assignments(
-            args,
-            "actor_model_overrides",
-        )
-        initial_runtime_messages = (
-            [
-                dict(item)
-                for item in args.get("initial_runtime_messages", [])
-                if isinstance(item, dict)
-            ]
-            if isinstance(args.get("initial_runtime_messages"), list)
-            else None
-        )
-        workflow = args.get("workflow") if isinstance(args.get("workflow"), dict) else None
-        sandbox_override = (
-            args.get("sandbox_override") if isinstance(args.get("sandbox_override"), dict) else None
-        )
-        idempotency_key_run_create = _optional_string(args, "idempotency_key_run_create")
-        idempotency_key = _optional_string(args, "idempotency_key")
+        request = RunLaunchRequest.from_payload(args)
         try:
             with self._client_from_args(args) as client:
                 return client.trigger_run(
-                    project_id,
-                    host_kind=host_kind,
-                    work_mode=work_mode,
-                    worker_pool_id=worker_pool_id,
-                    timebox_seconds=timebox_seconds,
-                    agent_profile=agent_profile,
-                    agent_model=agent_model,
-                    agent_kind=agent_kind,
-                    agent_model_params=agent_model_params,
-                    actor_model_overrides=actor_model_overrides,
-                    initial_runtime_messages=initial_runtime_messages,
-                    workflow=workflow,
-                    sandbox_override=sandbox_override,
-                    idempotency_key_run_create=idempotency_key_run_create,
-                    idempotency_key=idempotency_key,
+                    request.project_id,
+                    **request.client_kwargs(),
                 )
         except SmrApiError as exc:
             payload = _mcp_structured_trigger_error_payload(exc)
@@ -539,10 +380,10 @@ class ManagedResearchMcpServer:
             raise
 
     def _tool_list_runs(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
-        active_only = _optional_bool(args, "active_only", default=False)
-        state = _optional_string(args, "state")
-        limit = _optional_int(args, "limit") or 50
+        project_id = require_string(args, "project_id")
+        active_only = optional_bool(args, "active_only", default=False)
+        state = optional_string(args, "state")
+        limit = optional_int(args, "limit") or 50
         with self._client_from_args(args) as client:
             return client.list_runs(
                 project_id,
@@ -552,21 +393,21 @@ class ManagedResearchMcpServer:
             )
 
     def _tool_get_run(self, args: JSONDict) -> Any:
-        run_id = _require_string(args, "run_id")
-        project_id = _optional_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.get_run(run_id, project_id=project_id)
 
     def _tool_list_active_runs(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
+        project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.list_active_runs(project_id)
 
     def _tool_list_run_questions(self, args: JSONDict) -> Any:
-        run_id = _require_string(args, "run_id")
-        project_id = _optional_string(args, "project_id")
-        status_filter = _optional_string(args, "status_filter")
-        limit = _optional_int(args, "limit") or 100
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        status_filter = optional_string(args, "status_filter")
+        limit = optional_int(args, "limit") or 100
         with self._client_from_args(args) as client:
             return client.list_run_questions(
                 run_id,
@@ -576,10 +417,10 @@ class ManagedResearchMcpServer:
             )
 
     def _tool_create_run_checkpoint(self, args: JSONDict) -> Any:
-        run_id = _require_string(args, "run_id")
-        project_id = _optional_string(args, "project_id")
-        checkpoint_id = _optional_string(args, "checkpoint_id")
-        reason = _optional_string(args, "reason")
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        checkpoint_id = optional_string(args, "checkpoint_id")
+        reason = optional_string(args, "reason")
         with self._client_from_args(args) as client:
             return client.create_run_checkpoint(
                 run_id,
@@ -589,16 +430,16 @@ class ManagedResearchMcpServer:
             )
 
     def _tool_list_run_checkpoints(self, args: JSONDict) -> Any:
-        run_id = _require_string(args, "run_id")
-        project_id = _optional_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.list_run_checkpoints(run_id, project_id=project_id)
 
     def _tool_restore_run_checkpoint(self, args: JSONDict) -> Any:
-        run_id = _require_string(args, "run_id")
-        project_id = _optional_string(args, "project_id")
-        checkpoint_id = _optional_string(args, "checkpoint_id")
-        reason = _optional_string(args, "reason")
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        checkpoint_id = optional_string(args, "checkpoint_id")
+        reason = optional_string(args, "reason")
         with self._client_from_args(args) as client:
             return client.restore_run_checkpoint(
                 run_id,
@@ -608,19 +449,19 @@ class ManagedResearchMcpServer:
             )
 
     def _tool_list_run_log_archives(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
-        run_id = _require_string(args, "run_id")
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
         with self._client_from_args(args) as client:
             return client.list_run_log_archives(project_id, run_id)
 
     def _tool_get_project_readiness(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
+        project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.get_project_readiness(project_id)
 
     def _tool_get_run_progress(self, args: JSONDict) -> Any:
-        project_id = _require_string(args, "project_id")
-        run_id = _require_string(args, "run_id")
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
         with self._client_from_args(args) as client:
             return client.get_run_progress(project_id, run_id)
 

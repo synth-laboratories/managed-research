@@ -1,0 +1,320 @@
+"""Typed request parsing helpers for MCP tool handlers."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+from managed_research.mcp.registry import JSONDict
+from managed_research.models.smr_actor_models import normalize_actor_model_assignments
+from managed_research.models.smr_agent_kinds import coerce_smr_agent_kind
+from managed_research.models.smr_agent_models import coerce_smr_agent_model
+from managed_research.models.smr_credential_providers import (
+    coerce_smr_credential_provider,
+)
+from managed_research.models.smr_funding_sources import coerce_smr_funding_source
+from managed_research.models.smr_host_kinds import coerce_smr_host_kind
+from managed_research.models.smr_run_policy import coerce_smr_run_policy
+from managed_research.models.smr_work_modes import coerce_smr_work_mode
+
+
+def require_string(payload: JSONDict, key: str) -> str:
+    value = payload.get(key)
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"'{key}' is required and must be a non-empty string")
+    return value.strip()
+
+
+def optional_string(payload: JSONDict, key: str) -> str | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"'{key}' must be a string when provided")
+    stripped = value.strip()
+    return stripped or None
+
+
+def optional_int(payload: JSONDict, key: str) -> int | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"'{key}' must be an integer when provided")
+    return value
+
+
+def optional_bool(payload: JSONDict, key: str, *, default: bool = False) -> bool:
+    value = payload.get(key)
+    if value is None:
+        return default
+    if not isinstance(value, bool):
+        raise ValueError(f"'{key}' must be a boolean when provided")
+    return value
+
+
+def require_smr_work_mode(payload: JSONDict, key: str) -> str:
+    value = require_string(payload, key)
+    work_mode = coerce_smr_work_mode(value, field_name=key)
+    if work_mode is None:
+        raise ValueError(f"'{key}' is required")
+    return work_mode.value
+
+
+def require_smr_host_kind(payload: JSONDict, key: str) -> str:
+    value = require_string(payload, key)
+    host_kind = coerce_smr_host_kind(value, field_name=key)
+    if host_kind is None:
+        raise ValueError(f"'{key}' is required")
+    return host_kind.value
+
+
+def require_smr_credential_provider(payload: JSONDict, key: str) -> str:
+    value = require_string(payload, key)
+    provider = coerce_smr_credential_provider(value, field_name=key)
+    if provider is None:
+        raise ValueError(f"'{key}' is required")
+    return provider.value
+
+
+def require_smr_funding_source(payload: JSONDict, key: str) -> str:
+    value = require_string(payload, key)
+    funding_source = coerce_smr_funding_source(value, field_name=key)
+    if funding_source is None:
+        raise ValueError(f"'{key}' is required")
+    return funding_source.value
+
+
+def optional_smr_agent_model(payload: JSONDict, key: str) -> str | None:
+    value = optional_string(payload, key)
+    model = coerce_smr_agent_model(value, field_name=key)
+    return model.value if model is not None else None
+
+
+def optional_smr_agent_kind(payload: JSONDict, key: str) -> str | None:
+    value = optional_string(payload, key)
+    agent_kind = coerce_smr_agent_kind(value, field_name=key)
+    return agent_kind.value if agent_kind is not None else None
+
+
+def optional_smr_run_policy(payload: JSONDict, key: str) -> dict[str, Any] | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError(f"'{key}' must be an object when provided")
+    return coerce_smr_run_policy(value, field_name=key)
+
+
+def optional_actor_model_assignments(payload: JSONDict, key: str) -> list[dict[str, Any]] | None:
+    value = payload.get(key)
+    normalized = normalize_actor_model_assignments(value, field_name=key)
+    if not normalized:
+        return None
+    return [item.as_payload() for item in normalized]
+
+
+def reject_legacy_prompt_arg(payload: JSONDict) -> None:
+    if "prompt" in payload:
+        raise ValueError(
+            "The `prompt` field is no longer supported; use "
+            "`initial_runtime_messages` to enqueue kickoff text on the runtime "
+            "message queue."
+        )
+
+
+def _optional_object(payload: JSONDict, key: str) -> dict[str, Any] | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError(f"'{key}' must be an object when provided")
+    return dict(value)
+
+
+def _optional_object_list(payload: JSONDict, key: str) -> list[dict[str, Any]] | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, list):
+        raise ValueError(f"'{key}' must be an array when provided")
+    normalized: list[dict[str, Any]] = []
+    for item in value:
+        if not isinstance(item, dict):
+            raise ValueError(f"'{key}' entries must be objects")
+        normalized.append(dict(item))
+    return normalized or None
+
+
+@dataclass(frozen=True)
+class ProjectMutationRequest:
+    project_id: str
+    config: dict[str, Any]
+    actor_model_assignments: list[dict[str, Any]] | None = None
+
+    @classmethod
+    def for_create(cls, payload: JSONDict) -> ProjectMutationRequest:
+        raw_config = payload.get("config")
+        if raw_config is None:
+            config: dict[str, Any] = {}
+        elif isinstance(raw_config, dict):
+            config = dict(raw_config)
+        else:
+            raise ValueError("'config' must be an object when provided")
+        name = optional_string(payload, "name")
+        if name is not None:
+            config["name"] = name
+        return cls(
+            project_id="",
+            config=config,
+            actor_model_assignments=optional_actor_model_assignments(
+                payload, "actor_model_assignments"
+            ),
+        )
+
+    @classmethod
+    def for_patch(cls, payload: JSONDict) -> ProjectMutationRequest:
+        raw_config = payload.get("config")
+        if not isinstance(raw_config, dict):
+            raise ValueError("'config' is required and must be an object")
+        return cls(
+            project_id=require_string(payload, "project_id"),
+            config=dict(raw_config),
+            actor_model_assignments=optional_actor_model_assignments(
+                payload, "actor_model_assignments"
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class ProviderKeyRequest:
+    project_id: str
+    provider: str
+    funding_source: str
+    api_key: str | None = None
+    encrypted_key_b64: str | None = None
+
+    @classmethod
+    def from_payload(cls, payload: JSONDict) -> ProviderKeyRequest:
+        return cls(
+            project_id=require_string(payload, "project_id"),
+            provider=require_smr_credential_provider(payload, "provider"),
+            funding_source=require_smr_funding_source(payload, "funding_source"),
+            api_key=optional_string(payload, "api_key"),
+            encrypted_key_b64=optional_string(payload, "encrypted_key_b64"),
+        )
+
+
+@dataclass(frozen=True)
+class RunLaunchRequest:
+    project_id: str
+    host_kind: str
+    work_mode: str
+    worker_pool_id: str | None = None
+    timebox_seconds: int | None = None
+    agent_profile: str | None = None
+    agent_model: str | None = None
+    agent_kind: str | None = None
+    agent_model_params: dict[str, Any] | None = None
+    actor_model_overrides: list[dict[str, Any]] | None = None
+    initial_runtime_messages: list[dict[str, Any]] | None = None
+    workflow: dict[str, Any] | None = None
+    sandbox_override: dict[str, Any] | None = None
+    run_policy: dict[str, Any] | None = None
+    idempotency_key_run_create: str | None = None
+    idempotency_key: str | None = None
+
+    @classmethod
+    def from_payload(cls, payload: JSONDict) -> RunLaunchRequest:
+        reject_legacy_prompt_arg(payload)
+        return cls(
+            project_id=require_string(payload, "project_id"),
+            host_kind=require_smr_host_kind(payload, "host_kind"),
+            work_mode=require_smr_work_mode(payload, "work_mode"),
+            worker_pool_id=optional_string(payload, "worker_pool_id"),
+            timebox_seconds=optional_int(payload, "timebox_seconds"),
+            agent_profile=optional_string(payload, "agent_profile"),
+            agent_model=optional_smr_agent_model(payload, "agent_model"),
+            agent_kind=optional_smr_agent_kind(payload, "agent_kind"),
+            agent_model_params=_optional_object(payload, "agent_model_params"),
+            actor_model_overrides=optional_actor_model_assignments(
+                payload, "actor_model_overrides"
+            ),
+            initial_runtime_messages=_optional_object_list(
+                payload, "initial_runtime_messages"
+            ),
+            workflow=_optional_object(payload, "workflow"),
+            sandbox_override=_optional_object(payload, "sandbox_override"),
+            run_policy=optional_smr_run_policy(payload, "run_policy"),
+            idempotency_key_run_create=optional_string(
+                payload, "idempotency_key_run_create"
+            ),
+            idempotency_key=optional_string(payload, "idempotency_key"),
+        )
+
+    def client_kwargs(self) -> dict[str, Any]:
+        return {
+            "host_kind": self.host_kind,
+            "work_mode": self.work_mode,
+            "worker_pool_id": self.worker_pool_id,
+            "timebox_seconds": self.timebox_seconds,
+            "agent_profile": self.agent_profile,
+            "agent_model": self.agent_model,
+            "agent_kind": self.agent_kind,
+            "agent_model_params": self.agent_model_params,
+            "actor_model_overrides": self.actor_model_overrides,
+            "initial_runtime_messages": self.initial_runtime_messages,
+            "workflow": self.workflow,
+            "sandbox_override": self.sandbox_override,
+            "run_policy": self.run_policy,
+            "idempotency_key_run_create": self.idempotency_key_run_create,
+            "idempotency_key": self.idempotency_key,
+        }
+
+
+@dataclass(frozen=True)
+class UsageAnalyticsRequest:
+    subject_kind: str | None
+    org_id: str | None
+    managed_account_id: str | None
+    start_at: str
+    end_at: str
+    bucket: str
+    first: int
+    after: str | None
+
+    @classmethod
+    def from_payload(cls, payload: JSONDict) -> UsageAnalyticsRequest:
+        first = optional_int(payload, "first")
+        if first is None:
+            raise ValueError("'first' is required")
+        return cls(
+            subject_kind=optional_string(payload, "subject_kind"),
+            org_id=optional_string(payload, "org_id"),
+            managed_account_id=optional_string(payload, "managed_account_id"),
+            start_at=require_string(payload, "start_at"),
+            end_at=require_string(payload, "end_at"),
+            bucket=require_string(payload, "bucket").upper(),
+            first=first,
+            after=optional_string(payload, "after"),
+        )
+
+
+@dataclass(frozen=True)
+class WorkspaceFileUploadRequest:
+    project_id: str
+    files: list[dict[str, Any]] = field(default_factory=list)
+
+    @classmethod
+    def from_payload(cls, payload: JSONDict) -> WorkspaceFileUploadRequest:
+        project_id = require_string(payload, "project_id")
+        files = payload.get("files")
+        if not isinstance(files, list) or not files:
+            raise ValueError("'files' must be a non-empty array")
+        normalized: list[dict[str, Any]] = []
+        for item in files:
+            if not isinstance(item, dict):
+                raise ValueError("each file entry must be an object")
+            normalized.append(dict(item))
+        return cls(project_id=project_id, files=normalized)
+

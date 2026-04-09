@@ -21,6 +21,7 @@ from managed_research import (
     SmrAgentModel,
     SmrControlClient,
     SmrHostKind,
+    SmrWorkMode,
     SmrWorkerSubtype,
 )
 ```
@@ -48,8 +49,8 @@ High-leverage public flows:
 - `archive_project(project_id)` / `unarchive_project(project_id)`
 - `get_project_readiness(project_id)`
 - `get_capacity_lane_preview(project_id)`
-- `get_run_start_blockers(project_id, host_kind=..., work_mode=...)`
-- `trigger_run(project_id, host_kind=..., work_mode=...)`
+- `get_run_start_blockers(project_id, host_kind=..., work_mode=SmrWorkMode...)`
+- `trigger_run(project_id, host_kind=..., work_mode=SmrWorkMode...)`
 - `get_run(run_id, project_id=...)`
 - `get_run_progress(project_id, run_id)`
 - `get_workspace_download_url(project_id)`
@@ -65,7 +66,7 @@ including `client.projects.get_notes(...)`, `client.projects.set_notes(...)`,
 ```python
 from pathlib import Path
 
-from managed_research.sdk.client import SmrControlClient
+from managed_research import SmrControlClient, SmrHostKind, SmrWorkMode
 
 client = SmrControlClient(api_key="sk_...")
 project = client.create_project({"name": "nanohorizon-sdk-demo"})
@@ -95,7 +96,7 @@ client.get_capacity_lane_preview(project_id)
 blockers = client.get_run_start_blockers(
     project_id,
     host_kind=SmrHostKind.DAYTONA,
-    work_mode="directed_effort",
+    work_mode=SmrWorkMode.DIRECTED_EFFORT,
     agent_profile="codex_gpt_5_4_medium",
     initial_runtime_messages=kickoff,
 )
@@ -104,7 +105,7 @@ if blockers["clear_to_trigger"]:
     client.trigger_run(
         project_id,
         host_kind=SmrHostKind.DAYTONA,
-        work_mode="directed_effort",
+        work_mode=SmrWorkMode.DIRECTED_EFFORT,
         agent_profile="codex_gpt_5_4_medium",
         initial_runtime_messages=kickoff,
     )
@@ -127,6 +128,8 @@ Notes:
   `SmrAgentModel.GPT_OSS_120B` or `SmrAgentModel.GPT_5_4_NANO`
 - Python callers should pass `host_kind` as `SmrHostKind`, for example
   `SmrHostKind.DAYTONA`, `SmrHostKind.LOCAL`, or `SmrHostKind.DOCKER`
+- Python callers should pass `work_mode` as `SmrWorkMode`, for example
+  `SmrWorkMode.DIRECTED_EFFORT` or `SmrWorkMode.OPEN_ENDED_DISCOVERY`
 - `host_kind` is required for project-scoped trigger and run-start blockers
 - kickoff text must go through `initial_runtime_messages`; the legacy `prompt`
   field is not accepted
@@ -143,7 +146,7 @@ Actor-scoped engineer assignment example:
 client.trigger_run(
     project_id,
     host_kind=SmrHostKind.DAYTONA,
-    work_mode="directed_effort",
+    work_mode=SmrWorkMode.DIRECTED_EFFORT,
     actor_model_overrides=[
         SmrActorModelAssignment(
             actor_type=SmrActorType.WORKER,

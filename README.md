@@ -42,6 +42,7 @@ from managed_research import (
     SmrAgentModel,
     SmrControlClient,
     SmrHostKind,
+    SmrWorkMode,
     SmrWorkerSubtype,
 )
 
@@ -73,7 +74,7 @@ client.get_capacity_lane_preview(project_id)
 blockers = client.get_run_start_blockers(
     project_id,
     host_kind=SmrHostKind.DAYTONA,
-    work_mode="directed_effort",
+    work_mode=SmrWorkMode.DIRECTED_EFFORT,
     agent_profile="codex_gpt_5_4_medium",
     initial_runtime_messages=kickoff,
 )
@@ -81,7 +82,7 @@ if blockers["clear_to_trigger"]:
     run = client.trigger_run(
         project_id,
         host_kind=SmrHostKind.DAYTONA,
-        work_mode="directed_effort",
+        work_mode=SmrWorkMode.DIRECTED_EFFORT,
         agent_profile="codex_gpt_5_4_medium",
         initial_runtime_messages=kickoff,
     )
@@ -110,7 +111,7 @@ Python callers should use the enum-backed surface:
 client.trigger_run(
     project_id,
     host_kind=SmrHostKind.DAYTONA,
-    work_mode="directed_effort",
+    work_mode=SmrWorkMode.DIRECTED_EFFORT,
     agent_model=SmrAgentModel.GPT_OSS_120B,
     initial_runtime_messages=kickoff,
 )
@@ -122,7 +123,7 @@ Actor-scoped engineer selection:
 client.trigger_run(
     project_id,
     host_kind=SmrHostKind.DAYTONA,
-    work_mode="directed_effort",
+    work_mode=SmrWorkMode.DIRECTED_EFFORT,
     actor_model_overrides=[
         SmrActorModelAssignment(
             actor_type=SmrActorType.WORKER,
