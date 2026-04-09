@@ -1,13 +1,29 @@
 # managed-research
 
-Canonical public home for Synth Managed Research.
+Managed Research is Synth's product for applied AI teams that want repeatable,
+inspectable research workflows against real repos. Wave 1 is strongest at
+verification, eval execution, data assembly, and careful context optimization.
+This repository owns the maintained Python SDK and MCP server that sit on top
+of the SMR backend control plane.
 
-This repository now owns the maintained SMR Python SDK, MCP server modules, and
-schema tooling. The package is library-first:
+This repository is library-first:
 
 - no standalone CLI migration
 - no Data Factory surface
 - no old onboarding / starting-data bootstrap APIs
+
+## Project Notes vs Curated Knowledge
+
+- `project notes` are durable notebook text for operator memory and project
+  context. Use `get_project_notes`, `set_project_notes`, and
+  `append_project_notes`.
+- `curated knowledge` is the PG-backed durable store for org- or
+  project-scoped findings you want future work to build from. Use
+  `get_org_knowledge`, `set_org_knowledge`, `get_project_knowledge`, and
+  `set_project_knowledge`.
+
+The two surfaces are intentionally separate. Project notes are not the same as
+curated knowledge.
 
 ## Install
 
@@ -18,25 +34,42 @@ uv add synth-managed-research
 ## Python SDK
 
 ```python
+from pathlib import Path
+
 from managed_research.sdk.client import SmrControlClient
 
 client = SmrControlClient(api_key="sk_...")
-project = client.create_project({"name": "SMR demo"})
-client.upload_workspace_files(
-    project["project_id"],
-    [{"path": "README.md", "content": "# Demo\n", "content_type": "text/markdown"}],
-)
+project = client.create_project({"name": "nanohorizon-demo"})
 project_id = project["project_id"]
-readiness = client.get_project_readiness(project_id)
-lane_preview = client.get_capacity_lane_preview(project_id)
+client.attach_source_repo(
+    project_id,
+    "https://github.com/synth-laboratories/nanohorizon.git",
+    default_branch="main",
+)
+client.set_project_notes(
+    project_id,
+    "Operator notebook only. Kickoff intent belongs in runtime messages.",
+)
+client.set_project_knowledge(
+    project_id,
+    "Known scoring constraints, prior prompt findings, and durable research takeaways for NanoHorizon.",
+)
+knowledge = client.get_project_knowledge(project_id)
+kickoff = [
+    {
+        "body": "Inspect the repo, improve the benchmark-facing workflow, and leave behind evidence that explains what changed.",
+        "mode": "queue",
+    }
+]
+client.get_project_readiness(project_id)
+client.get_capacity_lane_preview(project_id)
 blockers = client.get_run_start_blockers(
     project_id,
     host_kind="daytona",
     work_mode="directed_effort",
     agent_kind="codex",
-    initial_runtime_messages=[
-        {"body": "Start with the highest-confidence blocker and confirm staging status.", "mode": "queue"}
-    ],
+    agent_model="gpt-5.4",
+    initial_runtime_messages=kickoff,
 )
 if blockers["clear_to_trigger"]:
     run = client.trigger_run(
@@ -44,16 +77,14 @@ if blockers["clear_to_trigger"]:
         host_kind="daytona",
         work_mode="directed_effort",
         agent_kind="codex",
-        initial_runtime_messages=[
-            {"body": "Start with the highest-confidence blocker and confirm staging status.", "mode": "queue"}
-        ],
+        agent_model="gpt-5.4",
+        initial_runtime_messages=kickoff,
     )
-
-client.projects.append_notes(
-    project_id,
-    "Post-run note: keep notebook updates separate from kickoff queue messages.",
-)
+    client.download_workspace_archive(project_id, Path("nanohorizon-workspace.tar.gz"))
 ```
+
+If you need org-wide durable context instead of project-scoped knowledge, use
+`set_org_knowledge(...)` and `get_org_knowledge()`.
 
 ## MCP
 
@@ -63,12 +94,37 @@ Run the stdio server directly:
 python -m managed_research.mcp
 ```
 
-The maintained MCP surface includes workspace bootstrap, launch preflight, and
-progress tools such as `smr_attach_source_repo`, `smr_upload_workspace_files`,
-`smr_set_project_notes`, `smr_append_project_notes`, `smr_pause_project`,
-`smr_resume_project`, `smr_archive_project`, `smr_unarchive_project`,
+The maintained MCP surface includes workspace bootstrap, launch preflight,
+knowledge, and progress tools such as `smr_attach_source_repo`,
+`smr_upload_workspace_files`, `smr_set_project_notes`,
+`smr_append_project_notes`, `smr_get_org_knowledge`,
+`smr_set_org_knowledge`, `smr_get_project_knowledge`,
+`smr_set_project_knowledge`, `smr_pause_project`, `smr_resume_project`,
+`smr_archive_project`, `smr_unarchive_project`,
 `smr_get_capacity_lane_preview`, `smr_get_run_start_blockers`,
-`smr_trigger_run`, `smr_get_project_readiness`, and `smr_get_run_progress`.
+`smr_trigger_run`, `smr_get_project_readiness`, `smr_get_run`, and
+`smr_get_run_progress`.
+
+Project knowledge example:
+
+```json
+{
+  "tool": "smr_set_project_knowledge",
+  "arguments": {
+    "project_id": "proj_123",
+    "content": "Known benchmark constraints, prior failures, and durable findings for this project."
+  }
+}
+```
+
+```json
+{
+  "tool": "smr_get_project_knowledge",
+  "arguments": {
+    "project_id": "proj_123"
+  }
+}
+```
 
 ## Launch Contract
 
@@ -76,13 +132,22 @@ Use the same launch payload for blockers and trigger:
 
 - create/select project
 - attach a source repo or upload workspace files
+- optionally set project notes or curated knowledge
 - check readiness
 - call `smr_get_capacity_lane_preview`
 - call `smr_get_run_start_blockers`
 - call `smr_trigger_run`
-- observe progress
+- poll with `smr_get_run`
 - retrieve the workspace snapshot with `smr_get_workspace_download_url`,
   `smr_download_workspace_archive`, or `smr_get_project_git`
+
+For submission-style demos such as Nanoprogram, the next step after workspace
+retrieval is local evaluation of `submission/optimizer.py` with the official
+harness.
+
+`smr_get_run_progress` is available on newer remigration surfaces, but the
+launch-day walkthrough uses `smr_get_run` because it works across the backend
+deployments we rehearse against.
 
 `host_kind` is required for project-scoped launch preflight and trigger.
 
@@ -90,14 +155,19 @@ Kickoff prose is queue-first:
 
 - use `initial_runtime_messages` for opening intent on blockers and trigger
 - do not send the removed `prompt` field
-- if you migrated from older integrations, convert `prompt="..."` to `initial_runtime_messages=[{"body": "...", "mode": "queue"}]`
+- if you migrated from older integrations, convert `prompt="..."` to
+  `initial_runtime_messages=[{"body": "...", "mode": "queue"}]`
 
-Project notebook and lifecycle helpers are separate from kickoff:
+Project notebook, curated knowledge, and lifecycle helpers are separate:
 
-- use `get_project_notes`, `set_project_notes`, and `append_project_notes` for durable notebook text
-- use `pause_project` / `resume_project` and `archive_project` / `unarchive_project` for project lifecycle control
+- use `get_project_notes`, `set_project_notes`, and `append_project_notes` for
+  durable notebook text
+- use `get_org_knowledge`, `set_org_knowledge`, `get_project_knowledge`, and
+  `set_project_knowledge` for PG-backed curated knowledge
+- use `pause_project` / `resume_project` and `archive_project` /
+  `unarchive_project` for project lifecycle control
 
-### MCP trigger success vs denial
+### MCP Trigger Success vs Denial
 
 In MCP clients, `smr_trigger_run` can still return a successful tool call that
 means launch failed. Structured denials include:
@@ -123,8 +193,8 @@ Successful trigger responses carry run data such as:
 ```
 
 Some non-structured onboarding or validation failures may still surface as plain
-HTTP/MCP errors without a structured `detail.error_code`. Treat the structured
-shape as the preferred case, not the only case.
+HTTP or MCP errors without a structured `detail.error_code`. Treat the
+structured shape as the preferred case, not the only case.
 
 ## Repo Layout
 

@@ -425,6 +425,38 @@ class SmrControlClient:
             label="append_project_notes",
         )
 
+    def get_org_knowledge(self) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("GET", "/smr/org/knowledge"),
+            label="get_org_knowledge",
+        )
+
+    def set_org_knowledge(self, content: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "PUT",
+                "/smr/org/knowledge",
+                json_body={"content": str(content)},
+            ),
+            label="set_org_knowledge",
+        )
+
+    def get_project_knowledge(self, project_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("GET", f"/smr/projects/{project_id}/knowledge"),
+            label="get_project_knowledge",
+        )
+
+    def set_project_knowledge(self, project_id: str, content: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "PUT",
+                f"/smr/projects/{project_id}/knowledge",
+                json_body={"content": str(content)},
+            ),
+            label="set_project_knowledge",
+        )
+
     def get_project_status(self, project_id: str) -> dict[str, Any]:
         return _coerce_dict(
             self._request_json("GET", f"/smr/projects/{project_id}/status"),

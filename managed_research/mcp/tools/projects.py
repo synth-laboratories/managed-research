@@ -137,6 +137,50 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_append_project_notes,
         ),
         ToolDefinition(
+            name="smr_get_org_knowledge",
+            description="Fetch curated org-wide knowledge for the authenticated organization. This is distinct from project notes.",
+            input_schema=tool_schema({}, required=[]),
+            handler=server._tool_get_org_knowledge,
+        ),
+        ToolDefinition(
+            name="smr_set_org_knowledge",
+            description="Replace curated org-wide knowledge for the authenticated organization. This is distinct from project notes.",
+            input_schema=tool_schema(
+                {
+                    "content": {
+                        "type": "string",
+                        "description": "Curated org-wide knowledge content to store.",
+                    },
+                },
+                required=["content"],
+            ),
+            handler=server._tool_set_org_knowledge,
+        ),
+        ToolDefinition(
+            name="smr_get_project_knowledge",
+            description="Fetch curated knowledge for a managed research project. This is distinct from the project notebook notes surface.",
+            input_schema=tool_schema(
+                {"project_id": {"type": "string", "description": "Managed research project id."}},
+                required=["project_id"],
+            ),
+            handler=server._tool_get_project_knowledge,
+        ),
+        ToolDefinition(
+            name="smr_set_project_knowledge",
+            description="Replace curated knowledge for a managed research project. This is distinct from the project notebook notes surface.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "content": {
+                        "type": "string",
+                        "description": "Curated project knowledge content to store.",
+                    },
+                },
+                required=["project_id", "content"],
+            ),
+            handler=server._tool_set_project_knowledge,
+        ),
+        ToolDefinition(
             name="smr_pause_project",
             description="Pause a managed research project so new runs cannot start.",
             input_schema=tool_schema(

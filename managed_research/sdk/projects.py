@@ -41,6 +41,12 @@ class ProjectsAPI(_ClientNamespace):
     def append_notes(self, project_id: str, notes: str) -> dict[str, Any]:
         return self._client.append_project_notes(project_id, notes)
 
+    def get_knowledge(self, project_id: str) -> dict[str, Any]:
+        return self._client.get_project_knowledge(project_id)
+
+    def set_knowledge(self, project_id: str, content: str) -> dict[str, Any]:
+        return self._client.set_project_knowledge(project_id, content)
+
     def get_status(self, project_id: str) -> dict[str, Any]:
         return self._client.get_project_status(project_id)
 

@@ -246,6 +246,30 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.append_project_notes(project_id, notes)
 
+    def _tool_get_org_knowledge(self, args: JSONDict) -> Any:
+        with self._client_from_args(args) as client:
+            return client.get_org_knowledge()
+
+    def _tool_set_org_knowledge(self, args: JSONDict) -> Any:
+        content = args.get("content")
+        if not isinstance(content, str):
+            raise ValueError("'content' is required and must be a string")
+        with self._client_from_args(args) as client:
+            return client.set_org_knowledge(content)
+
+    def _tool_get_project_knowledge(self, args: JSONDict) -> Any:
+        project_id = _require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_knowledge(project_id)
+
+    def _tool_set_project_knowledge(self, args: JSONDict) -> Any:
+        project_id = _require_string(args, "project_id")
+        content = args.get("content")
+        if not isinstance(content, str):
+            raise ValueError("'content' is required and must be a string")
+        with self._client_from_args(args) as client:
+            return client.set_project_knowledge(project_id, content)
+
     def _tool_pause_project(self, args: JSONDict) -> Any:
         project_id = _require_string(args, "project_id")
         with self._client_from_args(args) as client:

@@ -1,5 +1,20 @@
 # Quickstart
 
+Managed Research is Synth's product for teams that want repeatable,
+inspectable research workflows against real repos. Wave 1 is strongest at
+verification, eval execution, data assembly, and careful context optimization.
+The Python SDK and MCP server are the public control surfaces for launching and
+inspecting that work.
+
+## Project Notes vs Curated Knowledge
+
+- `project notes` are durable notebook text for operator memory inside a
+  project
+- `curated knowledge` is the PG-backed durable store for org- or
+  project-scoped findings you want future runs to inherit
+
+These are intentionally separate surfaces.
+
 Install the published package:
 
 ```bash
@@ -9,19 +24,33 @@ uv add synth-managed-research
 Use the Python SDK:
 
 ```python
+from pathlib import Path
+
 from managed_research.sdk.client import SmrControlClient
 
 client = SmrControlClient(api_key="sk_...")
-project = client.create_project({"name": "quickstart"})
-client.upload_workspace_files(
-    project["project_id"],
-    [{"path": "README.md", "content": "# Quickstart\n", "content_type": "text/markdown"}],
-)
+project = client.create_project({"name": "nanohorizon-quickstart"})
 project_id = project["project_id"]
+client.attach_source_repo(
+    project_id,
+    "https://github.com/synth-laboratories/nanohorizon.git",
+    default_branch="main",
+)
 client.set_project_notes(
     project_id,
     "Notebook only. Use runtime messages for kickoff intent.",
 )
+client.set_project_knowledge(
+    project_id,
+    "Known benchmark constraints, prior prompt findings, and durable lessons for NanoHorizon.",
+)
+client.get_project_knowledge(project_id)
+kickoff = [
+    {
+        "body": "Inspect the repo, improve the benchmark-facing workflow, and leave behind evidence that explains what changed.",
+        "mode": "queue",
+    }
+]
 client.get_project_readiness(project_id)
 client.get_capacity_lane_preview(project_id)
 blockers = client.get_run_start_blockers(
@@ -29,9 +58,8 @@ blockers = client.get_run_start_blockers(
     host_kind="daytona",
     work_mode="directed_effort",
     agent_kind="codex",
-    initial_runtime_messages=[
-        {"body": "Start with the launch blocker and confirm staging first.", "mode": "queue"}
-    ],
+    agent_model="gpt-5.4",
+    initial_runtime_messages=kickoff,
 )
 if blockers["clear_to_trigger"]:
     client.trigger_run(
@@ -39,17 +67,26 @@ if blockers["clear_to_trigger"]:
         host_kind="daytona",
         work_mode="directed_effort",
         agent_kind="codex",
-        initial_runtime_messages=[
-            {"body": "Start with the launch blocker and confirm staging first.", "mode": "queue"}
-        ],
+        agent_model="gpt-5.4",
+        initial_runtime_messages=kickoff,
     )
+    client.download_workspace_archive(project_id, Path("nanohorizon-workspace.tar.gz"))
 ```
+
+If you need org-wide durable context instead, use `set_org_knowledge(...)` and
+`get_org_knowledge()`.
+
+After extracting the archive, validate the submission with the project-specific
+harness you are targeting.
 
 Kickoff migration note:
 
 - use `initial_runtime_messages` for opening intent
 - do not send the removed `prompt` field
-- project notebook text is managed separately through `set_project_notes` / `append_project_notes`
+- project notebook text is managed separately through `set_project_notes` /
+  `append_project_notes`
+- curated knowledge is managed through `set_org_knowledge`,
+  `get_org_knowledge`, `set_project_knowledge`, and `get_project_knowledge`
 
 Run the MCP server over stdio:
 
@@ -63,9 +100,10 @@ For MCP clients, the equivalent flow is:
 2. `smr_create_project` or `smr_list_projects`
 3. `smr_attach_source_repo` or `smr_upload_workspace_files`
 4. optionally `smr_set_project_notes`
-5. `smr_get_project_readiness`
-6. `smr_get_capacity_lane_preview`
-7. `smr_get_run_start_blockers`
-8. `smr_trigger_run`
-9. `smr_get_run_progress`
-10. `smr_get_workspace_download_url` or `smr_download_workspace_archive`
+5. optionally `smr_set_project_knowledge`
+6. `smr_get_project_readiness`
+7. `smr_get_capacity_lane_preview`
+8. `smr_get_run_start_blockers`
+9. `smr_trigger_run`
+10. `smr_get_run`
+11. `smr_get_workspace_download_url`, `smr_download_workspace_archive`, or `smr_get_project_git`
