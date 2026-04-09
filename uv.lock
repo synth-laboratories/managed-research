@@ -295,7 +295,7 @@ wheels = [
 
 [[package]]
 name = "synth-managed-research"
-version = "0.2025.405"
+version = "0.2025.406"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
