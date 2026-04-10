@@ -1,0 +1,903 @@
+managed-research updates needed to make reportbench evals runnable
+===============================================================
+
+Goal
+----
+
+Make `managed-research` a real public launch surface for `reportbench` evals,
+not just a thin wrapper around a subset of SMR APIs. The target is that
+`readme_smoke` and the broader `reportbench` family can be launched through the
+SDK and MCP surface without re-implementing the giant legacy raw-HTTP runners.
+
+
+Bottom line
+-----------
+
+The current quickstart / SDK handoff is directionally correct but incomplete.
+
+Fixing only these three gaps is necessary:
+
+1. `create_project` accepts loose dicts and can create unrunnable projects.
+2. onboarding is a hidden required step with no SDK/MCP helper.
+3. `trigger_run` cannot override runtime/environment.
+
+But that is not sufficient to make `readme_smoke` and other `reportbench` evals
+reliably runnable. The working legacy eval path carries a fuller runnable
+project contract than the public SDK currently exposes.
+
+
+What the code says today
+------------------------
+
+Public SDK / docs gaps:
+
+- `managed_research.sdk.client.SmrControlClient.create_project()` takes a plain
+  `dict[str, Any]` and forwards it with no runnable-project validation.
+- The docs still teach `create_project({"name": "..."})`, which succeeds but
+  creates a project that may never successfully run.
+- `trigger_run()` supports host/work mode, pool/profile/model overrides, runtime
+  messages, workflow, sandbox override, and run policy, but not
+  `runtime_kind` / `environment_kind`.
+
+Backend gaps:
+
+- backend `POST /smr/projects` accepts an effectively free-form `execution`
+  payload and persists it without requiring a usable runtime contract.
+- run start still hard-blocks on onboarding status and onboarding blocker
+  reason.
+- API-created projects start in a shape that is easy to create and easy to
+  misread as runnable, but can fail later during runtime startup.
+
+ReportBench reality:
+
+- the legacy `readme_smoke` runner does not create a minimal project; it creates
+  a fully configured project payload with budgets, key policy, execution
+  contract, agent/profile bindings, execution policy, research scenario, notes,
+  source repo, workspace inputs, readiness checks, and then trigger payload.
+- the newer managed-research smoke driver intentionally does not reproduce the
+  full validation surface. It is proving the public surface, not the full
+  reportbench runner contract.
+
+Conclusion: if we want `reportbench` runnable through `managed-research`, we
+need a first-class "runnable project contract", not just a better quickstart.
+
+
+Minimum runnable contract for reportbench
+-----------------------------------------
+
+At a minimum, `managed-research` needs to support creation and validation of a
+project/run pair with these capabilities:
+
+Project creation:
+
+- `name`
+- `timezone`
+- `budgets`
+- `key_policy`
+- `execution.pool_id`
+- `execution.runtime_kind`
+- `execution.environment_kind`
+- `execution.agent_kind`
+- `execution.agent_model`
+- `execution.agent_profiles.orchestrator_profile_id`
+- `execution.agent_profiles.default_worker_profile_id`
+- optional actor/profile resolution metadata for debugging
+- `execution_policy`
+- `research.scenario`
+- `notes`
+
+Project inputs:
+
+- source repo attachment
+- workspace file uploads
+
+Run launch:
+
+- `host_kind`
+- `work_mode`
+- `worker_pool_id`
+- `timebox_seconds`
+- `agent_profile`
+- `agent_model`
+- `agent_kind`
+- `agent_model_params`
+- actor model overrides
+- initial runtime messages
+- workflow payload
+- sandbox override
+- run policy
+- idempotency keys
+
+Readiness / gating:
+
+- onboarding completion or API-safe bypass
+- project readiness check before launch
+- explicit run-start blocker inspection
+- fast failure when the project is not runnable
+
+Artifacts / retrieval:
+
+- run polling
+- workspace archive download
+
+
+What "sufficient for evals" means
+---------------------------------
+
+For launch, "sufficient" should mean:
+
+1. A first-time SDK caller can create a runnable SMR project without reading
+   backend internals.
+2. `readme_smoke` can complete end-to-end through the public SDK path.
+3. Other `reportbench` tasks can reuse the same contract shape rather than each
+   needing a bespoke raw-HTTP launcher.
+4. The public surface fails early and clearly when required pieces are missing.
+
+If the public surface only fixes onboarding plus runtime/environment, we will
+still have a partial system that works for some hand-built launches but does
+not truly replace the legacy runner shape used by evals.
+
+
+Recommended public surface changes
+----------------------------------
+
+1. Add a typed runnable-project model.
+
+Suggested models:
+
+- `SmrCreateProjectRequest`
+- `SmrExecutionConfig`
+- `SmrAgentProfileBinding`
+- `SmrExecutionPolicy`
+- `SmrBudgetConfig`
+- `SmrKeyPolicy`
+- `SmrRuntimeKind`
+- `SmrEnvironmentKind`
+
+Important requirement:
+
+- this model must be able to represent the effective project payload used by the
+  legacy `reportbench` runner, not just `name + runtime_kind + environment_kind`
+
+2. Add an SDK helper for API onboarding.
+
+Suggested surface:
+
+- `client.onboarding.start(project_id)`
+- `client.onboarding.complete_step(project_id, step=..., status=...)`
+- `client.onboarding.dry_run(project_id)`
+- `client.onboarding.quick_complete(project_id)`
+
+The quick-complete helper should be the standard path for API-only callers and
+should handle the "GitHub optional" reality explicitly.
+
+3. Add a first-class runnable-project helper.
+
+This can be either:
+
+- `client.create_project(SmrCreateProjectRequest(...))`
+
+or an additive helper like:
+
+- `client.create_runnable_project(...)`
+
+For launch, the key thing is not the exact naming. The key thing is that there
+is exactly one obvious, documented way to create a runnable project.
+
+4. Keep `trigger_run()` flexible, but do not rely on it to fix bad projects.
+
+Per-run `runtime_kind` / `environment_kind` override is useful, but it should
+be treated as additive flexibility, not as the primary fix for unrunnable
+projects. The main path should still produce a runnable project at create time.
+
+5. Add typed readiness / blocker helpers to the documented launch flow.
+
+The SDK already exposes enough raw methods to inspect readiness/blockers, but
+the docs and primary examples need to use them as part of the standard flow.
+
+
+Recommended backend changes
+---------------------------
+
+1. Stop accepting obviously unrunnable projects silently.
+
+Either:
+
+- reject project creation when required execution fields are missing
+
+or, if we need compatibility:
+
+- return a structured warning / readiness state that is impossible to ignore
+
+The cleanest behavior is still to fail early.
+
+2. Make onboarding sane for API-created projects.
+
+Options:
+
+- auto-complete onboarding for API-created projects with `synth_only` key policy
+  and a concrete execution pool
+- or add a dedicated backend quick-complete route and make the SDK call it
+
+3. Return structured run-start blockers.
+
+The backend already has blocker logic; the public surface should make that
+diagnostic actionable and stable for SDK callers.
+
+4. Keep the runnable contract canonical in one place.
+
+Do not split "some required execution bits belong to create_project" and "other
+required execution bits are only inferred later". The eval path needs one
+canonical source of truth for what makes a project runnable.
+
+
+What should be implemented specifically for reportbench
+-------------------------------------------------------
+
+We should avoid adding a `readme_smoke`-specific special case to
+`managed-research`. Instead, add generic support for the contract shape that
+`reportbench` already needs.
+
+Recommended approach:
+
+1. Define a generic runnable-project contract in `managed-research`.
+2. Make `evals/scripts/run_readme_smoke_via_managed_research.py` use that public
+   contract.
+3. Then migrate other `reportbench` launch paths onto the same surface as they
+   converge.
+
+If we do that, `readme_smoke` becomes the proof that the public surface is real,
+and the rest of `reportbench` can reuse the same building blocks.
+
+
+Fields that must not be hand-waved away
+---------------------------------------
+
+These are the pieces most likely to get accidentally omitted if we only think
+about the quickstart bug:
+
+- `execution.pool_id`
+- `execution.agent_kind`
+- `execution.agent_model`
+- `execution.agent_profiles`
+- `execution_policy`
+- `budgets`
+- `key_policy`
+- source repo attachment
+- workspace file uploads
+- readiness/blocker preflight before launch
+
+Those are all part of the effective runnable contract used by the legacy eval
+path today.
+
+
+Launch-safe implementation order
+--------------------------------
+
+1. Decide backend behavior for API onboarding and incomplete projects.
+2. Add typed runnable-project models in `managed-research`.
+3. Add onboarding namespace + `quick_complete`.
+4. Update quickstart / python SDK docs to stop showing unrunnable project
+   creation.
+5. Update `run_readme_smoke_via_managed_research.py` to use the supported public
+   runnable-project path.
+6. Verify `readme_smoke` end-to-end.
+7. Expand to the next `reportbench` task and confirm the same public contract
+   still holds.
+
+
+Validation targets
+------------------
+
+Minimum validation before calling this solved:
+
+- `readme_smoke` launches and completes through managed-research SDK only
+- readiness/checks fail fast if the caller omits required project execution
+  fields
+- API onboarding no longer requires calling protected transport methods
+- archive download and expected output validation still work
+- at least one non-README `reportbench` task can launch through the same public
+  surface without bespoke raw-HTTP glue
+
+
+Additional confirmed parity gaps
+--------------------------------
+
+After scanning the SDK, MCP tools, backend request models, and the
+`readme_smoke` / `nanohorizon_go_explore_prompt_opt` lanes, these additional
+gaps are now confirmed:
+
+1. MCP is missing onboarding tools entirely.
+
+- The SDK and MCP both expose project creation, workspace input upload,
+  readiness, run-start blockers, and run trigger.
+- Neither exposes the onboarding flow that backend still requires before run
+  start.
+- This means MCP parity is currently impossible for first-time API/MCP launches,
+  even if project creation is otherwise correct.
+
+2. MCP project creation is still shape-loose.
+
+- `smr_create_project` only exposes `name`, free-form `config`, and optional
+  `actor_model_assignments`.
+- That is not strong enough to communicate a canonical runnable-project shape to
+  users or tools.
+- We need typed request models and MCP schema parity for the same runnable
+  project contract.
+
+3. `actor_model_assignments` currently has a real backend normalization bug.
+
+- The desired per-actor routing path is correct for cases like "use a shared
+  orchestrator model but route worker:engineer to Codex Spark".
+- However, backend currently re-normalizes already-normalized
+  `execution.actor_model_assignments` and throws
+  `smr_actor_model_selection_list_invalid`.
+- This must be fixed before actor-scoped worker routing is trustworthy for eval
+  launches.
+
+4. Top-level `execution.agent_model` is intentionally more restrictive than
+   actor-scoped routing.
+
+- Shared top-level model selection is currently limited to the public shared
+  orchestrator/reviewer set.
+- Engineer-only worker models such as `gpt-5.3-codex-spark` are supposed to go
+  through actor-scoped assignment, not top-level `execution.agent_model`.
+- This means the public SDK/MCP surface must clearly expose the actor-scoped
+  path, and backend must make that path reliable.
+
+5. `readme_smoke` and NanoHorizon need the same core create/launch flow, but
+   NanoHorizon exercises more of the contract.
+
+Shared requirements:
+
+- runnable project create
+- onboarding completion or API-safe bypass
+- source repo attachment when applicable
+- workspace file uploads
+- project notes
+- readiness / blockers check
+- run trigger
+- polling and artifact retrieval
+
+NanoHorizon-specific pressure points:
+
+- larger staged input bundle
+- real source repo context
+- longer-lived runtime
+- worker-host repo execution must remain anchored to the staged harness/scorer
+- actor/model routing matters more because leaderboard/optimization flows may
+  want different worker models than the shared orchestrator model
+
+
+What this means operationally
+-----------------------------
+
+We now have enough context to fix this end-to-end, but the work needs to be
+framed as "public runnable-eval parity" rather than "quickstart cleanup".
+
+To make `readme_smoke` and a NanoHorizon SMR eval run end-to-end through
+`managed-research`, we need all of the following aligned:
+
+1. backend accepts or helps construct a canonical runnable project
+2. SDK exposes that contract as typed models/helpers
+3. MCP exposes the same contract with schema parity
+4. onboarding is either auto-completed for API callers or explicitly supported
+5. actor-scoped model routing is reliable and idempotent
+6. docs/examples use the runnable path, not the loose create-project path
+7. validation proves at least `readme_smoke` plus one heavier `reportbench`
+   lane work through the same public surface
+
+
+Current setup/readiness/preflight mess
+--------------------------------------
+
+The current backend is trying to answer three legitimate questions:
+
+1. has this project been set up enough to run?
+2. is this project generally launchable?
+3. would this exact launch request succeed right now?
+
+But the current ownership is muddy:
+
+- `onboarding_state` is carrying UI-wizard progress plus control-plane launch
+  authority
+- `_compute_blocker_reason(...)` derives launch meaning from wizard-shaped JSON
+- `run-start-blockers` is the closest thing to a real authoritative preflight
+- `GET /projects/{project_id}/readiness` is not a pure read; it mutates
+  onboarding state and then returns `READY`
+
+That is the strongest example of split authority in this flow.
+
+Current shape:
+
+```text
+project
+  -> onboarding_state (wizard + gate + pause + integration summary)
+  -> GET /readiness
+       mutates onboarding to force "ready"
+  -> POST /run-start-blockers
+       real launch preflight
+  -> POST /trigger
+       calls same preflight again, then launches
+```
+
+This feels arbitrary because the names imply three clean concepts, but the code
+is actually using:
+
+- onboarding as setup authority
+- readiness as hidden bootstrap mutation
+- run-start-blockers as real launch authority
+
+
+Target setup/launch shape
+-------------------------
+
+We should split this into two clean concepts:
+
+1. project setup authority
+2. run launch preflight
+
+Destination:
+
+```text
+project
+  |
+  +--> setup authority
+  |      - setup_status
+  |      - setup_reasons
+  |      - typed readiness facts
+  |
+  +--> GET /setup
+  |      - pure read
+  |
+  +--> POST /setup/prepare
+  |      - explicit mutation/bootstrap
+  |
+  +--> POST /launch-preflight
+  |      - "would this exact run launch?"
+  |
+  +--> POST /trigger
+         - calls same preflight
+         - launches only if clear
+```
+
+Practical interpretation:
+
+- keep one shared evaluator for launch-preflight and trigger
+- stop using a GET readiness route to silently mutate setup state
+- keep setup/bootstrap explicit
+- stop deriving control-plane launch authority directly from a UI-wizard-shaped
+  JSON blob
+
+
+Refactor implication
+--------------------
+
+The runnable-project work should include setup/readiness cleanup as part of the
+same public-surface repair.
+
+That means:
+
+- the backend additive runnable path should pair with an explicit setup
+  preparation path
+- project readiness should become a pure projection of canonical setup
+  authority
+- launch blockers should remain the authoritative run-scoped preflight
+
+We should not keep:
+
+- mutating `GET /readiness`
+- wizard-step JSON as the long-term canonical launch gate
+- multiple overlapping definitions of "ready"
+
+
+Non-goals for this pass
+-----------------------
+
+- do not redesign the entire backend/project model
+- do not move every legacy `reportbench` behavior into `managed-research`
+- do not add eval-specific hacks to the SDK
+
+The goal is a clean, generic runnable-project contract that happens to be
+strong enough to support `reportbench`.
+
+
+Synth-style refactor plan
+-------------------------
+
+This plan follows Synth style as much as is reasonable for a launch-focused
+refactor:
+
+- push interface complexity inward
+- define one canonical runnable-project contract
+- parse once at the boundary, then use typed models
+- keep compatibility layers narrow and temporary
+- fail fast on unrunnable configurations
+- do not expose reportbench-specific algorithm internals through the public API
+
+
+Target contract
+---------------
+
+We should introduce one canonical public concept:
+
+- `SmrRunnableProjectRequest`
+
+This is the public contract for "create a project that can actually run."
+
+It should be small enough for a user to reason about, but rich enough to cover
+the eval launch shape we already know works.
+
+Suggested public fields:
+
+- `name`
+- `timezone`
+- `pool_id`
+- `runtime_kind`
+- `environment_kind`
+- `orchestrator_profile_id`
+- `default_worker_profile_id`
+- optional `worker_profile_ids`
+- optional `actor_model_assignments`
+- optional `work_mode_default`
+- optional `run_budget_usd`
+- optional `monthly_budget_usd`
+- optional `key_policy_mode`
+- optional `scenario`
+- optional `notes`
+
+Important Synth-style constraint:
+
+- do not expose internal execution-policy tuning, routing heuristics, or
+  algorithm knobs unless the caller truly needs to control them
+- default those server-side behind the runnable-project contract
+
+
+Canonical ownership
+-------------------
+
+To avoid split authority, ownership should be:
+
+1. Backend owns the canonical runnable-project expansion and validation.
+2. `managed-research` SDK owns typed client models and ergonomic helpers.
+3. MCP owns schema-parity projection of the same SDK/backend contract.
+4. eval drivers are consumers of that contract, not alternate contract owners.
+
+That means:
+
+- do not let the README smoke driver define the real project contract
+- do not let MCP `config: dict` shapes define the real project contract
+- do not let docs remain coupled to the raw `/smr/projects` free-form payload
+
+
+Recommended implementation shape
+--------------------------------
+
+Phase 0: patch real blockers before widening the surface
+
+1. Fix `actor_model_assignments` idempotency in backend.
+
+Files:
+
+- `backend/smr/config/codex_profiles.py`
+- `backend/app/smr/project_configuration.py`
+
+Requirement:
+
+- already-normalized `execution.actor_model_assignments` must round-trip safely
+  through create -> snapshot -> read -> projection paths
+
+Preferred fix direction:
+
+- make `_normalize_actor_model_assignments()` accept both wire-list input and
+  already-normalized dict input
+- do not rely on scattered caller-side "skip re-normalization" behavior
+
+Reason:
+
+- this is the narrowest high-signal chokepoint
+- it makes the desired per-actor worker routing path trustworthy again
+
+2. Keep shared top-level model policy as-is.
+
+Files:
+
+- `backend/smr/config/actor_model_policy.py`
+- `backend/config/smr_actor_model_policy.json`
+
+Requirement:
+
+- `execution.agent_model` remains the shared top-level orchestrator/reviewer
+  selection path
+- worker-only models like Codex Spark continue to go through
+  `actor_model_assignments`
+
+Reason:
+
+- this preserves one clear meaning for top-level model selection
+- it avoids turning shared selection into ambiguous per-actor routing
+
+
+Phase 1: add one canonical backend runnable-project path
+
+Goal:
+
+- make backend own the canonical meaning of "runnable project"
+
+Recommended backend additions:
+
+1. Add an additive typed route for runnable project creation.
+
+Suggested route:
+
+- `POST /smr/projects:runnable`
+
+Suggested internal backend type:
+
+- `RunnableProjectSpec`
+
+Suggested location:
+
+- `backend/app/api/v1/managed_research/smr.py`
+- `backend/app/smr/project_configuration.py`
+- new helper module if needed, for example
+  `backend/app/smr/runnable_project_contract.py`
+
+Design rule:
+
+- parse request once into a typed internal model
+- expand that model into the lower-level stored project payload in one place
+- downstream code should not keep probing raw dict shapes
+
+2. Add additive onboarding fast-path for API callers.
+
+Suggested route:
+
+- `POST /smr/projects/{project_id}/onboarding/quick_complete`
+
+Behavior:
+
+- start onboarding if needed
+- mark optional GitHub step as skipped when appropriate
+- run dry-run / readiness preparation
+- return structured completion status
+
+Reason:
+
+- keeps complexity server-side
+- avoids forcing SDK/MCP clients to know the UI onboarding sequence
+
+3. Fail fast for unrunnable projects on the runnable path.
+
+Requirement:
+
+- missing required execution fields should fail at create time with structured
+  error codes
+- do not allow a runnable-looking project to fail two minutes later at runtime
+  start because core execution fields were omitted
+
+Compatibility boundary:
+
+- keep the existing `POST /smr/projects` path for low-level/legacy callers for
+  now
+- but treat it as compatibility surface, not the documented primary path
+
+
+Phase 2: add typed SDK models and helpers
+-----------------------------------------
+
+Goal:
+
+- make the SDK the clean public interface to the backend runnable contract
+
+Recommended files:
+
+- new `managed_research/models/smr_runtime_kinds.py`
+- new `managed_research/models/smr_environment_kinds.py`
+- new `managed_research/models/smr_project_contract.py`
+- `managed_research/models/__init__.py`
+- `managed_research/__init__.py`
+- `managed_research/sdk/client.py`
+- `managed_research/sdk/projects.py`
+- new `managed_research/sdk/onboarding.py`
+- `managed_research/sdk/__init__.py`
+
+Suggested new public models:
+
+- `SmrRuntimeKind`
+- `SmrEnvironmentKind`
+- `SmrProjectBudgetConfig`
+- `SmrProjectKeyPolicy`
+- `SmrAgentProfileBindings`
+- `SmrRunnableProjectRequest`
+- `SmrRunStartBlocker`
+- `SmrRunStartBlockerReport`
+- `SmrOnboardingStatus`
+
+Design rule:
+
+- use dataclasses / enums for public typed models
+- do not carry `dict[str, Any]` through the primary SDK flow
+
+Recommended SDK methods:
+
+- `client.create_runnable_project(request)`
+- `client.onboarding.start(project_id)`
+- `client.onboarding.complete_step(project_id, step, status)`
+- `client.onboarding.dry_run(project_id)`
+- `client.onboarding.quick_complete(project_id)`
+
+Compatibility boundary:
+
+- keep `create_project(payload: dict)` as low-level escape hatch
+- stop using it in docs and eval drivers
+
+
+Phase 3: add MCP schema parity
+------------------------------
+
+Goal:
+
+- MCP should be able to do everything the typed SDK can do for eval launch
+
+Recommended files:
+
+- `managed_research/mcp/request_models.py`
+- `managed_research/mcp/server.py`
+- `managed_research/mcp/tools/projects.py`
+- new `managed_research/mcp/tools/onboarding.py`
+- possibly new `managed_research/mcp/tools/runnable_projects.py` if that keeps
+  boundaries clearer
+
+Recommended MCP additions:
+
+- `smr_create_runnable_project`
+- `smr_onboarding_start`
+- `smr_onboarding_complete_step`
+- `smr_onboarding_dry_run`
+- `smr_onboarding_quick_complete`
+
+Design rule:
+
+- MCP request parsing should build typed request objects first
+- tool handlers should not pass free-form config bags through as primary
+  authority
+
+
+Phase 4: migrate docs and eval drivers
+--------------------------------------
+
+Goal:
+
+- make the documented path equal the real path
+
+Docs:
+
+- `managed-research/docs/quickstart.md`
+- `managed-research/docs/python-sdk.md`
+
+Driver migrations:
+
+- `evals/scripts/run_readme_smoke_via_managed_research.py`
+- later, the NanoHorizon managed-research driver / launcher path
+
+Required doc changes:
+
+- remove the misleading `create_project({"name": ...})` happy path
+- show runnable project creation
+- show onboarding quick-complete or explain that the runnable path performs the
+  needed prep
+- show readiness / blocker check before trigger
+
+Driver migration order:
+
+1. `readme_smoke`
+2. one NanoHorizon lane launch path
+
+Reason:
+
+- README smoke proves the basic control plane
+- NanoHorizon proves the heavier staged-input and long-running worker path
+
+
+Phase 5: validation
+-------------------
+
+Launch validation should be explicit and narrow:
+
+1. SDK-only `readme_smoke` end-to-end
+
+- create runnable project
+- attach workspace inputs
+- quick-complete onboarding
+- readiness is `ready`
+- trigger run
+- poll to terminal
+- download archive
+- confirm expected README smoke outputs
+
+2. SDK-only NanoHorizon launch
+
+- create runnable project
+- attach source repo and workspace inputs
+- quick-complete onboarding
+- readiness is `ready`
+- trigger run
+- confirm run launches with the intended task contract and staged inputs
+- confirm artifact/report retrieval works
+
+3. MCP parity spot-check
+
+- create runnable project
+- quick-complete onboarding
+- upload workspace files
+- trigger run
+
+4. Actor-scoped routing validation
+
+- durable `actor_model_assignments` survives project creation, config snapshot,
+  run start, and worker projection without re-normalization failure
+
+
+What not to do
+--------------
+
+1. Do not move every runtime field onto `trigger_run()` for launch.
+
+- That spreads project authority across create-time and run-time paths.
+- It increases ambiguity instead of reducing it.
+
+2. Do not encode `reportbench` lane semantics into backend public routes.
+
+- backend should own the generic runnable project contract
+- eval drivers should map lane config onto that contract
+
+3. Do not keep using shape-loose `config` payloads as the primary surface.
+
+- they are fine as a temporary compatibility boundary
+- they are not acceptable as the main public contract
+
+4. Do not expose internal execution-policy knobs unless the user must reason
+   about them.
+
+- keep user config minimal
+- default internals server-side
+
+
+Suggested PR sequence
+---------------------
+
+1. Backend blocker patch:
+- fix `actor_model_assignments` idempotency
+
+2. Backend contract PR:
+- add `projects:runnable`
+- add onboarding quick-complete
+- add fast failure for missing required execution fields on the runnable path
+
+3. SDK contract PR:
+- add typed runnable project models
+- add onboarding namespace
+- add typed run-start blocker models
+
+4. MCP parity PR:
+- add runnable project tool
+- add onboarding tools
+
+5. Docs + eval PR:
+- rewrite quickstart / python SDK docs
+- migrate `readme_smoke`
+- migrate one NanoHorizon launch path
+
+
+Acceptance bar
+--------------
+
+We should call this done for launch when:
+
+- `readme_smoke` completes through the public managed-research SDK path
+- one NanoHorizon SMR eval launches through the same public contract
+- onboarding no longer requires protected transport access
+- actor-scoped worker routing is reliable
+- create-time failures are immediate and informative
+- docs and MCP both point at the same canonical runnable-project path

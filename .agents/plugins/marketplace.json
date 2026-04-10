@@ -1,0 +1,12 @@
+{
+  "name": "managed-research-local",
+  "plugins": [
+    {
+      "name": "managed-research",
+      "source": {
+        "source": "local",
+        "path": "./managed-research"
+      }
+    }
+  ]
+}

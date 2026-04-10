@@ -4,13 +4,24 @@ from __future__ import annotations
 
 from typing import Any
 
-from managed_research.models.types import ProviderKeyStatus
+from managed_research.models.types import (
+    ProviderKeyStatus,
+    SmrLaunchPreflight,
+    SmrProjectSetup,
+    SmrRunnableProjectRequest,
+)
 from managed_research.sdk._base import _ClientNamespace
 
 
 class ProjectsAPI(_ClientNamespace):
     def create(self, payload: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         return self._client.create_project(payload, **kwargs)
+
+    def create_runnable(
+        self,
+        request: SmrRunnableProjectRequest | dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.create_runnable_project(request)
 
     def list(self, *, include_archived: bool = False, limit: int = 100) -> list[dict[str, Any]]:
         return self._client.list_projects(include_archived=include_archived, limit=limit)
@@ -74,6 +85,19 @@ class ProjectsAPI(_ClientNamespace):
 
     def get_run_start_blockers(self, project_id: str, **kwargs: Any) -> dict[str, Any]:
         return self._client.get_run_start_blockers(project_id, **kwargs)
+
+    def get_setup(self, project_id: str) -> SmrProjectSetup:
+        return SmrProjectSetup.from_wire(self._client.get_project_setup(project_id))
+
+    def prepare_setup(self, project_id: str) -> SmrProjectSetup:
+        return SmrProjectSetup.from_wire(
+            self._client.prepare_project_setup(project_id)
+        )
+
+    def get_launch_preflight(self, project_id: str, **kwargs: Any) -> SmrLaunchPreflight:
+        return SmrLaunchPreflight.from_wire(
+            self._client.get_launch_preflight(project_id, **kwargs)
+        )
 
     def set_provider_key(self, project_id: str, **kwargs: Any) -> ProviderKeyStatus:
         return ProviderKeyStatus.from_wire(

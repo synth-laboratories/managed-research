@@ -152,6 +152,87 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_get_run,
         ),
         ToolDefinition(
+            name="smr_stop_run",
+            description="Stop a queued or running run.",
+            input_schema=tool_schema(
+                {
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
+                },
+                required=["run_id"],
+            ),
+            handler=server._tool_stop_run,
+        ),
+        ToolDefinition(
+            name="smr_runtime_message_queue",
+            description=(
+                "List or enqueue durable runtime messages for a run. "
+                "Use operation=list for inspection and operation=enqueue for operator steering."
+            ),
+            input_schema=tool_schema(
+                {
+                    "operation": {
+                        "type": "string",
+                        "enum": ["list", "enqueue"],
+                        "description": "List the queue or enqueue a new runtime message.",
+                    },
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "status": {
+                        "type": "string",
+                        "description": "Optional message status filter when listing.",
+                    },
+                    "viewer_role": {
+                        "type": "string",
+                        "description": "Optional viewer role filter when listing.",
+                    },
+                    "viewer_target": {
+                        "oneOf": [
+                            {"type": "string"},
+                            {"type": "array", "items": {"type": "string"}},
+                        ],
+                        "description": "Optional viewer target filter when listing.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000,
+                        "description": "Maximum messages to return when listing.",
+                    },
+                    "topic": {"type": "string", "description": "Optional runtime topic."},
+                    "causation_id": {
+                        "type": "string",
+                        "description": "Optional causation id for correlation.",
+                    },
+                    "mode": {"type": "string", "description": "Optional message mode."},
+                    "spawn_policy": {
+                        "type": "string",
+                        "enum": ["live_only", "request_template"],
+                        "description": "Optional spawn policy when enqueueing.",
+                    },
+                    "sender": {"type": "string", "description": "Optional sender identity."},
+                    "target": {
+                        "type": "string",
+                        "description": "Optional runtime target when enqueueing.",
+                    },
+                    "participant_session_id": {
+                        "type": "string",
+                        "description": "Optional participant session target when enqueueing.",
+                    },
+                    "action": {"type": "string", "description": "Optional action label."},
+                    "body": {"type": "string", "description": "Optional message body text."},
+                    "payload": {
+                        "type": "object",
+                        "description": "Optional JSON payload when enqueueing.",
+                    },
+                },
+                required=["operation", "run_id"],
+            ),
+            handler=server._tool_runtime_message_queue,
+        ),
+        ToolDefinition(
             name="smr_list_active_runs",
             description="List active runs for a project.",
             input_schema=tool_schema(

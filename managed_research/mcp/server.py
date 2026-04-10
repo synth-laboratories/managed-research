@@ -9,10 +9,17 @@ from typing import Any
 
 from managed_research.auth import get_api_key
 from managed_research.errors import SmrApiError
-from managed_research.mcp.registry import JSONDict, ToolDefinition
+from managed_research.mcp.registry import (
+    JSONDict,
+    ToolDefinition,
+    build_tool_registry,
+    call_tool,
+    list_tool_payload,
+)
 from managed_research.mcp.request_models import (
     ProjectMutationRequest,
     ProviderKeyRequest,
+    RunnableProjectCreateRequest,
     RunLaunchRequest,
     UsageAnalyticsRequest,
     WorkspaceFileUploadRequest,
@@ -112,16 +119,39 @@ def _write_message(stream: Any, payload: JSONDict, *, framing: str) -> None:
 class ManagedResearchMcpServer:
     """Minimal MCP server for the rewritten remigration surface."""
 
-    def __init__(self) -> None:
-        self._tools = {tool.name: tool for tool in self._build_tools()}
+    def __init__(
+        self,
+        *,
+        api_key: str | None = None,
+        backend_base: str | None = None,
+    ) -> None:
+        self._default_api_key = api_key
+        self._default_backend_base = backend_base
+        self._tools = build_tool_registry(self._build_tools())
 
     def available_tool_names(self) -> list[str]:
         return sorted(self._tools.keys())
 
+    def tool_definitions(self) -> list[ToolDefinition]:
+        return list(self._tools.values())
+
+    def get_tool_definition(self, name: str) -> ToolDefinition | None:
+        return self._tools.get(name)
+
+    def list_tool_payload(self) -> list[JSONDict]:
+        return list_tool_payload(self._tools)
+
+    def call_tool(self, name: str, arguments: JSONDict | None = None) -> Any:
+        return call_tool(self._tools, name, arguments)
+
     def _client_from_args(self, args: JSONDict) -> SmrControlClient:
+        resolved_api_key = optional_string(args, "api_key") or self._default_api_key
+        resolved_backend_base = (
+            optional_string(args, "backend_base") or self._default_backend_base
+        )
         return SmrControlClient(
-            api_key=optional_string(args, "api_key"),
-            backend_base=optional_string(args, "backend_base"),
+            api_key=resolved_api_key,
+            backend_base=resolved_backend_base,
         )
 
     def _build_tools(self) -> list[ToolDefinition]:
@@ -171,6 +201,11 @@ class ManagedResearchMcpServer:
                 actor_model_assignments=request.actor_model_assignments,
             )
 
+    def _tool_create_runnable_project(self, args: JSONDict) -> Any:
+        request = RunnableProjectCreateRequest.from_payload(args)
+        with self._client_from_args(args) as client:
+            return client.create_runnable_project(request.request)
+
     def _tool_list_projects(self, args: JSONDict) -> Any:
         include_archived = optional_bool(args, "include_archived", default=False)
         limit = optional_int(args, "limit") or 100
@@ -200,6 +235,16 @@ class ManagedResearchMcpServer:
         project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.get_project_entitlement(project_id)
+
+    def _tool_get_project_setup(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_setup(project_id)
+
+    def _tool_prepare_project_setup(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.prepare_project_setup(project_id)
 
     def _tool_get_project_notes(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
@@ -236,6 +281,28 @@ class ManagedResearchMcpServer:
         project_id = require_string(args, "project_id")
         content = require_string(args, "content")
         with self._client_from_args(args) as client:
+            return client.set_project_knowledge(project_id, content)
+
+    def _tool_curated_knowledge(self, args: JSONDict) -> Any:
+        operation = require_string(args, "operation").strip().lower()
+        if operation not in {"get", "set"}:
+            raise ValueError("'operation' must be either 'get' or 'set'")
+        scope = require_string(args, "scope").strip().lower()
+        if scope not in {"org", "project"}:
+            raise ValueError("'scope' must be either 'org' or 'project'")
+        project_id = require_string(args, "project_id") if scope == "project" else None
+        if scope == "org" and optional_string(args, "project_id") is not None:
+            raise ValueError("'project_id' must not be set when scope is 'org'")
+
+        with self._client_from_args(args) as client:
+            if operation == "get":
+                if scope == "org":
+                    return client.get_org_knowledge()
+                return client.get_project_knowledge(project_id)
+
+            content = require_string(args, "content")
+            if scope == "org":
+                return client.set_org_knowledge(content)
             return client.set_project_knowledge(project_id, content)
 
     def _tool_pause_project(self, args: JSONDict) -> Any:
@@ -398,6 +465,58 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.get_run(run_id, project_id=project_id)
 
+    def _tool_stop_run(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.stop_run(run_id, project_id=project_id)
+
+    def _tool_runtime_message_queue(self, args: JSONDict) -> Any:
+        operation = require_string(args, "operation").strip().lower()
+        if operation not in {"list", "enqueue"}:
+            raise ValueError("'operation' must be either 'list' or 'enqueue'")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            if operation == "list":
+                status = optional_string(args, "status")
+                viewer_role = optional_string(args, "viewer_role")
+                limit = optional_int(args, "limit")
+                raw_viewer_target = args.get("viewer_target")
+                viewer_target: str | list[str] | None = None
+                if isinstance(raw_viewer_target, str) and raw_viewer_target.strip():
+                    viewer_target = raw_viewer_target.strip()
+                elif isinstance(raw_viewer_target, list):
+                    cleaned_targets = [
+                        str(item).strip()
+                        for item in raw_viewer_target
+                        if str(item).strip()
+                    ]
+                    viewer_target = cleaned_targets or None
+                return client.list_runtime_messages(
+                    run_id,
+                    status=status,
+                    viewer_role=viewer_role,
+                    viewer_target=viewer_target,
+                    limit=limit,
+                )
+
+            payload = args.get("payload")
+            if payload is not None and not isinstance(payload, dict):
+                raise ValueError("'payload' must be an object when provided")
+            return client.enqueue_runtime_message(
+                run_id,
+                topic=optional_string(args, "topic"),
+                causation_id=optional_string(args, "causation_id"),
+                mode=optional_string(args, "mode"),
+                spawn_policy=optional_string(args, "spawn_policy"),
+                sender=optional_string(args, "sender"),
+                target=optional_string(args, "target"),
+                participant_session_id=optional_string(args, "participant_session_id"),
+                action=optional_string(args, "action"),
+                body=optional_string(args, "body"),
+                payload=payload,
+            )
+
     def _tool_list_active_runs(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
@@ -454,6 +573,14 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.list_run_log_archives(project_id, run_id)
 
+    def _tool_get_launch_preflight(self, args: JSONDict) -> Any:
+        request = RunLaunchRequest.from_payload(args)
+        with self._client_from_args(args) as client:
+            return client.get_launch_preflight(
+                request.project_id,
+                **request.client_kwargs(),
+            )
+
     def _tool_get_project_readiness(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
@@ -497,16 +624,7 @@ class ManagedResearchMcpServer:
                 return {
                     "jsonrpc": "2.0",
                     "id": request_id,
-                    "result": {
-                        "tools": [
-                            {
-                                "name": tool.name,
-                                "description": tool.description,
-                                "inputSchema": tool.input_schema,
-                            }
-                            for tool in self._tools.values()
-                        ]
-                    },
+                    "result": {"tools": self.list_tool_payload()},
                 }
             if method == "tools/call":
                 params = request.get("params")
@@ -516,9 +634,9 @@ class ManagedResearchMcpServer:
                 if not isinstance(tool_name, str) or tool_name not in self._tools:
                     raise RpcError(-32601, f"Unknown tool: {tool_name!r}")
                 arguments = params.get("arguments")
-                if not isinstance(arguments, dict):
-                    arguments = {}
-                result = self._tools[tool_name].handler(arguments)
+                if arguments is not None and not isinstance(arguments, dict):
+                    raise RpcError(-32602, "tools/call arguments must be an object")
+                result = self.call_tool(tool_name, arguments)
                 return {
                     "jsonrpc": "2.0",
                     "id": request_id,

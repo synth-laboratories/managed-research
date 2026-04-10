@@ -61,3 +61,22 @@ branch on `result.get("error")`.
 
 The package is structured as a library-first distribution rather than a
 standalone CLI product.
+
+## MCP
+
+Primary path:
+
+```bash
+codex mcp add managed-research --url https://api.usesynth.ai/mcp
+claude mcp add --transport http managed-research https://api.usesynth.ai/mcp
+```
+
+Local stdio fallback:
+
+```bash
+uv tool install synth-managed-research
+managed-research-mcp
+```
+
+The canonical MCP surface is owned by this package and is shared by the local
+stdio server and the hosted backend transport.

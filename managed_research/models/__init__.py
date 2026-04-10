@@ -11,11 +11,13 @@ from managed_research.models.smr_actor_models import (
 from managed_research.models.smr_agent_kinds import SmrAgentKind
 from managed_research.models.smr_agent_models import SmrAgentModel
 from managed_research.models.smr_credential_providers import SmrCredentialProvider
+from managed_research.models.smr_environment_kinds import SmrEnvironmentKind
 from managed_research.models.smr_funding_sources import SmrFundingSource
 from managed_research.models.smr_host_kinds import SmrHostKind
 from managed_research.models.smr_inference_providers import SmrInferenceProvider
 from managed_research.models.smr_resource_kinds import SmrResourceKind
 from managed_research.models.smr_resource_providers import SmrResourceProvider
+from managed_research.models.smr_runtime_kinds import SmrRuntimeKind
 from managed_research.models.smr_run_policy import (
     SmrRunPolicy,
     SmrRunPolicyAccess,
@@ -29,6 +31,13 @@ from managed_research.models.types import (
     ProviderKeyStatus,
     RecommendedAction,
     RunProgress,
+    SmrAgentProfileBindings,
+    SmrLaunchPreflight,
+    SmrLaunchPreflightBlocker,
+    SmrProjectSetup,
+    SmrProjectSetupReason,
+    SmrProjectSetupStatus,
+    SmrRunnableProjectRequest,
     UsageAnalyticsBreakdown,
     UsageAnalyticsBucket,
     UsageAnalyticsPageInfo,
@@ -48,19 +57,28 @@ __all__ = [
     "ProviderKeyStatus",
     "RecommendedAction",
     "RunProgress",
+    "SmrAgentProfileBindings",
     "SmrAgentKind",
     "SmrAgentModel",
     "SmrActorModelAssignment",
     "SmrActorSubtype",
     "SmrActorType",
     "SmrCredentialProvider",
+    "SmrEnvironmentKind",
     "SmrFundingSource",
     "SmrHostKind",
     "SmrInferenceProvider",
+    "SmrLaunchPreflight",
+    "SmrLaunchPreflightBlocker",
     "SmrOrchestratorSubtype",
+    "SmrProjectSetup",
+    "SmrProjectSetupReason",
+    "SmrProjectSetupStatus",
     "SmrResourceKind",
     "SmrResourceProvider",
     "SmrReviewerSubtype",
+    "SmrRunnableProjectRequest",
+    "SmrRuntimeKind",
     "SmrRunPolicy",
     "SmrRunPolicyAccess",
     "SmrRunPolicyLimits",

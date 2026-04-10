@@ -6,6 +6,19 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+from managed_research.models.smr_actor_models import (
+    SmrActorModelAssignment,
+    normalize_actor_model_assignments,
+)
+from managed_research.models.smr_environment_kinds import (
+    SmrEnvironmentKind,
+    coerce_smr_environment_kind,
+)
+from managed_research.models.smr_runtime_kinds import (
+    SmrRuntimeKind,
+    coerce_smr_runtime_kind,
+)
+
 
 def _require_mapping(payload: object, *, label: str) -> Mapping[str, object]:
     if not isinstance(payload, Mapping):
@@ -90,6 +103,21 @@ def _optional_bool(payload: Mapping[str, object], key: str) -> bool | None:
     if not isinstance(value, bool):
         raise ValueError(f"{key} must be a boolean when provided")
     return value
+
+
+def _string_list(payload: object, *, label: str) -> list[str]:
+    if payload is None:
+        return []
+    if not isinstance(payload, list):
+        raise ValueError(f"{label} must be an array when provided")
+    values: list[str] = []
+    for item in payload:
+        if not isinstance(item, str):
+            raise ValueError(f"{label} entries must be strings")
+        normalized = item.strip()
+        if normalized:
+            values.append(normalized)
+    return values
 
 
 @dataclass(frozen=True)
@@ -264,6 +292,272 @@ class ProjectReadiness:
             repo_status=_optional_object_dict(mapping.get("repo_status")),
             run_target=_optional_object_dict(mapping.get("run_target")),
         )
+
+
+class SmrProjectSetupStatus(StrEnum):
+    NOT_STARTED = "not_started"
+    PREPARING = "preparing"
+    BLOCKED = "blocked"
+    READY = "ready"
+
+
+@dataclass(frozen=True)
+class SmrProjectSetupReason:
+    code: str
+    message: str
+
+    @classmethod
+    def from_wire(cls, payload: object) -> SmrProjectSetupReason:
+        mapping = _require_mapping(payload, label="project setup reason")
+        return cls(
+            code=_require_string(mapping, "code", label="project setup reason.code"),
+            message=_require_string(
+                mapping,
+                "message",
+                label="project setup reason.message",
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class SmrProjectSetup:
+    project_id: str | None = None
+    state: SmrProjectSetupStatus | None = None
+    blockers: list[str] = field(default_factory=list)
+    reasons: list[SmrProjectSetupReason] = field(default_factory=list)
+    recommended_actions: list[RecommendedAction] = field(default_factory=list)
+    onboarding_state: dict[str, object] = field(default_factory=dict)
+    workspace_inputs: WorkspaceInputsState | None = None
+    repo_status: dict[str, object] = field(default_factory=dict)
+    run_target: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> SmrProjectSetup:
+        mapping = _require_mapping(payload, label="project setup")
+        state_value = _optional_string(mapping, "state")
+        state = None if state_value is None else SmrProjectSetupStatus(state_value)
+        blockers_payload = _optional_array(mapping, "blockers")
+        reasons_payload = _optional_array(mapping, "reasons")
+        recommended_actions_payload = _optional_array(mapping, "recommended_actions")
+        workspace_inputs_payload = mapping.get("workspace_inputs")
+        return cls(
+            project_id=_optional_string(mapping, "project_id"),
+            state=state,
+            blockers=[str(item) for item in blockers_payload if isinstance(item, str)],
+            reasons=[
+                SmrProjectSetupReason.from_wire(item) for item in reasons_payload
+            ],
+            recommended_actions=[
+                RecommendedAction.from_wire(item) for item in recommended_actions_payload
+            ],
+            onboarding_state=_optional_object_dict(mapping.get("onboarding_state")),
+            workspace_inputs=(
+                WorkspaceInputsState.from_wire(workspace_inputs_payload)
+                if workspace_inputs_payload is not None
+                else None
+            ),
+            repo_status=_optional_object_dict(mapping.get("repo_status")),
+            run_target=_optional_object_dict(mapping.get("run_target")),
+        )
+
+
+@dataclass(frozen=True)
+class SmrLaunchPreflightBlocker:
+    stage: str
+    http_status: int
+    error_code: str | None = None
+    message: str | None = None
+    detail: object | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> SmrLaunchPreflightBlocker:
+        mapping = _require_mapping(payload, label="launch preflight blocker")
+        return cls(
+            stage=_require_string(mapping, "stage", label="launch preflight blocker.stage"),
+            http_status=_int_value(mapping, "http_status"),
+            error_code=_optional_string(mapping, "error_code"),
+            message=_optional_string(mapping, "message"),
+            detail=mapping.get("detail"),
+        )
+
+
+@dataclass(frozen=True)
+class SmrLaunchPreflight:
+    project_id: str | None = None
+    clear_to_trigger: bool | None = None
+    checked: list[str] = field(default_factory=list)
+    blockers: list[SmrLaunchPreflightBlocker] = field(default_factory=list)
+    preferred_lane: str | None = None
+    resolved_lane: str | None = None
+    resolution_reason: str | None = None
+    effective_plan: str | None = None
+    using_synth_free_mode: bool | None = None
+    compute_pool_payload: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> SmrLaunchPreflight:
+        mapping = _require_mapping(payload, label="launch preflight")
+        checked_payload = _optional_array(mapping, "checked")
+        blockers_payload = _optional_array(mapping, "blockers")
+        return cls(
+            project_id=_optional_string(mapping, "project_id"),
+            clear_to_trigger=_optional_bool(mapping, "clear_to_trigger"),
+            checked=[str(item) for item in checked_payload if isinstance(item, str)],
+            blockers=[
+                SmrLaunchPreflightBlocker.from_wire(item)
+                for item in blockers_payload
+            ],
+            preferred_lane=_optional_string(mapping, "preferred_lane"),
+            resolved_lane=_optional_string(mapping, "resolved_lane"),
+            resolution_reason=_optional_string(mapping, "resolution_reason"),
+            effective_plan=_optional_string(mapping, "effective_plan"),
+            using_synth_free_mode=_optional_bool(mapping, "using_synth_free_mode"),
+            compute_pool_payload=_optional_object_dict(mapping.get("compute_pool_payload")),
+        )
+
+
+@dataclass(frozen=True)
+class SmrAgentProfileBindings:
+    orchestrator_profile_id: str
+    default_worker_profile_id: str
+    worker_profile_ids: list[str] = field(default_factory=list)
+
+    def to_wire(self) -> dict[str, object]:
+        worker_profile_ids = list(self.worker_profile_ids)
+        if not worker_profile_ids:
+            worker_profile_ids = [self.default_worker_profile_id]
+        return {
+            "orchestrator_profile_id": self.orchestrator_profile_id,
+            "default_worker_profile_id": self.default_worker_profile_id,
+            "worker_profile_ids": worker_profile_ids,
+        }
+
+
+@dataclass(frozen=True)
+class SmrRunnableProjectRequest:
+    name: str
+    timezone: str
+    pool_id: str
+    runtime_kind: SmrRuntimeKind
+    environment_kind: SmrEnvironmentKind
+    agent_profiles: SmrAgentProfileBindings
+    worker_profile_ids: list[str] = field(default_factory=list)
+    actor_model_assignments: list[SmrActorModelAssignment] = field(default_factory=list)
+    budgets: dict[str, object] = field(default_factory=dict)
+    key_policy: dict[str, object] = field(default_factory=dict)
+    execution_policy: dict[str, object] = field(default_factory=dict)
+    scenario: str | None = None
+    notes: str | None = None
+    metered_infra: dict[str, object] = field(default_factory=dict)
+    schedule: dict[str, object] = field(default_factory=dict)
+    integrations: dict[str, object] = field(default_factory=dict)
+    synth_ai: dict[str, object] = field(default_factory=dict)
+    policy: dict[str, object] = field(default_factory=dict)
+    trial_matrix: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> SmrRunnableProjectRequest:
+        mapping = _require_mapping(payload, label="runnable project request")
+        agent_profiles_payload = _require_mapping(
+            mapping.get("agent_profiles"),
+            label="runnable project request.agent_profiles",
+        )
+        worker_profile_ids = _string_list(
+            agent_profiles_payload.get("worker_profile_ids"),
+            label="runnable project request.agent_profiles.worker_profile_ids",
+        )
+        return cls(
+            name=_require_string(mapping, "name", label="runnable project request.name"),
+            timezone=_require_string(
+                mapping,
+                "timezone",
+                label="runnable project request.timezone",
+            ),
+            pool_id=_require_string(
+                mapping,
+                "pool_id",
+                label="runnable project request.pool_id",
+            ),
+            runtime_kind=coerce_smr_runtime_kind(
+                _require_string(
+                    mapping,
+                    "runtime_kind",
+                    label="runnable project request.runtime_kind",
+                ),
+                field_name="runtime_kind",
+            )
+            or SmrRuntimeKind.SANDBOX_AGENT,
+            environment_kind=coerce_smr_environment_kind(
+                _require_string(
+                    mapping,
+                    "environment_kind",
+                    label="runnable project request.environment_kind",
+                ),
+                field_name="environment_kind",
+            )
+            or SmrEnvironmentKind.HARBOR,
+            agent_profiles=SmrAgentProfileBindings(
+                orchestrator_profile_id=_require_string(
+                    agent_profiles_payload,
+                    "orchestrator_profile_id",
+                    label="runnable project request.agent_profiles.orchestrator_profile_id",
+                ),
+                default_worker_profile_id=_require_string(
+                    agent_profiles_payload,
+                    "default_worker_profile_id",
+                    label="runnable project request.agent_profiles.default_worker_profile_id",
+                ),
+                worker_profile_ids=worker_profile_ids,
+            ),
+            worker_profile_ids=worker_profile_ids,
+            actor_model_assignments=normalize_actor_model_assignments(
+                mapping.get("actor_model_assignments"),
+                field_name="actor_model_assignments",
+            ),
+            budgets=_optional_object_dict(mapping.get("budgets")),
+            key_policy=_optional_object_dict(mapping.get("key_policy")),
+            execution_policy=_optional_object_dict(mapping.get("execution_policy")),
+            scenario=_optional_string(mapping, "scenario"),
+            notes=_optional_string(mapping, "notes"),
+            metered_infra=_optional_object_dict(mapping.get("metered_infra")),
+            schedule=_optional_object_dict(mapping.get("schedule")),
+            integrations=_optional_object_dict(mapping.get("integrations")),
+            synth_ai=_optional_object_dict(mapping.get("synth_ai")),
+            policy=_optional_object_dict(mapping.get("policy")),
+            trial_matrix=_optional_object_dict(mapping.get("trial_matrix")),
+        )
+
+    def to_wire(self) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "name": self.name,
+            "timezone": self.timezone,
+            "pool_id": self.pool_id,
+            "runtime_kind": self.runtime_kind.value,
+            "environment_kind": self.environment_kind.value,
+            "orchestrator_profile_id": self.agent_profiles.orchestrator_profile_id,
+            "default_worker_profile_id": self.agent_profiles.default_worker_profile_id,
+            "worker_profile_ids": list(
+                self.agent_profiles.worker_profile_ids or self.worker_profile_ids
+            ),
+            "budgets": dict(self.budgets),
+            "key_policy": dict(self.key_policy),
+            "execution_policy": dict(self.execution_policy),
+            "metered_infra": dict(self.metered_infra),
+            "schedule": dict(self.schedule),
+            "integrations": dict(self.integrations),
+            "synth_ai": dict(self.synth_ai),
+            "policy": dict(self.policy),
+            "trial_matrix": dict(self.trial_matrix),
+        }
+        if self.actor_model_assignments:
+            payload["actor_model_assignments"] = [
+                item.as_payload() for item in self.actor_model_assignments
+            ]
+        if self.scenario is not None:
+            payload["scenario"] = self.scenario
+        if self.notes is not None:
+            payload["notes"] = self.notes
+        return payload
 
 
 @dataclass(frozen=True)

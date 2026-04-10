@@ -29,24 +29,37 @@ from pathlib import Path
 from managed_research import (
     SmrActorModelAssignment,
     SmrActorType,
-    SmrAgentModel,
+    SmrAgentProfileBindings,
     SmrControlClient,
+    SmrEnvironmentKind,
     SmrHostKind,
+    SmrRunnableProjectRequest,
+    SmrRuntimeKind,
     SmrWorkMode,
     SmrWorkerSubtype,
 )
 
 client = SmrControlClient(api_key="sk_...")
-project = client.create_project({"name": "nanohorizon-quickstart"})
+project = client.create_runnable_project(
+    SmrRunnableProjectRequest(
+        name="nanohorizon-quickstart",
+        timezone="UTC",
+        pool_id="daytona-default",
+        runtime_kind=SmrRuntimeKind.SANDBOX_AGENT,
+        environment_kind=SmrEnvironmentKind.HARBOR,
+        agent_profiles=SmrAgentProfileBindings(
+            orchestrator_profile_id="codex_gpt_5_4_medium",
+            default_worker_profile_id="codex_gpt_5_4_medium",
+        ),
+        notes="Notebook only. Use runtime messages for kickoff intent.",
+        scenario="nanohorizon-quickstart",
+    )
+)
 project_id = project["project_id"]
 client.attach_source_repo(
     project_id,
     "https://github.com/synth-laboratories/nanohorizon.git",
     default_branch="main",
-)
-client.set_project_notes(
-    project_id,
-    "Notebook only. Use runtime messages for kickoff intent.",
 )
 client.set_project_knowledge(
     project_id,
@@ -59,16 +72,16 @@ kickoff = [
         "mode": "queue",
     }
 ]
-client.get_project_readiness(project_id)
+client.setup.prepare(project_id)
 client.get_capacity_lane_preview(project_id)
-blockers = client.get_run_start_blockers(
+preflight = client.get_launch_preflight(
     project_id,
     host_kind=SmrHostKind.DAYTONA,
     work_mode=SmrWorkMode.DIRECTED_EFFORT,
     agent_profile="codex_gpt_5_4_medium",
     initial_runtime_messages=kickoff,
 )
-if blockers["clear_to_trigger"]:
+if preflight["clear_to_trigger"]:
     client.trigger_run(
         project_id,
         host_kind=SmrHostKind.DAYTONA,
@@ -134,6 +147,14 @@ client.trigger_run(
 After extracting the archive, validate the submission with the project-specific
 harness you are targeting.
 
+Compatibility note:
+
+- `create_project({...})` remains available for low-level callers, but it is not
+  the recommended launch path for evals or new integrations
+- `get_project_readiness(project_id)` is now a compatibility alias over the pure
+  setup projection; use `client.setup.get(...)` or `client.get_project_setup(...)`
+  for the primary flow
+
 Kickoff migration note:
 
 - use `initial_runtime_messages` for opening intent
@@ -143,22 +164,30 @@ Kickoff migration note:
 - curated knowledge is managed through `set_org_knowledge`,
   `get_org_knowledge`, `set_project_knowledge`, and `get_project_knowledge`
 
-Run the MCP server over stdio:
+Use the hosted MCP endpoint:
 
 ```bash
-python -m managed_research.mcp
+codex mcp add managed-research --url https://api.usesynth.ai/mcp
+claude mcp add --transport http managed-research https://api.usesynth.ai/mcp
+```
+
+Local stdio fallback:
+
+```bash
+uv tool install synth-managed-research
+managed-research-mcp
 ```
 
 For MCP clients, the equivalent flow is:
 
 1. `smr_health_check`
-2. `smr_create_project` or `smr_list_projects`
+2. `smr_create_runnable_project` or `smr_list_projects`
 3. `smr_attach_source_repo` or `smr_upload_workspace_files`
 4. optionally `smr_set_project_notes`
 5. optionally `smr_set_project_knowledge`
-6. `smr_get_project_readiness`
+6. `smr_prepare_project_setup`
 7. `smr_get_capacity_lane_preview`
-8. `smr_get_run_start_blockers`
+8. `smr_get_launch_preflight`
 9. `smr_trigger_run`
 10. `smr_get_run`
 11. `smr_get_workspace_download_url`, `smr_download_workspace_archive`, or `smr_get_project_git`

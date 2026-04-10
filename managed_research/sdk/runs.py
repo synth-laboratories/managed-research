@@ -21,6 +21,9 @@ class RunsAPI(_ClientNamespace):
     def get(self, run_id: str, *, project_id: str | None = None) -> dict[str, Any]:
         return self._client.get_run(run_id, project_id=project_id)
 
+    def stop(self, run_id: str, *, project_id: str | None = None) -> dict[str, Any]:
+        return self._client.stop_run(run_id, project_id=project_id)
+
     def get_progress(self, project_id: str, run_id: str) -> RunProgress:
         return RunProgress.from_wire(self._client.get_run_progress(project_id, run_id))
 
@@ -35,6 +38,26 @@ class RunsAPI(_ClientNamespace):
 
     def restore_checkpoint(self, run_id: str, *, project_id: str | None = None, **kwargs: Any) -> dict[str, Any]:
         return self._client.restore_run_checkpoint(run_id, project_id=project_id, **kwargs)
+
+    def list_runtime_messages(
+        self,
+        run_id: str,
+        *,
+        status: str | None = None,
+        viewer_role: str | None = None,
+        viewer_target: str | list[str] | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        return self._client.list_runtime_messages(
+            run_id,
+            status=status,
+            viewer_role=viewer_role,
+            viewer_target=viewer_target,
+            limit=limit,
+        )
+
+    def enqueue_runtime_message(self, run_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.enqueue_runtime_message(run_id, **kwargs)
 
 
 __all__ = ["RunsAPI"]

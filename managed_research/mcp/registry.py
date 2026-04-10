@@ -3,11 +3,68 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 JSONDict = dict[str, Any]
 ToolHandler = Callable[[JSONDict], Any]
+
+READ_SCOPE = "smr:read"
+WRITE_SCOPE = "smr:write"
+READ_SCOPES: tuple[str, ...] = (READ_SCOPE,)
+WRITE_SCOPES: tuple[str, ...] = (WRITE_SCOPE,)
+
+_DEFAULT_REQUIRED_SCOPES_BY_TOOL_NAME: dict[str, tuple[str, ...]] = {
+    "smr_health_check": READ_SCOPES,
+    "smr_create_runnable_project": WRITE_SCOPES,
+    "smr_create_project": WRITE_SCOPES,
+    "smr_list_projects": READ_SCOPES,
+    "smr_get_project": READ_SCOPES,
+    "smr_patch_project": WRITE_SCOPES,
+    "smr_get_project_status": READ_SCOPES,
+    "smr_get_project_entitlement": READ_SCOPES,
+    "smr_get_project_notes": READ_SCOPES,
+    "smr_set_project_notes": WRITE_SCOPES,
+    "smr_append_project_notes": WRITE_SCOPES,
+    "smr_get_org_knowledge": READ_SCOPES,
+    "smr_set_org_knowledge": WRITE_SCOPES,
+    "smr_get_project_knowledge": READ_SCOPES,
+    "smr_set_project_knowledge": WRITE_SCOPES,
+    "smr_curated_knowledge": READ_SCOPES,
+    "smr_pause_project": WRITE_SCOPES,
+    "smr_resume_project": WRITE_SCOPES,
+    "smr_archive_project": WRITE_SCOPES,
+    "smr_unarchive_project": WRITE_SCOPES,
+    "smr_get_capabilities": READ_SCOPES,
+    "smr_get_limits": READ_SCOPES,
+    "smr_get_capacity_lane_preview": READ_SCOPES,
+    "smr_get_run_start_blockers": READ_SCOPES,
+    "smr_set_provider_key": WRITE_SCOPES,
+    "smr_get_provider_key_status": READ_SCOPES,
+    "smr_get_workspace_download_url": READ_SCOPES,
+    "smr_get_project_git": READ_SCOPES,
+    "smr_download_workspace_archive": READ_SCOPES,
+    "smr_attach_source_repo": WRITE_SCOPES,
+    "smr_get_workspace_inputs": READ_SCOPES,
+    "smr_upload_workspace_files": WRITE_SCOPES,
+    "smr_get_project_setup": READ_SCOPES,
+    "smr_prepare_project_setup": WRITE_SCOPES,
+    "smr_get_launch_preflight": READ_SCOPES,
+    "smr_trigger_run": WRITE_SCOPES,
+    "smr_list_runs": READ_SCOPES,
+    "smr_get_run": READ_SCOPES,
+    "smr_stop_run": WRITE_SCOPES,
+    "smr_runtime_message_queue": READ_SCOPES,
+    "smr_list_active_runs": READ_SCOPES,
+    "smr_list_run_questions": READ_SCOPES,
+    "smr_create_run_checkpoint": WRITE_SCOPES,
+    "smr_list_run_checkpoints": READ_SCOPES,
+    "smr_restore_run_checkpoint": WRITE_SCOPES,
+    "smr_get_project_readiness": READ_SCOPES,
+    "smr_get_run_progress": READ_SCOPES,
+    "smr_list_run_log_archives": READ_SCOPES,
+    "smr_get_usage_analytics": READ_SCOPES,
+}
 
 
 @dataclass(frozen=True)
@@ -16,6 +73,16 @@ class ToolDefinition:
     description: str
     input_schema: JSONDict
     handler: ToolHandler
+    required_scopes: tuple[str, ...] = ()
+
+
+def _normalized_tool_definition(tool: ToolDefinition) -> ToolDefinition:
+    default_scopes = _DEFAULT_REQUIRED_SCOPES_BY_TOOL_NAME.get(tool.name, ())
+    if tool.required_scopes:
+        return tool
+    if not default_scopes:
+        return tool
+    return replace(tool, required_scopes=default_scopes)
 
 
 def tool_schema(properties: JSONDict, *, required: list[str]) -> JSONDict:
@@ -27,4 +94,60 @@ def tool_schema(properties: JSONDict, *, required: list[str]) -> JSONDict:
     }
 
 
-__all__ = ["JSONDict", "ToolDefinition", "tool_schema"]
+def build_tool_registry(tools: list[ToolDefinition]) -> dict[str, ToolDefinition]:
+    registry: dict[str, ToolDefinition] = {}
+    for raw_tool in tools:
+        tool = _normalized_tool_definition(raw_tool)
+        if tool.name in registry:
+            raise ValueError(f"duplicate MCP tool definition: {tool.name}")
+        registry[tool.name] = tool
+    return registry
+
+
+def list_tool_payload(
+    tools: dict[str, ToolDefinition] | list[ToolDefinition],
+) -> list[JSONDict]:
+    if isinstance(tools, dict):
+        tool_values = tools.values()
+    else:
+        tool_values = [_normalized_tool_definition(tool) for tool in tools]
+    payload: list[JSONDict] = []
+    for tool in tool_values:
+        payload.append(
+            {
+                "name": tool.name,
+                "description": tool.description,
+                "inputSchema": tool.input_schema,
+                "requiredScopes": list(tool.required_scopes),
+            }
+        )
+    return payload
+
+
+def call_tool(
+    tools: dict[str, ToolDefinition],
+    name: str,
+    arguments: JSONDict | None = None,
+) -> Any:
+    tool = tools.get(name)
+    if tool is None:
+        raise KeyError(name)
+    if arguments is None:
+        arguments = {}
+    if not isinstance(arguments, dict):
+        raise TypeError("tool arguments must be an object")
+    return tool.handler(arguments)
+
+
+__all__ = [
+    "JSONDict",
+    "READ_SCOPE",
+    "READ_SCOPES",
+    "ToolDefinition",
+    "WRITE_SCOPE",
+    "WRITE_SCOPES",
+    "build_tool_registry",
+    "call_tool",
+    "list_tool_payload",
+    "tool_schema",
+]

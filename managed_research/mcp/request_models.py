@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from managed_research.mcp.registry import JSONDict
+from managed_research.models.types import SmrRunnableProjectRequest
 from managed_research.models.smr_actor_models import normalize_actor_model_assignments
 from managed_research.models.smr_agent_kinds import coerce_smr_agent_kind
 from managed_research.models.smr_agent_models import coerce_smr_agent_model
@@ -187,6 +188,32 @@ class ProjectMutationRequest:
 
 
 @dataclass(frozen=True)
+class RunnableProjectCreateRequest:
+    request: SmrRunnableProjectRequest
+
+    @classmethod
+    def from_payload(cls, payload: JSONDict) -> RunnableProjectCreateRequest:
+        normalized = dict(payload)
+        agent_profiles: dict[str, Any] = {
+            "orchestrator_profile_id": require_string(
+                payload, "orchestrator_profile_id"
+            ),
+            "default_worker_profile_id": require_string(
+                payload, "default_worker_profile_id"
+            ),
+        }
+        worker_profile_ids = payload.get("worker_profile_ids")
+        if worker_profile_ids is not None:
+            if not isinstance(worker_profile_ids, list):
+                raise ValueError("'worker_profile_ids' must be an array when provided")
+            agent_profiles["worker_profile_ids"] = [
+                require_string({"value": item}, "value") for item in worker_profile_ids
+            ]
+        normalized["agent_profiles"] = agent_profiles
+        return cls(request=SmrRunnableProjectRequest.from_wire(normalized))
+
+
+@dataclass(frozen=True)
 class ProviderKeyRequest:
     project_id: str
     provider: str
@@ -317,4 +344,3 @@ class WorkspaceFileUploadRequest:
                 raise ValueError("each file entry must be an object")
             normalized.append(dict(item))
         return cls(project_id=project_id, files=normalized)
-

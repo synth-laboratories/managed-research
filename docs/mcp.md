@@ -6,10 +6,18 @@ verification, eval execution, data assembly, and careful context optimization.
 The MCP server is the public tool surface for launching, inspecting, and
 capturing durable context around those workflows.
 
-Run the managed-research stdio MCP server directly from the package:
+Hosted first:
 
 ```bash
-python -m managed_research.mcp
+codex mcp add managed-research --url https://api.usesynth.ai/mcp
+claude mcp add --transport http managed-research https://api.usesynth.ai/mcp
+```
+
+Local stdio fallback:
+
+```bash
+uv tool install synth-managed-research
+managed-research-mcp
 ```
 
 ## Project Notes vs Curated Knowledge
@@ -26,6 +34,7 @@ Project notes and curated knowledge are intentionally separate.
 
 The maintained remigration surface includes:
 
+- `smr_create_runnable_project`
 - `smr_attach_source_repo`
 - `smr_patch_project`
 - `smr_get_project_notes`
@@ -35,16 +44,20 @@ The maintained remigration surface includes:
 - `smr_set_org_knowledge`
 - `smr_get_project_knowledge`
 - `smr_set_project_knowledge`
+- `smr_curated_knowledge`
 - `smr_pause_project`
 - `smr_resume_project`
 - `smr_archive_project`
 - `smr_unarchive_project`
 - `smr_get_workspace_inputs`
 - `smr_upload_workspace_files`
-- `smr_get_project_readiness`
+- `smr_get_project_setup`
+- `smr_prepare_project_setup`
 - `smr_get_capacity_lane_preview`
-- `smr_get_run_start_blockers`
+- `smr_get_launch_preflight`
 - `smr_trigger_run`
+- `smr_stop_run`
+- `smr_runtime_message_queue`
 - `smr_get_run`
 - `smr_get_run_progress`
 - `smr_get_capabilities`
@@ -91,19 +104,25 @@ projects rather than one project notebook or one repo.
 Use this order for launch-time UX:
 
 1. `smr_health_check`
-2. `smr_create_project` or `smr_list_projects`
+2. `smr_create_runnable_project` or `smr_list_projects`
 3. `smr_attach_source_repo` or `smr_upload_workspace_files`
 4. optionally `smr_set_project_notes`
 5. optionally `smr_set_project_knowledge`
-6. `smr_get_project_readiness`
+6. `smr_prepare_project_setup`
 7. `smr_get_capacity_lane_preview`
-8. `smr_get_run_start_blockers`
+8. `smr_get_launch_preflight`
 9. `smr_trigger_run`
 10. `smr_get_run`
 11. `smr_get_workspace_download_url`, `smr_download_workspace_archive`, or `smr_get_project_git`
 
 `smr_get_limits` and `smr_get_project_entitlement` are useful hints, but trigger
 and blockers remain authoritative for whether a run can launch right now.
+
+Compatibility note:
+
+- `smr_create_project` remains available for low-level callers
+- `smr_get_project_readiness` is a compatibility alias over the pure setup projection
+- `smr_get_run_start_blockers` is a compatibility alias over the launch preflight path
 
 Kickoff migration note:
 
@@ -114,13 +133,13 @@ Kickoff migration note:
 
 The launch-day public demo uses this exact shape:
 
-1. `smr_create_project`
+1. `smr_create_runnable_project`
 2. `smr_attach_source_repo` with the repo you want to work on
 3. optionally `smr_set_project_notes`
 4. optionally `smr_set_project_knowledge`
-5. `smr_get_project_readiness`
+5. `smr_prepare_project_setup`
 6. `smr_get_capacity_lane_preview`
-7. `smr_get_run_start_blockers`
+7. `smr_get_launch_preflight`
 8. `smr_trigger_run`
 9. `smr_get_run`
 10. `smr_download_workspace_archive`

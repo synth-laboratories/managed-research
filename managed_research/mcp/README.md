@@ -1,10 +1,11 @@
 # MCP
 
-This package owns the stdio MCP surface for `managed-research`.
+This package owns the canonical MCP surface for `managed-research`.
 
 What belongs here:
-- JSON-RPC/MCP transport handling
-- tool registration and input schemas
+- tool registration, schemas, and scope metadata
+- shared tool-list / call-tool primitives used by both stdio and hosted transport
+- stdio JSON-RPC/MCP transport handling
 - MCP-specific request parsing at the boundary
 - translation from MCP tool calls into SDK client calls
 
@@ -17,7 +18,7 @@ Primary entrypoints:
 - `server.py`: stdio server and tool dispatch
 - `tools/`: tool definitions and input schemas
 - `request_models.py`: typed MCP request parsing helpers
-- `registry.py`: shared MCP tool registration primitives
+- `registry.py`: shared MCP tool registration, metadata, and call primitives
 
 Boundary rule:
 - parse untyped JSON-RPC payloads once near the transport boundary

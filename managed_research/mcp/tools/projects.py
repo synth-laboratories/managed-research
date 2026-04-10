@@ -15,8 +15,12 @@ from managed_research.models.smr_agent_models import SMR_AGENT_MODEL_VALUES
 from managed_research.models.smr_credential_providers import (
     SMR_CREDENTIAL_PROVIDER_VALUES,
 )
+from managed_research.models.smr_environment_kinds import (
+    SMR_ENVIRONMENT_KIND_VALUES,
+)
 from managed_research.models.smr_funding_sources import SMR_FUNDING_SOURCE_VALUES
 from managed_research.models.smr_host_kinds import SMR_HOST_KIND_VALUES
+from managed_research.models.smr_runtime_kinds import SMR_RUNTIME_KIND_VALUES
 from managed_research.models.smr_work_modes import SMR_WORK_MODE_VALUES
 
 
@@ -71,6 +75,108 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
                 required=[],
             ),
             handler=server._tool_health_check,
+        ),
+        ToolDefinition(
+            name="smr_create_runnable_project",
+            description=(
+                "Create a managed research project with the full runnable launch "
+                "contract required for SDK, MCP, and eval flows."
+            ),
+            input_schema=tool_schema(
+                {
+                    "name": {"type": "string", "description": "Human-readable project name."},
+                    "timezone": {
+                        "type": "string",
+                        "description": "Project timezone. Defaults to UTC when omitted.",
+                    },
+                    "pool_id": {
+                        "type": "string",
+                        "description": "Required execution pool id.",
+                    },
+                    "runtime_kind": {
+                        "type": "string",
+                        "enum": list(SMR_RUNTIME_KIND_VALUES),
+                        "description": "Required project runtime kind.",
+                    },
+                    "environment_kind": {
+                        "type": "string",
+                        "enum": list(SMR_ENVIRONMENT_KIND_VALUES),
+                        "description": "Required project environment kind.",
+                    },
+                    "orchestrator_profile_id": {
+                        "type": "string",
+                        "description": "Required shared orchestrator profile id.",
+                    },
+                    "default_worker_profile_id": {
+                        "type": "string",
+                        "description": "Required default worker profile id.",
+                    },
+                    "worker_profile_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional shared worker profile bindings.",
+                    },
+                    "actor_model_assignments": _actor_model_assignment_schema(
+                        field_label=(
+                            "Optional actor-scoped worker model overrides. "
+                            "Use this instead of shared top-level model selection."
+                        )
+                    ),
+                    "budgets": {
+                        "type": "object",
+                        "description": "Optional project budgets payload.",
+                    },
+                    "key_policy": {
+                        "type": "object",
+                        "description": "Optional project key-policy payload.",
+                    },
+                    "execution_policy": {
+                        "type": "object",
+                        "description": "Optional execution-policy payload.",
+                    },
+                    "scenario": {
+                        "type": "string",
+                        "description": "Optional project research scenario.",
+                    },
+                    "notes": {
+                        "type": "string",
+                        "description": "Optional project notes / launch context.",
+                    },
+                    "metered_infra": {
+                        "type": "object",
+                        "description": "Optional metered-infra metadata payload.",
+                    },
+                    "schedule": {
+                        "type": "object",
+                        "description": "Optional project schedule payload.",
+                    },
+                    "integrations": {
+                        "type": "object",
+                        "description": "Optional project integrations payload.",
+                    },
+                    "synth_ai": {
+                        "type": "object",
+                        "description": "Optional project synth_ai payload.",
+                    },
+                    "policy": {
+                        "type": "object",
+                        "description": "Optional project policy payload.",
+                    },
+                    "trial_matrix": {
+                        "type": "object",
+                        "description": "Optional project trial-matrix payload.",
+                    },
+                },
+                required=[
+                    "name",
+                    "pool_id",
+                    "runtime_kind",
+                    "environment_kind",
+                    "orchestrator_profile_id",
+                    "default_worker_profile_id",
+                ],
+            ),
+            handler=server._tool_create_runnable_project,
         ),
         ToolDefinition(
             name="smr_create_project",
@@ -232,6 +338,37 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
                 required=["project_id", "content"],
             ),
             handler=server._tool_set_project_knowledge,
+        ),
+        ToolDefinition(
+            name="smr_curated_knowledge",
+            description=(
+                "Get or set curated knowledge for the authenticated org or for one project. "
+                "Use scope=org|project, and provide content when operation=set."
+            ),
+            input_schema=tool_schema(
+                {
+                    "operation": {
+                        "type": "string",
+                        "enum": ["get", "set"],
+                        "description": "Get the current durable knowledge blob or replace it.",
+                    },
+                    "scope": {
+                        "type": "string",
+                        "enum": ["org", "project"],
+                        "description": "Whether the knowledge is org-wide or project-scoped.",
+                    },
+                    "project_id": {
+                        "type": "string",
+                        "description": "Managed research project id when scope is project.",
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Replacement knowledge content when operation is set.",
+                    },
+                },
+                required=["operation", "scope"],
+            ),
+            handler=server._tool_curated_knowledge,
         ),
         ToolDefinition(
             name="smr_pause_project",

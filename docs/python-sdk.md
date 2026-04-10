@@ -19,8 +19,12 @@ from managed_research import (
     SmrActorModelAssignment,
     SmrActorType,
     SmrAgentModel,
+    SmrAgentProfileBindings,
     SmrControlClient,
+    SmrEnvironmentKind,
     SmrHostKind,
+    SmrRunnableProjectRequest,
+    SmrRuntimeKind,
     SmrWorkMode,
     SmrWorkerSubtype,
 )
@@ -37,6 +41,7 @@ These are intentionally separate surfaces.
 
 High-leverage public flows:
 
+- `create_runnable_project(SmrRunnableProjectRequest(...))`
 - `attach_source_repo(project_id, url, default_branch=None)`
 - `get_workspace_inputs(project_id)`
 - `upload_workspace_files(project_id, files)`
@@ -47,9 +52,9 @@ High-leverage public flows:
   `get_project_knowledge(project_id)`
 - `pause_project(project_id)` / `resume_project(project_id)`
 - `archive_project(project_id)` / `unarchive_project(project_id)`
-- `get_project_readiness(project_id)`
+- `setup.get(project_id)` / `setup.prepare(project_id)`
 - `get_capacity_lane_preview(project_id)`
-- `get_run_start_blockers(project_id, host_kind=..., work_mode=SmrWorkMode...)`
+- `get_launch_preflight(project_id, host_kind=..., work_mode=SmrWorkMode...)`
 - `trigger_run(project_id, host_kind=..., work_mode=SmrWorkMode...)`
 - `get_run(run_id, project_id=...)`
 - `get_run_progress(project_id, run_id)`
@@ -66,19 +71,37 @@ including `client.projects.get_notes(...)`, `client.projects.set_notes(...)`,
 ```python
 from pathlib import Path
 
-from managed_research import SmrControlClient, SmrHostKind, SmrWorkMode
+from managed_research import (
+    SmrAgentProfileBindings,
+    SmrControlClient,
+    SmrEnvironmentKind,
+    SmrHostKind,
+    SmrRunnableProjectRequest,
+    SmrRuntimeKind,
+    SmrWorkMode,
+)
 
 client = SmrControlClient(api_key="sk_...")
-project = client.create_project({"name": "nanohorizon-sdk-demo"})
+project = client.create_runnable_project(
+    SmrRunnableProjectRequest(
+        name="nanohorizon-sdk-demo",
+        timezone="UTC",
+        pool_id="daytona-default",
+        runtime_kind=SmrRuntimeKind.SANDBOX_AGENT,
+        environment_kind=SmrEnvironmentKind.HARBOR,
+        agent_profiles=SmrAgentProfileBindings(
+            orchestrator_profile_id="codex_gpt_5_4_medium",
+            default_worker_profile_id="codex_gpt_5_4_medium",
+        ),
+        notes="Notebook only. Kickoff intent belongs in runtime messages.",
+        scenario="nanohorizon-sdk-demo",
+    )
+)
 project_id = project["project_id"]
 client.attach_source_repo(
     project_id,
     "https://github.com/synth-laboratories/nanohorizon.git",
     default_branch="main",
-)
-client.set_project_notes(
-    project_id,
-    "Notebook only. Kickoff intent belongs in runtime messages.",
 )
 client.set_project_knowledge(
     project_id,
@@ -91,9 +114,9 @@ kickoff = [
         "mode": "queue",
     }
 ]
-client.get_project_readiness(project_id)
+client.setup.prepare(project_id)
 client.get_capacity_lane_preview(project_id)
-blockers = client.get_run_start_blockers(
+preflight = client.get_launch_preflight(
     project_id,
     host_kind=SmrHostKind.DAYTONA,
     work_mode=SmrWorkMode.DIRECTED_EFFORT,
@@ -101,7 +124,7 @@ blockers = client.get_run_start_blockers(
     initial_runtime_messages=kickoff,
 )
 
-if blockers["clear_to_trigger"]:
+if preflight["clear_to_trigger"]:
     client.trigger_run(
         project_id,
         host_kind=SmrHostKind.DAYTONA,
@@ -114,6 +137,7 @@ if blockers["clear_to_trigger"]:
 
 Notes:
 
+- prefer `create_runnable_project(...)` for new SDK integrations and eval launchers
 - prefer `agent_profile` when you want an exact backend-managed preset
 - public `agent_model` ids are `gpt-5.3-codex`, `gpt-5.3-codex-spark`,
   `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`, and `gpt-oss-120b`
@@ -130,6 +154,9 @@ Notes:
   `SmrHostKind.DAYTONA`, `SmrHostKind.LOCAL`, or `SmrHostKind.DOCKER`
 - Python callers should pass `work_mode` as `SmrWorkMode`, for example
   `SmrWorkMode.DIRECTED_EFFORT` or `SmrWorkMode.OPEN_ENDED_DISCOVERY`
+- `get_project_readiness(project_id)` remains as a compatibility alias over the
+  pure setup projection; prefer `client.setup.get(...)` or
+  `client.get_project_setup(...)`
 - `host_kind` is required for project-scoped trigger and run-start blockers
 - kickoff text must go through `initial_runtime_messages`; the legacy `prompt`
   field is not accepted
@@ -165,14 +192,24 @@ client.trigger_run(
 Durable project-level assignment example:
 
 ```python
-client.create_project(
-    {"name": "nanohorizon-sdk-demo"},
-    actor_model_assignments=[
-        SmrActorModelAssignment(
-            actor_type=SmrActorType.WORKER,
-            actor_subtype=SmrWorkerSubtype.ENGINEER,
-            agent_model=SmrAgentModel.GPT_5_3_CODEX_SPARK,
-        )
-    ],
+client.create_runnable_project(
+    SmrRunnableProjectRequest(
+        name="nanohorizon-sdk-demo",
+        timezone="UTC",
+        pool_id="daytona-default",
+        runtime_kind=SmrRuntimeKind.SANDBOX_AGENT,
+        environment_kind=SmrEnvironmentKind.HARBOR,
+        agent_profiles=SmrAgentProfileBindings(
+            orchestrator_profile_id="codex_gpt_5_4_medium",
+            default_worker_profile_id="codex_gpt_5_4_medium",
+        ),
+        actor_model_assignments=[
+            SmrActorModelAssignment(
+                actor_type=SmrActorType.WORKER,
+                actor_subtype=SmrWorkerSubtype.ENGINEER,
+                agent_model=SmrAgentModel.GPT_5_3_CODEX_SPARK,
+            )
+        ],
+    )
 )
 ```

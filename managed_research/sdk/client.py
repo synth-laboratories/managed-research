@@ -26,12 +26,26 @@ from managed_research.models.smr_credential_providers import (
     SmrCredentialProvider,
     coerce_smr_credential_provider,
 )
+from managed_research.models.smr_environment_kinds import (
+    SmrEnvironmentKind,
+    coerce_smr_environment_kind,
+)
 from managed_research.models.smr_funding_sources import (
     SmrFundingSource,
     coerce_smr_funding_source,
 )
 from managed_research.models.smr_host_kinds import SmrHostKind, coerce_smr_host_kind
+from managed_research.models.smr_runtime_kinds import (
+    SmrRuntimeKind,
+    coerce_smr_runtime_kind,
+)
 from managed_research.models.smr_run_policy import SmrRunPolicy, coerce_smr_run_policy
+from managed_research.models.types import (
+    SmrAgentProfileBindings,
+    SmrLaunchPreflight,
+    SmrProjectSetup,
+    SmrRunnableProjectRequest,
+)
 from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
 from managed_research.sdk.approvals import ApprovalsAPI
 from managed_research.sdk.artifacts import ArtifactsAPI
@@ -40,6 +54,7 @@ from managed_research.sdk.logs import LogsAPI
 from managed_research.sdk.progress import ProgressAPI
 from managed_research.sdk.projects import ProjectsAPI
 from managed_research.sdk.runs import RunsAPI
+from managed_research.sdk.setup import SetupAPI
 from managed_research.sdk.usage import UsageAPI
 from managed_research.sdk.workspace_inputs import WorkspaceInputsAPI
 from managed_research.transport.http import SmrHttpTransport
@@ -158,6 +173,16 @@ def _normalized_actor_model_assignment_payloads(
         field_name=field_name,
     )
     return [item.as_payload() for item in normalized]
+
+
+def _runnable_project_request_payload(
+    request: SmrRunnableProjectRequest | Mapping[str, Any] | dict[str, Any],
+) -> dict[str, Any]:
+    if isinstance(request, SmrRunnableProjectRequest):
+        return request.to_wire()
+    if isinstance(request, Mapping):
+        return SmrRunnableProjectRequest.from_wire(dict(request)).to_wire()
+    raise ValueError("request must be a SmrRunnableProjectRequest or mapping")
 
 
 def _merge_execution_actor_model_assignments(
@@ -337,6 +362,7 @@ class SmrControlClient:
     _runs_api: RunsAPI | None = field(init=False, default=None, repr=False)
     _workspace_inputs_api: WorkspaceInputsAPI | None = field(init=False, default=None, repr=False)
     _progress_api: ProgressAPI | None = field(init=False, default=None, repr=False)
+    _setup_api: SetupAPI | None = field(init=False, default=None, repr=False)
     _approvals_api: ApprovalsAPI | None = field(init=False, default=None, repr=False)
     _artifacts_api: ArtifactsAPI | None = field(init=False, default=None, repr=False)
     _logs_api: LogsAPI | None = field(init=False, default=None, repr=False)
@@ -386,6 +412,12 @@ class SmrControlClient:
         if self._progress_api is None:
             self._progress_api = ProgressAPI(self)
         return self._progress_api
+
+    @property
+    def setup(self) -> SetupAPI:
+        if self._setup_api is None:
+            self._setup_api = SetupAPI(self)
+        return self._setup_api
 
     @property
     def approvals(self) -> ApprovalsAPI:
@@ -469,6 +501,19 @@ class SmrControlClient:
         return _coerce_dict(
             self._request_json("POST", "/smr/projects", json_body=normalized_payload),
             label="create_project",
+        )
+
+    def create_runnable_project(
+        self,
+        request: SmrRunnableProjectRequest | Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                "/smr/projects:runnable",
+                json_body=_runnable_project_request_payload(request),
+            ),
+            label="create_runnable_project",
         )
 
     def list_projects(
@@ -750,9 +795,18 @@ class SmrControlClient:
         return self.upload_workspace_files(project_id, files)
 
     def get_project_readiness(self, project_id: str) -> dict[str, Any]:
+        return self.get_project_setup(project_id)
+
+    def get_project_setup(self, project_id: str) -> dict[str, Any]:
         return _coerce_dict(
-            self._request_json("GET", f"/smr/projects/{project_id}/readiness"),
-            label="get_project_readiness",
+            self._request_json("GET", f"/smr/projects/{project_id}/setup"),
+            label="get_project_setup",
+        )
+
+    def prepare_project_setup(self, project_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("POST", f"/smr/projects/{project_id}/setup/prepare"),
+            label="prepare_project_setup",
         )
 
     def set_provider_key(
@@ -866,6 +920,55 @@ class SmrControlClient:
             label="get_run_start_blockers",
         )
 
+    def get_launch_preflight(
+        self,
+        project_id: str,
+        *,
+        host_kind: SmrHostKind,
+        work_mode: SmrWorkMode,
+        worker_pool_id: str | None = None,
+        timebox_seconds: int | None = None,
+        agent_profile: str | None = None,
+        agent_model: SmrAgentModel | None = None,
+        agent_kind: SmrAgentKind | None = None,
+        agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
+        actor_model_overrides: Iterable[
+            SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]
+        ]
+        | None = None,
+        initial_runtime_messages: Iterable[Mapping[str, Any] | dict[str, Any]] | None = None,
+        workflow: Mapping[str, Any] | dict[str, Any] | None = None,
+        sandbox_override: Mapping[str, Any] | dict[str, Any] | None = None,
+        run_policy: SmrRunPolicy | Mapping[str, Any] | dict[str, Any] | None = None,
+        idempotency_key_run_create: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        payload = _build_project_run_payload(
+            host_kind=host_kind,
+            work_mode=work_mode,
+            worker_pool_id=worker_pool_id,
+            timebox_seconds=timebox_seconds,
+            agent_profile=agent_profile,
+            agent_model=agent_model,
+            agent_kind=agent_kind,
+            agent_model_params=agent_model_params,
+            actor_model_overrides=actor_model_overrides,
+            initial_runtime_messages=initial_runtime_messages,
+            workflow=workflow,
+            sandbox_override=sandbox_override,
+            run_policy=run_policy,
+            idempotency_key_run_create=idempotency_key_run_create,
+            idempotency_key=idempotency_key,
+        )
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/launch-preflight",
+                json_body=payload,
+            ),
+            label="get_launch_preflight",
+        )
+
     def trigger_run(
         self,
         project_id: str,
@@ -944,6 +1047,20 @@ class SmrControlClient:
             if scoped is not None:
                 return _coerce_dict(scoped, label="get_project_run")
         return _coerce_dict(self._request_json("GET", f"/smr/runs/{run_id}"), label="get_run")
+
+    def stop_run(self, run_id: str, *, project_id: str | None = None) -> dict[str, Any]:
+        if project_id:
+            return _coerce_dict(
+                self._request_json(
+                    "POST",
+                    f"/smr/projects/{project_id}/runs/{run_id}/stop",
+                ),
+                label="stop_project_run",
+            )
+        return _coerce_dict(
+            self._request_json("POST", f"/smr/runs/{run_id}/stop"),
+            label="stop_run",
+        )
 
     def get_run_progress(self, project_id: str, run_id: str) -> dict[str, Any]:
         return _coerce_dict(
@@ -1035,6 +1152,80 @@ class SmrControlClient:
         return _coerce_dict(
             self._request_json("POST", f"/smr/runs/{run_id}/restore", json_body=payload or {}),
             label="restore_run_checkpoint",
+        )
+
+    def list_runtime_messages(
+        self,
+        run_id: str,
+        *,
+        status: str | None = None,
+        viewer_role: str | None = None,
+        viewer_target: str | Iterable[str] | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {}
+        if status and status.strip():
+            params["status"] = status.strip()
+        if viewer_role and viewer_role.strip():
+            params["viewer_role"] = viewer_role.strip()
+        if limit is not None:
+            params["limit"] = int(limit)
+        if isinstance(viewer_target, str) and viewer_target.strip():
+            params["viewer_target"] = [viewer_target.strip()]
+        elif viewer_target is not None:
+            cleaned_targets = [
+                str(item).strip() for item in viewer_target if str(item).strip()
+            ]
+            if cleaned_targets:
+                params["viewer_target"] = cleaned_targets
+        return _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/runs/{run_id}/runtime/messages",
+                params=params or None,
+            ),
+            label="list_runtime_messages",
+        )
+
+    def enqueue_runtime_message(
+        self,
+        run_id: str,
+        *,
+        topic: str | None = None,
+        causation_id: str | None = None,
+        mode: str | None = None,
+        spawn_policy: str | None = None,
+        sender: str | None = None,
+        target: str | None = None,
+        participant_session_id: str | None = None,
+        action: str | None = None,
+        body: str | None = None,
+        payload: Mapping[str, Any] | dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        json_body: dict[str, Any] = {}
+        for key, value in (
+            ("topic", topic),
+            ("causation_id", causation_id),
+            ("mode", mode),
+            ("spawn_policy", spawn_policy),
+            ("sender", sender),
+            ("target", target),
+            ("participant_session_id", participant_session_id),
+            ("action", action),
+            ("body", body),
+        ):
+            if value and value.strip():
+                json_body[key] = value.strip()
+        normalized_payload = _optional_mapping(payload, field_name="payload")
+        if normalized_payload:
+            json_body["payload"] = normalized_payload
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/runs/{run_id}/runtime/messages",
+                json_body=json_body,
+            ),
+            label="enqueue_runtime_message",
         )
 
     def list_run_log_archives(self, project_id: str, run_id: str) -> list[dict[str, Any]]:
