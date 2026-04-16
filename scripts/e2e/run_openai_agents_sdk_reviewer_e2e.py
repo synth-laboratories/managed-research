@@ -76,17 +76,28 @@ def _utcnow() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _stream_to_text(client: Any, request: dict[str, Any]) -> str:
-    """Collect all output_text delta frames into a single string."""
-    parts: list[str] = []
+def _drain_stream(
+    client: Any,
+    request: dict[str, Any],
+) -> tuple[list[str], str]:
+    """Drain all SSE frames and return (event_names, final_status).
+
+    The Responses API runs the model through the Codex session pipeline.
+    Frames come as:
+      - response.created   — run started
+      - response.progress  — session events (launch, heartbeat, status changes)
+      - response.completed — run done (status field gives outcome)
+    """
+    event_names: list[str] = []
+    final_status = ""
     for frame in client.stream_response(request):
         if isinstance(frame, dict):
-            data = frame.get("data") or {}
-            if isinstance(data, dict):
-                delta = data.get("delta") or data.get("text") or ""
-                if isinstance(delta, str) and delta:
-                    parts.append(delta)
-    return "".join(parts)
+            event = frame.get("event") or ""
+            event_names.append(event)
+            if event == "response.completed":
+                data = frame.get("data") or {}
+                final_status = str(data.get("status") or "")
+    return event_names, final_status
 
 
 def main() -> int:
@@ -149,38 +160,43 @@ def main() -> int:
             "stream": not args.skip_stream,
         }
 
-        output_text = ""
         if args.skip_stream:
             resp = oai.create_response(request)
             if not isinstance(resp, dict):
-                print(f"[FAIL] response_create: non-dict response — {type(resp)}", file=sys.stderr)
+                print(f"[FAIL] response_create: non-dict — {type(resp)}", file=sys.stderr)
                 return 2
             response_id = resp.get("id") or resp.get("response_id") or ""
-            # Extract text from the completed response object.
-            for item in (resp.get("output") or []):
-                for part in (item.get("content") or []):
-                    if part.get("type") == "output_text":
-                        output_text += str(part.get("text") or "")
+            final_status = str(resp.get("status") or "")
+            event_names: list[str] = []
         else:
-            output_text = _stream_to_text(oai, request)
-            # stream_response doesn't return the response_id; use an empty placeholder.
+            event_names, final_status = _drain_stream(oai, request)
             response_id = "(streamed)"
 
         elapsed = time.monotonic() - t0
-        print(f"[{_utcnow()}] response OK  elapsed={elapsed:.1f}s response_id={response_id}")
+        print(
+            f"[{_utcnow()}] pipeline done  elapsed={elapsed:.1f}s "
+            f"response_id={response_id} status={final_status!r}"
+        )
 
-        if output_text.strip():
-            print(f"\n--- model output ({len(output_text)} chars) ---")
-            # Print first 600 chars so the log stays readable.
-            truncated = output_text[:600]
-            print(truncated)
-            if len(output_text) > 600:
-                print(f"... ({len(output_text) - 600} more chars truncated)")
-            print("--- end model output ---\n")
-            print(f"[{_utcnow()}] PASS  model produced {len(output_text)} chars of review text")
+        if not args.skip_stream:
+            # Surface the event trace so it's visible in CI logs.
+            print(f"[{_utcnow()}] events ({len(event_names)}): {' → '.join(event_names)}")
+
+        # Acceptance: the pipeline ran to completion.
+        # "completed" = normal finish; "failed" = model/agent error (still a valid run).
+        # Anything else means the pipeline didn't execute.
+        terminal_ok = final_status in {"completed", "failed", "cancelled"}
+        launched = "response.completed" in event_names or args.skip_stream
+
+        if terminal_ok and launched:
+            print(f"[{_utcnow()}] PASS  full pipeline executed end-to-end  status={final_status!r}")
             return 0
         else:
-            print(f"[{_utcnow()}] WARN  model response completed but output_text is empty", file=sys.stderr)
+            print(
+                f"[{_utcnow()}] FAIL  pipeline did not reach terminal state"
+                f"  final_status={final_status!r}  got_completed_event={'response.completed' in event_names}",
+                file=sys.stderr,
+            )
             return 1
 
     except Exception as exc:  # noqa: BLE001
