@@ -8,6 +8,7 @@ from managed_research.models.run_observability import (
     RunObservationCursor,
     RunObservabilitySnapshot,
 )
+from managed_research.models.run_state import ManagedResearchRun
 from managed_research.models.run_timeline import (
     SmrBranchMode,
     SmrLogicalTimeline,
@@ -19,6 +20,82 @@ from managed_research.models.run_diagnostics import (
     SmrRunTraces,
 )
 from managed_research.sdk._base import _ClientNamespace
+
+
+class RunHandle:
+    """Project-scoped handle for one managed-research run."""
+
+    def __init__(self, client: Any, project_id: str, run_id: str) -> None:
+        project_text = str(project_id or "").strip()
+        run_text = str(run_id or "").strip()
+        if not project_text:
+            raise ValueError("project_id is required")
+        if not run_text:
+            raise ValueError("run_id is required")
+        self._client = client
+        self.project_id = project_text
+        self.run_id = run_text
+
+    def get(self) -> ManagedResearchRun:
+        return ManagedResearchRun.from_wire(
+            self._client.get_project_run(self.project_id, self.run_id)
+        )
+
+    def task_counts(self) -> dict[str, int]:
+        return self._client.get_run_observability_snapshot(
+            self.project_id,
+            self.run_id,
+        ).tasks.counts_by_state
+
+    def actor_counts(self) -> dict[str, int]:
+        return self._client.get_run_observability_snapshot(
+            self.project_id,
+            self.run_id,
+        ).actors.counts_by_state
+
+    def messages(
+        self,
+        *,
+        status: str | None = None,
+        viewer_role: str | None = None,
+        viewer_target: str | list[str] | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_project_run_runtime_messages(
+            self.project_id,
+            self.run_id,
+            status=status,
+            viewer_role=viewer_role,
+            viewer_target=viewer_target,
+            limit=limit,
+        )
+
+    def timeline(self) -> SmrLogicalTimeline:
+        return self._client.get_run_logical_timeline(self.project_id, self.run_id)
+
+    def checkpoints(self) -> list[dict[str, Any]]:
+        return self._client.list_run_checkpoints(
+            self.run_id,
+            project_id=self.project_id,
+        )
+
+    def artifacts(
+        self,
+        *,
+        artifact_type: str | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_project_run_artifacts(
+            self.project_id,
+            self.run_id,
+            artifact_type=artifact_type,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def stop(self) -> dict[str, Any]:
+        return self._client.stop_run(self.run_id, project_id=self.project_id)
 
 
 class RunsAPI(_ClientNamespace):
@@ -93,15 +170,7 @@ class RunsAPI(_ClientNamespace):
 
     def get_terminal_classifier(self, project_id: str, run_id: str) -> str:
         snapshot = self.get_observability_snapshot(project_id, run_id)
-        authority_phase = snapshot.lifecycle.authority_phase.strip().lower()
-        if authority_phase in {"accepted", "bootstrapping", "ready", "running", "terminalizing"}:
-            return "active"
-        publication = snapshot.candidate_publication.outcome
-        if publication.value == "pr_published":
-            return "pr_published"
-        if publication.value == "awaiting_pr_binding":
-            return "awaiting_pr"
-        return snapshot.run_state
+        return snapshot.run_state.value
 
     def get_primary_parent(self, run_id: str) -> dict[str, Any]:
         return self._client.get_run_primary_parent(run_id)
@@ -218,4 +287,4 @@ class RunsAPI(_ClientNamespace):
         return self._client.enqueue_runtime_message(run_id, **kwargs)
 
 
-__all__ = ["RunsAPI"]
+__all__ = ["RunHandle", "RunsAPI"]

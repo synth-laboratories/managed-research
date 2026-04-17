@@ -642,6 +642,11 @@ class SmrControlClient:
             self._runs_api = RunsAPI(self)
         return self._runs_api
 
+    def run(self, project_id: str, run_id: str):
+        from managed_research.sdk.runs import RunHandle
+
+        return RunHandle(self, project_id, run_id)
+
     @property
     def workspace_inputs(self) -> WorkspaceInputsAPI:
         if self._workspace_inputs_api is None:
@@ -1144,6 +1149,28 @@ class SmrControlClient:
                 params=build_query_params(artifact_type=artifact_type, limit=limit),
             ),
             label="list_run_output_files",
+        )
+
+    def list_project_run_artifacts(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        artifact_type: str | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> list[dict[str, Any]]:
+        return _coerce_dict_list(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/runs/{run_id}/artifacts",
+                params=build_query_params(
+                    artifact_type=artifact_type,
+                    limit=limit,
+                    cursor=cursor,
+                ),
+            ),
+            label="list_project_run_artifacts",
         )
 
     def get_run_output_file_content(
@@ -1662,12 +1689,20 @@ class SmrControlClient:
                 return _coerce_dict(scoped, label="get_project_run")
         return _coerce_dict(self._request_json("GET", f"/smr/runs/{run_id}"), label="get_run")
 
+    def get_project_run(self, project_id: str, run_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("GET", f"/smr/projects/{project_id}/runs/{run_id}"),
+            label="get_project_run",
+        )
+
     def get_run_observability_snapshot(
         self,
         project_id: str,
         run_id: str,
         *,
         since_event_seq: int | None = None,
+        latest_runtime_message_seq: int | None = None,
+        latest_runtime_event_id: str | None = None,
         event_limit: int = 100,
         actor_limit: int = 25,
         task_limit: int = 50,
@@ -1677,6 +1712,8 @@ class SmrControlClient:
     ) -> RunObservabilitySnapshot:
         params = build_query_params(
             since_event_seq=since_event_seq,
+            latest_runtime_message_seq=latest_runtime_message_seq,
+            latest_runtime_event_id=latest_runtime_event_id,
             event_limit=event_limit,
             actor_limit=actor_limit,
             task_limit=task_limit,
@@ -1719,6 +1756,8 @@ class SmrControlClient:
             project_id,
             run_id,
             since_event_seq=resolved_cursor.latest_event_seq,
+            latest_runtime_message_seq=resolved_cursor.latest_runtime_message_seq,
+            latest_runtime_event_id=resolved_cursor.latest_runtime_event_id,
             event_limit=event_limit,
             actor_limit=actor_limit,
             task_limit=task_limit,
@@ -2312,6 +2351,40 @@ class SmrControlClient:
                 params=params or None,
             ),
             label="list_runtime_messages",
+        )
+
+    def list_project_run_runtime_messages(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        status: str | None = None,
+        viewer_role: str | None = None,
+        viewer_target: str | Iterable[str] | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {}
+        if status and status.strip():
+            params["status"] = status.strip()
+        if viewer_role and viewer_role.strip():
+            params["viewer_role"] = viewer_role.strip()
+        if limit is not None:
+            params["limit"] = int(limit)
+        if isinstance(viewer_target, str) and viewer_target.strip():
+            params["viewer_target"] = [viewer_target.strip()]
+        elif viewer_target is not None:
+            cleaned_targets = [
+                str(item).strip() for item in viewer_target if str(item).strip()
+            ]
+            if cleaned_targets:
+                params["viewer_target"] = cleaned_targets
+        return _coerce_dict_list(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/runs/{run_id}/runtime/messages",
+                params=params or None,
+            ),
+            label="list_project_run_runtime_messages",
         )
 
     def enqueue_runtime_message(

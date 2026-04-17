@@ -6,6 +6,13 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+from managed_research.models.run_state import (
+    ManagedResearchRun,
+    ManagedResearchRunLivePhase,
+    ManagedResearchRunState,
+    ManagedResearchRunTerminalOutcome,
+)
+
 
 def _require_mapping(payload: object, *, label: str) -> Mapping[str, object]:
     if not isinstance(payload, Mapping):
@@ -118,6 +125,10 @@ class RunObservationCursor:
         params: dict[str, object] = {}
         if self.latest_event_seq is not None:
             params["since_event_seq"] = self.latest_event_seq
+        if self.latest_runtime_message_seq is not None:
+            params["latest_runtime_message_seq"] = self.latest_runtime_message_seq
+        if self.latest_runtime_event_id is not None:
+            params["latest_runtime_event_id"] = self.latest_runtime_event_id
         return params
 
 
@@ -489,9 +500,15 @@ class RunObservabilitySnapshot:
     project_id: str
     run_id: str
     generated_at: str
-    run: dict[str, object]
+    run: ManagedResearchRun
     lifecycle: RunLifecycleView
-    run_state: str
+    run_state: ManagedResearchRunState
+    terminal_outcome: ManagedResearchRunTerminalOutcome | None
+    live_phase: ManagedResearchRunLivePhase
+    state_reason: str | None
+    state_authority: str
+    work_completed: bool
+    completion_classifier: str | None
     candidate_publication: CandidatePublicationView
     actors: ActorCollectionSnapshot
     tasks: TaskCollectionSnapshot
@@ -510,9 +527,32 @@ class RunObservabilitySnapshot:
             project_id=_require_string(mapping, "project_id", label="snapshot.project_id"),
             run_id=_require_string(mapping, "run_id", label="snapshot.run_id"),
             generated_at=_require_string(mapping, "generated_at", label="snapshot.generated_at"),
-            run=dict(_require_mapping(mapping.get("run"), label="snapshot.run")),
+            run=ManagedResearchRun.from_wire(mapping.get("run")),
             lifecycle=RunLifecycleView.from_wire(mapping.get("lifecycle")),
-            run_state=_require_string(mapping, "run_state", label="snapshot.run_state"),
+            run_state=ManagedResearchRunState(
+                _require_string(mapping, "run_state", label="snapshot.run_state")
+            ),
+            terminal_outcome=(
+                ManagedResearchRunTerminalOutcome(
+                    _require_string(
+                        mapping,
+                        "terminal_outcome",
+                        label="snapshot.terminal_outcome",
+                    )
+                )
+                if _optional_string(mapping, "terminal_outcome") is not None
+                else None
+            ),
+            live_phase=ManagedResearchRunLivePhase(
+                _optional_string(mapping, "live_phase") or "unknown"
+            ),
+            state_reason=_optional_string(mapping, "state_reason"),
+            state_authority=(
+                _optional_string(mapping, "state_authority")
+                or "backend_public_run_state_projection.v1"
+            ),
+            work_completed=bool(_optional_bool(mapping, "work_completed")),
+            completion_classifier=_optional_string(mapping, "completion_classifier"),
             candidate_publication=CandidatePublicationView.from_wire(mapping.get("candidate_publication")),
             actors=ActorCollectionSnapshot.from_wire(mapping.get("actors")),
             tasks=TaskCollectionSnapshot.from_wire(mapping.get("tasks")),
@@ -539,6 +579,10 @@ __all__ = [
     "ActorSnapshot",
     "CandidatePublicationOutcome",
     "CandidatePublicationView",
+    "ManagedResearchRun",
+    "ManagedResearchRunLivePhase",
+    "ManagedResearchRunState",
+    "ManagedResearchRunTerminalOutcome",
     "RunAnomaly",
     "RunAnomalyKind",
     "RunLifecycleDispatch",

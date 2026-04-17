@@ -45,6 +45,12 @@ from managed_research.models.run_observability import (
     TaskCollectionSnapshot,
     TaskSnapshot,
 )
+from managed_research.models.run_state import (
+    ManagedResearchRun,
+    ManagedResearchRunLivePhase,
+    ManagedResearchRunState,
+    ManagedResearchRunTerminalOutcome,
+)
 from managed_research.models.run_timeline import (
     SmrBranchMode,
     SmrLogicalTimeline,
@@ -103,7 +109,7 @@ from managed_research.sdk.logs import LogsAPI
 from managed_research.sdk.progress import ProgressAPI
 from managed_research.sdk.projects import ProjectsAPI
 from managed_research.sdk.repositories import RepositoriesAPI
-from managed_research.sdk.runs import RunsAPI
+from managed_research.sdk.runs import RunHandle, RunsAPI
 from managed_research.sdk.setup import SetupAPI
 from managed_research.sdk.usage import UsageAPI
 from managed_research.sdk.workspace_inputs import WorkspaceInputsAPI
@@ -124,6 +130,10 @@ __all__ = [
     "BillingEntitlementSnapshot",
     "LogsAPI",
     "ManagedResearchClient",
+    "ManagedResearchRun",
+    "ManagedResearchRunLivePhase",
+    "ManagedResearchRunState",
+    "ManagedResearchRunTerminalOutcome",
     "LaunchPreflight",
     "LaunchPreflightBlocker",
     "ActorCollectionSnapshot",
@@ -137,6 +147,7 @@ __all__ = [
     "ProjectSetupAuthorityStatus",
     "ProjectsAPI",
     "RepositoriesAPI",
+    "RunHandle",
     "RunsAPI",
     "SetupAPI",
     "RunAnomaly",

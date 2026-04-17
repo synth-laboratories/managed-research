@@ -45,6 +45,12 @@ from managed_research.models.run_observability import (
     TaskCollectionSnapshot,
     TaskSnapshot,
 )
+from managed_research.models.run_state import (
+    ManagedResearchRun,
+    ManagedResearchRunLivePhase,
+    ManagedResearchRunState,
+    ManagedResearchRunTerminalOutcome,
+)
 from managed_research.models.run_timeline import (
     SmrBranchMode,
     SmrLogicalTimeline,
@@ -169,6 +175,10 @@ __all__ = [
     "LocalExecutionProfile",
     "LocalPublicationReadiness",
     "LOCAL_EXECUTION_PROFILE_SCHEMA_VERSION",
+    "ManagedResearchRun",
+    "ManagedResearchRunLivePhase",
+    "ManagedResearchRunState",
+    "ManagedResearchRunTerminalOutcome",
     "MilestoneProgress",
     "ProjectReadiness",
     "SmrLaunchPreflight",
