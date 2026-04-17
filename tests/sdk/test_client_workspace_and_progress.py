@@ -5,16 +5,19 @@ from pathlib import Path
 
 import pytest
 from managed_research import (
-    ProjectReadiness,
-    RunProgress,
+    ProjectSetupAuthority,
+    SmrLaunchPreflight,
     SmrApiError,
+    SmrBranchMode,
     SmrControlClient,
     SmrCredentialProvider,
     SmrFundingSource,
     SmrInferenceProvider,
+    SmrLogicalTimeline,
     SmrRunPolicy,
     SmrRunPolicyAccess,
     SmrRunPolicyLimits,
+    SmrRunBranchRequest,
     SmrToolProvider,
     WorkspaceInputsState,
     WorkspaceUploadResult,
@@ -56,6 +59,61 @@ def test_get_project_git_calls_backend_route(monkeypatch) -> None:
 
     assert response["branch"] == "main"
     assert captured["path"] == "/smr/projects/proj_123/git"
+    client.close()
+
+
+def test_rename_project_calls_patch_route(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    captured: dict[str, object] = {}
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        captured["method"] = method
+        captured["path"] = path
+        captured["json_body"] = kwargs.get("json_body")
+        return {"project_id": "proj_123", "name": "Retry transient eval failures"}
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    response = client.rename_project("proj_123", "  Retry transient eval failures  ")
+
+    assert response["name"] == "Retry transient eval failures"
+    assert captured == {
+        "method": "PATCH",
+        "path": "/smr/projects/proj_123",
+        "json_body": {"name": "Retry transient eval failures"},
+    }
+    client.close()
+
+
+def test_rename_project_rejects_blank_names(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        raise AssertionError("rename_project should reject before transport")
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    with pytest.raises(ValueError, match="project name must be non-empty"):
+        client.rename_project("proj_123", "   ")
+    client.close()
+
+
+def test_projects_namespace_rename_delegates_to_control_client(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    captured: dict[str, str] = {}
+
+    def fake_rename_project(project_id: str, name: str) -> dict[str, str]:
+        captured["project_id"] = project_id
+        captured["name"] = name
+        return {"project_id": project_id, "name": name}
+
+    monkeypatch.setattr(client, "rename_project", fake_rename_project)
+
+    assert client.projects.rename("proj_123", "Readable project") == {
+        "project_id": "proj_123",
+        "name": "Readable project",
+    }
+    assert captured == {"project_id": "proj_123", "name": "Readable project"}
     client.close()
 
 
@@ -250,7 +308,7 @@ def test_workspace_inputs_namespace_returns_typed_models(monkeypatch) -> None:
     client.close()
 
 
-def test_progress_routes_match_remigration_surface(monkeypatch) -> None:
+def test_setup_and_launch_preflight_routes_match_remigration_surface(monkeypatch) -> None:
     client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
     seen: list[tuple[str, str]] = []
 
@@ -260,22 +318,26 @@ def test_progress_routes_match_remigration_surface(monkeypatch) -> None:
 
     monkeypatch.setattr(client, "_request_json", fake_request_json)
 
-    assert client.get_project_readiness("proj_123") == {"ok": True}
-    assert client.get_run_progress("proj_123", "run_123") == {"ok": True}
+    assert client.get_project_setup("proj_123") == {"ok": True}
+    assert client.get_launch_preflight(
+        "proj_123",
+        host_kind="daytona",
+        work_mode="directed_effort",
+    ) == {"ok": True}
     assert seen == [
-        ("GET", "/smr/projects/proj_123/readiness"),
-        ("GET", "/smr/projects/proj_123/runs/run_123/progress"),
+        ("GET", "/smr/projects/proj_123/setup"),
+        ("POST", "/smr/projects/proj_123/launch-preflight"),
     ]
     client.close()
 
 
-def test_progress_namespace_returns_typed_models(monkeypatch) -> None:
+def test_progress_namespace_returns_typed_setup_models(monkeypatch) -> None:
     client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
 
     def fake_request_json(method: str, path: str, **kwargs):
         del method
         del kwargs
-        if path.endswith("/readiness"):
+        if path.endswith("/setup"):
             return {
                 "state": "ready",
                 "blockers": [],
@@ -283,22 +345,25 @@ def test_progress_namespace_returns_typed_models(monkeypatch) -> None:
                 "workspace_inputs": {"state": "ready", "files": [], "file_count": 0},
             }
         return {
-            "state": "running",
-            "phase": "executing",
-            "pending_approval_ids": ["ap_123"],
-            "recommended_actions": [{"description": "wait"}],
+            "project_id": "proj_123",
+            "clear_to_trigger": True,
+            "checked": ["setup", "runtime"],
+            "blockers": [],
         }
 
     monkeypatch.setattr(client, "_request_json", fake_request_json)
 
-    readiness = client.progress.get_project_readiness("proj_123")
-    progress = client.progress.get_run_progress("proj_123", "run_123")
+    setup = client.progress.get_project_setup("proj_123")
+    preflight = client.progress.get_launch_preflight(
+        "proj_123",
+        host_kind="daytona",
+        work_mode="directed_effort",
+    )
 
-    assert isinstance(readiness, ProjectReadiness)
-    assert readiness.state == "ready"
-    assert isinstance(progress, RunProgress)
-    assert progress.phase == "executing"
-    assert progress.pending_approval_ids == ["ap_123"]
+    assert isinstance(setup, ProjectSetupAuthority)
+    assert setup.state == "ready"
+    assert isinstance(preflight, SmrLaunchPreflight)
+    assert preflight.clear_to_trigger is True
     client.close()
 
 
@@ -532,70 +597,33 @@ def test_run_policy_coercion_stays_typed_until_serialization(monkeypatch) -> Non
     client.close()
 
 
-def test_usage_graphql_route_matches_managed_accounts_surface(monkeypatch) -> None:
+def test_project_usage_routes_to_canonical_rest_surface(monkeypatch) -> None:
     client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
     captured: dict[str, object] = {}
 
     def fake_request_json(method: str, path: str, **kwargs):
         captured["method"] = method
         captured["path"] = path
-        captured["json_body"] = kwargs.get("json_body")
         return {
-            "data": {
-                "usageAnalytics": {
-                    "subject": {
-                        "kind": "managed_account",
-                        "managedAccountId": "acct_123",
-                    },
-                    "window": {
-                        "startAt": "2026-04-01T00:00:00Z",
-                        "endAt": "2026-04-02T00:00:00Z",
-                        "bucket": "DAY",
-                        "resolvedBucket": "DAY",
-                    },
-                    "totals": {
-                        "grossUsageUsd": 5.0,
-                        "billedAmountUsd": 0.0,
-                        "internalCostUsd": 3.0,
-                        "eventCount": 1,
-                        "chargedEventCount": 0,
-                        "byBillingRoute": {},
-                        "byUsageType": {},
-                    },
-                    "buckets": [],
-                    "rows": [],
-                    "pageInfo": {"hasNextPage": False, "endCursor": None},
-                }
-            }
+            "project_id": "proj_123",
+            "month_to_date": {"nominal_cents": 500},
+            "last_7_days": {"nominal_cents": 125},
+            "per_run": [],
+            "budgets": {},
         }
 
     monkeypatch.setattr(client, "_request_json", fake_request_json)
 
-    response = client.get_usage_analytics(
-        client.usage.subject_for_managed_account("acct_123"),
-        start_at="2026-04-01T00:00:00Z",
-        end_at="2026-04-02T00:00:00Z",
-        bucket="DAY",
-        first=50,
-    )
+    response = client.get_project_usage("proj_123")
 
-    assert response.totals.gross_usage_usd == 5.0
-    assert response.subject.managed_account_id == "acct_123"
-    assert captured["method"] == "POST"
-    assert captured["path"] == "/managed-accounts/graphql"
-    payload = captured["json_body"]
-    assert isinstance(payload, dict)
-    assert payload["operationName"] == "UsageAnalytics"
-    assert payload["variables"]["subject"] == {
-        "kind": "managed_account",
-        "managedAccountId": "acct_123",
-    }
-    assert payload["variables"]["window"]["bucket"] == "DAY"
-    assert payload["variables"]["pagination"]["first"] == 50
+    assert response.project_id == "proj_123"
+    assert response.month_to_date["nominal_cents"] == 500
+    assert captured["method"] == "GET"
+    assert captured["path"] == "/smr/projects/proj_123/usage"
     client.close()
 
 
-def test_usage_graphql_errors_raise_smr_api_error(monkeypatch) -> None:
+def test_canonical_usage_errors_raise_smr_api_error(monkeypatch) -> None:
     client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
 
     def fake_request_json(method: str, path: str, **kwargs):
@@ -607,12 +635,151 @@ def test_usage_graphql_errors_raise_smr_api_error(monkeypatch) -> None:
     monkeypatch.setattr(client, "_request_json", fake_request_json)
 
     with pytest.raises(SmrApiError, match="orgId subject must match the caller org"):
-        client.usage.get_usage_analytics(
-            client.usage.subject_for_org("org_123"),
-            start_at="2026-04-01T00:00:00Z",
-            end_at="2026-04-02T00:00:00Z",
-            bucket="DAY",
-            first=50,
+        client.usage.get_project_usage("proj_123")
+
+    client.close()
+
+
+def test_branch_request_rejects_invalid_checkpoint_references() -> None:
+    with pytest.raises(ValueError, match="exactly one of checkpoint_id"):
+        SmrRunBranchRequest()
+
+    with pytest.raises(ValueError, match="exactly one of checkpoint_id"):
+        SmrRunBranchRequest(checkpoint_id="ckpt_1", checkpoint_uri="smr://checkpoint/1")
+
+
+def test_branch_request_requires_message_for_with_message() -> None:
+    with pytest.raises(ValueError, match="message is required"):
+        SmrRunBranchRequest(
+            checkpoint_id="ckpt_1",
+            mode=SmrBranchMode.WITH_MESSAGE,
         )
 
+
+def test_branch_run_from_checkpoint_prefers_project_scoped_route(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    captured: dict[str, object] = {}
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        captured["method"] = method
+        captured["path"] = path
+        captured["json_body"] = kwargs.get("json_body")
+        return {
+            "accepted": True,
+            "parent_run_id": "run_parent",
+            "child_run_id": "run_child",
+            "source_checkpoint_id": "ckpt_123",
+            "source_checkpoint_record_id": "rec_123",
+            "source_node_id": "node_123",
+            "branch_message_id": "msg_123",
+            "created_at": "2026-04-15T12:00:00Z",
+        }
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    response = client.branch_run_from_checkpoint(
+        "run_parent",
+        project_id="proj_123",
+        checkpoint_id="ckpt_123",
+        mode=SmrBranchMode.WITH_MESSAGE,
+        message="Take a different approach.",
+        reason="operator branch",
+        title="Alternative path",
+        source_node_id="node_123",
+    )
+
+    assert response.child_run_id == "run_child"
+    assert response.branch_message_id == "msg_123"
+    assert captured == {
+        "method": "POST",
+        "path": "/smr/projects/proj_123/runs/run_parent/branches",
+        "json_body": {
+            "checkpoint_id": "ckpt_123",
+            "mode": "with_message",
+            "message": "Take a different approach.",
+            "reason": "operator branch",
+            "title": "Alternative path",
+            "source_node_id": "node_123",
+        },
+    }
+    client.close()
+
+
+def test_branch_run_from_checkpoint_supports_checkpoint_reference_route(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    captured: dict[str, object] = {}
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        captured["method"] = method
+        captured["path"] = path
+        captured["json_body"] = kwargs.get("json_body")
+        return {
+            "accepted": True,
+            "parent_run_id": "run_parent",
+            "child_run_id": "run_child",
+            "source_checkpoint_id": "ckpt_123",
+            "created_at": "2026-04-15T12:00:00Z",
+        }
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    response = client.runs.branch_from_checkpoint(
+        checkpoint_record_id="rec_123",
+        mode="exact",
+    )
+
+    assert response.child_run_id == "run_child"
+    assert captured == {
+        "method": "POST",
+        "path": "/smr/checkpoints/branches",
+        "json_body": {
+            "checkpoint_record_id": "rec_123",
+            "mode": "exact",
+        },
+    }
+    client.close()
+
+
+def test_get_run_logical_timeline_returns_typed_model(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    captured: dict[str, object] = {}
+
+    def fake_request_json(method: str, path: str, **kwargs):
+        del kwargs
+        captured["method"] = method
+        captured["path"] = path
+        return {
+            "project_id": "proj_123",
+            "run_id": "run_123",
+            "generated_at": "2026-04-15T12:00:00Z",
+            "run_state": "completed",
+            "latest_node_id": "node_2",
+            "nodes": [
+                {
+                    "node_id": "node_1",
+                    "run_id": "run_123",
+                    "created_at": "2026-04-15T11:59:00Z",
+                    "logical_index": 0,
+                    "kind": "checkpoint",
+                    "source": "checkpoint_catalog",
+                    "title": "Checkpoint saved",
+                    "summary": "Saved before actor handoff.",
+                    "checkpoint_id": "ckpt_123",
+                    "branchable": True,
+                    "detail": {"reason": "manual"},
+                }
+            ],
+        }
+
+    monkeypatch.setattr(client, "_request_json", fake_request_json)
+
+    timeline = client.runs.get_logical_timeline("proj_123", "run_123")
+
+    assert isinstance(timeline, SmrLogicalTimeline)
+    assert timeline.nodes[0].checkpoint_id == "ckpt_123"
+    assert timeline.nodes[0].detail == {"reason": "manual"}
+    assert captured == {
+        "method": "GET",
+        "path": "/smr/projects/proj_123/runs/run_123/timeline",
+    }
     client.close()

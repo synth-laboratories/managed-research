@@ -28,3 +28,26 @@ Boundary rule:
 Stability rule:
 - keep MCP tool names and wire payload shapes stable unless a deliberate migration is planned
 - fail loudly on malformed input instead of silently defaulting to success-shaped values
+
+Canonical launch flow:
+- `smr_create_runnable_project`
+- `smr_get_project_setup`
+- `smr_prepare_project_setup`
+- `smr_get_launch_preflight`
+- `smr_trigger_run`
+- `smr_get_run`
+- noun reads such as `smr_list_run_questions`, `smr_get_run_primary_parent`,
+  `smr_open_ended_questions`, and `smr_directed_effort_outcomes`
+
+Legacy readiness/blocker aliases are intentionally removed from the maintained surface.
+
+Run-control additions:
+- `smr_get_run_logical_timeline` for operator-facing checkpoint/message/branch chronology
+- `smr_get_run_actor_usage` for truthful per-actor usage attribution
+- `smr_get_run_traces` for persisted downloadable run traces
+- `smr_branch_run_from_checkpoint` for exact branches and branch-with-message
+- `smr_runtime_message_queue` remains the live steering tool and is intentionally separate from branching
+
+Provider-wrapper note:
+- OpenRouter, Tinker, and Modal wrapper usage should still be read through canonical
+  run usage and actor-usage surfaces, not wrapper-specific payloads

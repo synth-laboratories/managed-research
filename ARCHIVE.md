@@ -5,7 +5,7 @@ managed-research wrapper and CLI path.
 
 Use this repository as the canonical source of truth for:
 
-- PyPI package: `synth-managed-research`
+- PyPI package: `managed-research`
 - Python import: `managed_research`
 - Hosted MCP endpoint: `https://api.usesynth.ai/mcp`
 - Local stdio executable: `managed-research-mcp`

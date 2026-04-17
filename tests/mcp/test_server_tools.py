@@ -3,7 +3,7 @@ from managed_research.errors import SmrFundingLaneInvariantError, SmrLimitExceed
 from managed_research.mcp.server import ManagedResearchMcpServer
 
 
-def test_rewritten_mcp_server_exposes_progress_and_workspace_tools() -> None:
+def test_rewritten_mcp_server_exposes_canonical_launch_and_workspace_tools() -> None:
     server = ManagedResearchMcpServer()
     names = set(server.available_tool_names())
 
@@ -11,34 +11,44 @@ def test_rewritten_mcp_server_exposes_progress_and_workspace_tools() -> None:
         "smr_append_project_notes",
         "smr_archive_project",
         "smr_attach_source_repo",
-        "smr_create_project",
+        "smr_create_runnable_project",
         "smr_get_capacity_lane_preview",
         "smr_get_capabilities",
+        "smr_get_billing_entitlements",
         "smr_get_project_entitlement",
+        "smr_get_project_economics",
         "smr_get_project_git",
         "smr_get_project_notes",
+        "smr_get_project_setup",
+        "smr_get_project_usage",
         "smr_get_provider_key_status",
-        "smr_get_project_readiness",
-        "smr_get_run_start_blockers",
         "smr_download_workspace_archive",
         "smr_patch_project",
         "smr_pause_project",
-        "smr_get_run_progress",
+        "smr_prepare_project_setup",
+        "smr_rename_project",
         "smr_resume_project",
         "smr_set_project_notes",
+        "smr_get_launch_preflight",
+        "smr_get_run",
+        "smr_get_run_logical_timeline",
+        "smr_get_run_usage",
         "smr_unarchive_project",
-        "smr_get_usage_analytics",
         "smr_get_workspace_download_url",
         "smr_get_workspace_inputs",
+        "smr_branch_run_from_checkpoint",
         "smr_list_active_runs",
         "smr_list_run_checkpoints",
         "smr_list_run_log_archives",
         "smr_list_run_questions",
         "smr_restore_run_checkpoint",
         "smr_set_provider_key",
+        "smr_trigger_run",
         "smr_upload_workspace_files",
     }.issubset(names)
 
+    assert "smr_get_run_progress" not in names
+    assert "smr_get_semantic_progress" not in names
     assert "smr_upload_starting_data" not in names
     assert "smr_get_starting_data_upload_urls" not in names
     assert "smr_trigger_data_factory" not in names
@@ -46,19 +56,18 @@ def test_rewritten_mcp_server_exposes_progress_and_workspace_tools() -> None:
     assert "smr_data_factory_publish" not in names
 
 
-def test_usage_tool_requires_explicit_managed_account_subject(monkeypatch) -> None:
+def test_branch_tool_validates_checkpoint_reference() -> None:
+    server = ManagedResearchMcpServer()
+
+    with pytest.raises(ValueError, match="exactly one of checkpoint_id"):
+        server._tool_branch_run_from_checkpoint({"run_id": "run_123"})
+
+
+def test_branch_tool_routes_to_canonical_client(monkeypatch) -> None:
     server = ManagedResearchMcpServer()
     captured: dict[str, object] = {}
 
-    class _FakeUsage:
-        def subject_for_managed_account(self, managed_account_id: str):
-            captured["managed_account_id"] = managed_account_id
-            return {"kind": "managed_account", "managedAccountId": managed_account_id}
-
     class _FakeClient:
-        def __init__(self) -> None:
-            self.usage = _FakeUsage()
-
         def __enter__(self):
             return self
 
@@ -67,30 +76,79 @@ def test_usage_tool_requires_explicit_managed_account_subject(monkeypatch) -> No
             del exc
             del tb
 
-        def get_usage_analytics(self, subject, **kwargs):
-            captured["subject"] = subject
+        def branch_run_from_checkpoint(self, run_id, **kwargs):
+            captured["run_id"] = run_id
             captured["kwargs"] = kwargs
-            return {"ok": True}
+            return {
+                "accepted": True,
+                "parent_run_id": "run_parent",
+                "child_run_id": "run_child",
+                "source_checkpoint_id": "ckpt_123",
+                "branch_message_id": "msg_123",
+                "created_at": "2026-04-15T12:00:00Z",
+            }
 
     monkeypatch.setattr(server, "_client_from_args", lambda args: _FakeClient())
 
-    response = server._tool_get_usage_analytics(
+    response = server._tool_branch_run_from_checkpoint(
         {
-            "subject_kind": "managed_account",
-            "managed_account_id": "acct_123",
-            "start_at": "2026-04-01T00:00:00Z",
-            "end_at": "2026-04-02T00:00:00Z",
-            "bucket": "DAY",
-            "first": 25,
+            "project_id": "proj_123",
+            "run_id": "run_123",
+            "checkpoint_id": "ckpt_123",
+            "mode": "with_message",
+            "message": "Try a different branch.",
+            "title": "Alternative path",
         }
     )
 
-    assert response == {"ok": True}
-    assert captured["managed_account_id"] == "acct_123"
-    assert captured["subject"] == {
-        "kind": "managed_account",
-        "managedAccountId": "acct_123",
-    }
+    assert response["child_run_id"] == "run_child"
+    assert captured["run_id"] == "run_123"
+    kwargs = captured["kwargs"]
+    assert isinstance(kwargs, dict)
+    assert kwargs["project_id"] == "proj_123"
+    assert kwargs["checkpoint_id"] == "ckpt_123"
+    assert kwargs["checkpoint_record_id"] is None
+    assert kwargs["checkpoint_uri"] is None
+    assert getattr(kwargs["mode"], "value", None) == "with_message"
+    assert kwargs["message"] == "Try a different branch."
+    assert kwargs["reason"] is None
+    assert kwargs["title"] == "Alternative path"
+    assert kwargs["source_node_id"] is None
+
+
+def test_project_usage_tool_routes_to_canonical_client(monkeypatch) -> None:
+    server = ManagedResearchMcpServer()
+    captured: dict[str, object] = {}
+
+    class _FakeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            del exc_type
+            del exc
+            del tb
+
+        def get_project_usage(self, project_id):
+            captured["project_id"] = project_id
+            return {
+                "project_id": project_id,
+                "month_to_date": {},
+                "last_7_days": {},
+                "per_run": [],
+                "budgets": {},
+            }
+
+    monkeypatch.setattr(server, "_client_from_args", lambda args: _FakeClient())
+
+    response = server._tool_get_project_usage(
+        {
+            "project_id": "proj_123",
+        }
+    )
+
+    assert response["project_id"] == "proj_123"
+    assert captured["project_id"] == "proj_123"
 
 
 def test_health_check_surfaces_api_key_resolution_failure(monkeypatch) -> None:
@@ -309,6 +367,10 @@ def test_project_patch_and_notes_tools_delegate_to_client(monkeypatch) -> None:
             captured["patch"] = (project_id, payload)
             return {"project_id": project_id, **payload}
 
+        def rename_project(self, project_id: str, name: str):
+            captured["rename"] = (project_id, name)
+            return {"project_id": project_id, "name": name}
+
         def get_project_notes(self, project_id: str):
             captured["get_notes"] = project_id
             return {"project_id": project_id, "notes": "remember this"}
@@ -327,6 +389,10 @@ def test_project_patch_and_notes_tools_delegate_to_client(monkeypatch) -> None:
         "project_id": "pid_1",
         "name": "Renamed",
     }
+    assert server._tool_rename_project({"project_id": "pid_1", "name": "  Friendly name  "}) == {
+        "project_id": "pid_1",
+        "name": "Friendly name",
+    }
     assert server._tool_get_project_notes({"project_id": "pid_1"}) == {
         "project_id": "pid_1",
         "notes": "remember this",
@@ -341,10 +407,18 @@ def test_project_patch_and_notes_tools_delegate_to_client(monkeypatch) -> None:
     }
     assert captured == {
         "patch": ("pid_1", {"name": "Renamed"}),
+        "rename": ("pid_1", "Friendly name"),
         "get_notes": "pid_1",
         "set_notes": ("pid_1", "fresh notes"),
         "append_notes": ("pid_1", "delta"),
     }
+
+
+def test_project_rename_tool_rejects_blank_name() -> None:
+    server = ManagedResearchMcpServer()
+
+    with pytest.raises(ValueError, match="'name' is required and must be a non-empty string"):
+        server._tool_rename_project({"project_id": "pid_1", "name": "   "})
 
 
 def test_create_project_rejects_non_object_config(monkeypatch) -> None:

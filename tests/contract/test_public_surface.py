@@ -8,10 +8,17 @@ def test_top_level_public_exports_match_rewritten_surface() -> None:
     assert managed_research.__version__
     assert managed_research.SmrControlClient is SmrControlClient
     assert {
+        "OPENAI_TRANSPORT_MODE_AUTO",
+        "OPENAI_TRANSPORT_MODE_BACKEND_BFF",
+        "OPENAI_TRANSPORT_MODE_DIRECT_HP",
         "ProjectReadiness",
         "ProgressAPI",
         "RunProgress",
+        "SmrBranchMode",
         "SmrControlClient",
+        "SmrLogicalTimeline",
+        "SmrRunBranchRequest",
+        "SmrRunBranchResponse",
         "WorkspaceInputsAPI",
         "WorkspaceInputsState",
         "WorkspaceUploadResult",
@@ -20,10 +27,17 @@ def test_top_level_public_exports_match_rewritten_surface() -> None:
 
 def test_sdk_exports_cover_new_namespaces() -> None:
     assert {
+        "OPENAI_TRANSPORT_MODE_AUTO",
+        "OPENAI_TRANSPORT_MODE_BACKEND_BFF",
+        "OPENAI_TRANSPORT_MODE_DIRECT_HP",
         "ProgressAPI",
         "ProjectsAPI",
         "RunsAPI",
+        "SmrBranchMode",
         "SmrControlClient",
+        "SmrLogicalTimeline",
+        "SmrRunBranchRequest",
+        "SmrRunBranchResponse",
         "WorkspaceInputsAPI",
     }.issubset(set(managed_research_sdk.__all__))
 

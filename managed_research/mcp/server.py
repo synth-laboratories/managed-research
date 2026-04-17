@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
-from enum import StrEnum
+from dataclasses import asdict, is_dataclass
 from typing import Any
 
 from managed_research.auth import get_api_key
@@ -21,11 +21,11 @@ from managed_research.mcp.request_models import (
     ProviderKeyRequest,
     RunnableProjectCreateRequest,
     RunLaunchRequest,
-    UsageAnalyticsRequest,
     WorkspaceFileUploadRequest,
     optional_bool,
     optional_int,
     optional_string,
+    parse_branch_run_request,
     require_string,
 )
 from managed_research.mcp.tools.approvals import build_approval_tools
@@ -34,6 +34,7 @@ from managed_research.mcp.tools.integrations import build_integration_tools
 from managed_research.mcp.tools.logs import build_log_tools
 from managed_research.mcp.tools.progress import build_progress_tools
 from managed_research.mcp.tools.projects import build_project_tools
+from managed_research.mcp.tools.resources import build_resource_tools
 from managed_research.mcp.tools.runs import build_run_tools
 from managed_research.mcp.tools.usage import build_usage_tools
 from managed_research.mcp.tools.workspace_inputs import build_workspace_input_tools
@@ -62,22 +63,6 @@ def _mcp_structured_trigger_error_payload(exc: BaseException) -> dict[str, Any] 
     if isinstance(status, int):
         out["http_status"] = status
     return out
-
-
-class _UsageAnalyticsSubjectKind(StrEnum):
-    ORG = "org"
-    MANAGED_ACCOUNT = "managed_account"
-
-
-def _resolve_usage_analytics_subject_kind(
-    value: str | None,
-) -> _UsageAnalyticsSubjectKind:
-    if value is None:
-        raise ValueError("'subject_kind' is required")
-    try:
-        return _UsageAnalyticsSubjectKind(value)
-    except ValueError as exc:
-        raise ValueError("'subject_kind' must be either 'org' or 'managed_account'") from exc
 
 
 class RpcError(Exception):
@@ -158,6 +143,7 @@ class ManagedResearchMcpServer:
         return [
             *build_project_tools(self),
             *build_workspace_input_tools(self),
+            *build_resource_tools(self),
             *build_run_tools(self),
             *build_progress_tools(self),
             *build_log_tools(self),
@@ -193,14 +179,6 @@ class ManagedResearchMcpServer:
                 checks["project_status"] = client.get_project_status(project_id)
         return {"ok": True, "checks": checks}
 
-    def _tool_create_project(self, args: JSONDict) -> Any:
-        request = ProjectMutationRequest.for_create(args)
-        with self._client_from_args(args) as client:
-            return client.create_project(
-                request.config,
-                actor_model_assignments=request.actor_model_assignments,
-            )
-
     def _tool_create_runnable_project(self, args: JSONDict) -> Any:
         request = RunnableProjectCreateRequest.from_payload(args)
         with self._client_from_args(args) as client:
@@ -216,6 +194,14 @@ class ManagedResearchMcpServer:
         project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.get_project(project_id)
+
+    def _tool_rename_project(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        name = require_string(args, "name").strip()
+        if not name:
+            raise ValueError("'name' must be non-empty")
+        with self._client_from_args(args) as client:
+            return client.rename_project(project_id, name)
 
     def _tool_patch_project(self, args: JSONDict) -> Any:
         request = ProjectMutationRequest.for_patch(args)
@@ -358,18 +344,33 @@ class ManagedResearchMcpServer:
                 funding_source=request.funding_source,
             )
 
-    def _tool_get_run_start_blockers(self, args: JSONDict) -> Any:
-        request = RunLaunchRequest.from_payload(args)
-        with self._client_from_args(args) as client:
-            return client.get_run_start_blockers(
-                request.project_id,
-                **request.client_kwargs(),
-            )
-
     def _tool_get_workspace_download_url(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.get_workspace_download_url(project_id)
+
+    def _tool_get_billing_entitlements(self, args: JSONDict) -> Any:
+        with self._client_from_args(args) as client:
+            result = client.get_billing_entitlements()
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_get_run_usage(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            result = client.get_run_usage(run_id)
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_get_project_usage(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            result = client.get_project_usage(project_id)
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_get_project_economics(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            result = client.get_project_economics(project_id)
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_get_project_git(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
@@ -390,31 +391,6 @@ class ManagedResearchMcpServer:
                 )
             return client.download_workspace_archive(project_id, output_path)
 
-    def _tool_get_usage_analytics(self, args: JSONDict) -> Any:
-        request = UsageAnalyticsRequest.from_payload(args)
-        resolved_subject_kind = _resolve_usage_analytics_subject_kind(
-            request.subject_kind,
-        )
-        with self._client_from_args(args) as client:
-            if resolved_subject_kind is _UsageAnalyticsSubjectKind.MANAGED_ACCOUNT:
-                if not request.managed_account_id:
-                    raise ValueError(
-                        "'managed_account_id' is required for managed_account usage analytics"
-                    )
-                subject = client.usage.subject_for_managed_account(request.managed_account_id)
-            else:
-                if not request.org_id:
-                    raise ValueError("'org_id' is required for org usage analytics")
-                subject = client.usage.subject_for_org(request.org_id)
-            return client.get_usage_analytics(
-                subject,
-                start_at=request.start_at,
-                end_at=request.end_at,
-                bucket=request.bucket,
-                first=request.first,
-                after=request.after,
-            )
-
     def _tool_attach_source_repo(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         url = require_string(args, "url")
@@ -431,6 +407,181 @@ class ManagedResearchMcpServer:
         request = WorkspaceFileUploadRequest.from_payload(args)
         with self._client_from_args(args) as client:
             return client.upload_workspace_files(request.project_id, request.files)
+
+    def _tool_list_project_files(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        visibility = optional_string(args, "visibility")
+        limit = optional_int(args, "limit")
+        with self._client_from_args(args) as client:
+            return client.list_project_files(
+                project_id,
+                visibility=visibility,
+                limit=limit,
+            )
+
+    def _tool_create_project_files(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        files = args.get("files")
+        if not isinstance(files, list) or not files:
+            raise ValueError("'files' must be a non-empty array")
+        with self._client_from_args(args) as client:
+            return client.create_project_files(project_id, files)
+
+    def _tool_get_project_file(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        file_id = require_string(args, "file_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_file(project_id, file_id)
+
+    def _tool_get_file_content(self, args: JSONDict) -> Any:
+        file_id = require_string(args, "file_id")
+        with self._client_from_args(args) as client:
+            return client.get_file_content(file_id)
+
+    def _tool_list_run_file_mounts(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.list_run_file_mounts(run_id)
+
+    def _tool_upload_run_files(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        files = args.get("files")
+        if not isinstance(files, list) or not files:
+            raise ValueError("'files' must be a non-empty array")
+        with self._client_from_args(args) as client:
+            return client.upload_run_files(run_id, files)
+
+    def _tool_list_run_output_files(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        artifact_type = optional_string(args, "artifact_type")
+        limit = optional_int(args, "limit")
+        with self._client_from_args(args) as client:
+            return client.list_run_output_files(
+                run_id,
+                artifact_type=artifact_type,
+                limit=limit,
+            )
+
+    def _tool_get_run_output_file_content(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        artifact_id = require_string(args, "artifact_id")
+        disposition = optional_string(args, "disposition") or "inline"
+        with self._client_from_args(args) as client:
+            return client.get_run_output_file_content(
+                run_id,
+                artifact_id,
+                disposition=disposition,
+            )
+
+    def _tool_list_project_external_repositories(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.list_project_external_repositories(project_id)
+
+    def _tool_create_project_external_repository(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        name = require_string(args, "name")
+        url = require_string(args, "url")
+        default_branch = optional_string(args, "default_branch")
+        role = optional_string(args, "role")
+        metadata = args.get("metadata")
+        if metadata is not None and not isinstance(metadata, dict):
+            raise ValueError("'metadata' must be an object when provided")
+        with self._client_from_args(args) as client:
+            return client.create_project_external_repository(
+                project_id,
+                name=name,
+                url=url,
+                default_branch=default_branch,
+                role=role,
+                metadata=metadata,
+            )
+
+    def _tool_patch_project_external_repository(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        repository_id = require_string(args, "repository_id")
+        metadata = args.get("metadata")
+        if metadata is not None and not isinstance(metadata, dict):
+            raise ValueError("'metadata' must be an object when provided")
+        with self._client_from_args(args) as client:
+            return client.patch_project_external_repository(
+                project_id,
+                repository_id,
+                url=optional_string(args, "url"),
+                default_branch=optional_string(args, "default_branch"),
+                role=optional_string(args, "role"),
+                metadata=metadata,
+            )
+
+    def _tool_list_run_repository_mounts(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.list_run_repository_mounts(run_id)
+
+    def _tool_create_run_repository_mount(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        repository_id = require_string(args, "repository_id")
+        mount_name = optional_string(args, "mount_name")
+        with self._client_from_args(args) as client:
+            return client.create_run_repository_mount(
+                run_id,
+                repository_id=repository_id,
+                mount_name=mount_name,
+            )
+
+    def _tool_list_project_credential_refs(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        kind = optional_string(args, "kind")
+        with self._client_from_args(args) as client:
+            return client.list_project_credential_refs(project_id, kind=kind)
+
+    def _tool_create_project_credential_ref(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        kind = require_string(args, "kind")
+        label = require_string(args, "label")
+        metadata = args.get("metadata")
+        if metadata is not None and not isinstance(metadata, dict):
+            raise ValueError("'metadata' must be an object when provided")
+        with self._client_from_args(args) as client:
+            return client.create_project_credential_ref(
+                project_id,
+                kind=kind,
+                label=label,
+                provider=optional_string(args, "provider"),
+                funding_source=optional_string(args, "funding_source"),
+                credential_name=optional_string(args, "credential_name"),
+                metadata=metadata,
+            )
+
+    def _tool_patch_project_credential_ref(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        credential_ref_id = require_string(args, "credential_ref_id")
+        metadata = args.get("metadata")
+        if metadata is not None and not isinstance(metadata, dict):
+            raise ValueError("'metadata' must be an object when provided")
+        with self._client_from_args(args) as client:
+            return client.patch_project_credential_ref(
+                project_id,
+                credential_ref_id,
+                provider=optional_string(args, "provider"),
+                funding_source=optional_string(args, "funding_source"),
+                credential_name=optional_string(args, "credential_name"),
+                metadata=metadata,
+            )
+
+    def _tool_list_run_credential_bindings(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.list_run_credential_bindings(run_id)
+
+    def _tool_create_run_credential_binding(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        credential_ref_id = require_string(args, "credential_ref_id")
+        with self._client_from_args(args) as client:
+            return client.create_run_credential_binding(
+                run_id,
+                credential_ref_id=credential_ref_id,
+            )
 
     def _tool_trigger_run(self, args: JSONDict) -> Any:
         request = RunLaunchRequest.from_payload(args)
@@ -465,11 +616,68 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.get_run(run_id, project_id=project_id)
 
+    def _tool_get_run_primary_parent(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.get_run_primary_parent(run_id)
+
     def _tool_stop_run(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
         project_id = optional_string(args, "project_id")
         with self._client_from_args(args) as client:
             return client.stop_run(run_id, project_id=project_id)
+
+    def _tool_pause_run(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.pause_run(run_id, project_id=project_id)
+
+    def _tool_resume_run(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.resume_run(run_id, project_id=project_id)
+
+    def _tool_get_run_logical_timeline(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.get_run_logical_timeline(project_id, run_id)
+
+    def _tool_get_run_traces(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            if project_id:
+                return client.get_project_run_traces(project_id, run_id)
+            return client.get_run_traces(run_id)
+
+    def _tool_get_run_actor_usage(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            if project_id:
+                return client.get_project_run_actor_usage(project_id, run_id)
+            return client.get_run_actor_usage(run_id)
+
+    def _tool_branch_run_from_checkpoint(self, args: JSONDict) -> Any:
+        run_id = optional_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        request = parse_branch_run_request(args)
+        with self._client_from_args(args) as client:
+            return client.branch_run_from_checkpoint(
+                run_id,
+                project_id=project_id,
+                checkpoint_id=request.checkpoint_id,
+                checkpoint_record_id=request.checkpoint_record_id,
+                checkpoint_uri=request.checkpoint_uri,
+                mode=request.mode,
+                message=request.message,
+                reason=request.reason,
+                title=request.title,
+                source_node_id=request.source_node_id,
+            )
 
     def _tool_runtime_message_queue(self, args: JSONDict) -> Any:
         operation = require_string(args, "operation").strip().lower()
@@ -535,6 +743,58 @@ class ManagedResearchMcpServer:
                 limit=limit,
             )
 
+    def _tool_respond_to_run_question(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        question_id = require_string(args, "question_id")
+        project_id = optional_string(args, "project_id")
+        response_text = require_string(args, "response_text")
+        with self._client_from_args(args) as client:
+            return client.respond_to_run_question(
+                run_id,
+                question_id,
+                project_id=project_id,
+                response_text=response_text,
+            )
+
+    def _tool_list_run_approvals(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        status_filter = optional_string(args, "status_filter")
+        limit = optional_int(args, "limit") or 100
+        with self._client_from_args(args) as client:
+            return client.list_run_approvals(
+                run_id,
+                project_id=project_id,
+                status_filter=status_filter,
+                limit=limit,
+            )
+
+    def _tool_approve_run_approval(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        approval_id = require_string(args, "approval_id")
+        project_id = optional_string(args, "project_id")
+        comment = optional_string(args, "comment")
+        with self._client_from_args(args) as client:
+            return client.approve_run_approval(
+                run_id,
+                approval_id,
+                project_id=project_id,
+                comment=comment,
+            )
+
+    def _tool_deny_run_approval(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        approval_id = require_string(args, "approval_id")
+        project_id = optional_string(args, "project_id")
+        comment = optional_string(args, "comment")
+        with self._client_from_args(args) as client:
+            return client.deny_run_approval(
+                run_id,
+                approval_id,
+                project_id=project_id,
+                comment=comment,
+            )
+
     def _tool_create_run_checkpoint(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
         project_id = optional_string(args, "project_id")
@@ -581,16 +841,69 @@ class ManagedResearchMcpServer:
                 **request.client_kwargs(),
             )
 
-    def _tool_get_project_readiness(self, args: JSONDict) -> Any:
+    def _tool_open_ended_questions(self, args: JSONDict) -> Any:
+        operation = require_string(args, "operation").strip().lower()
         project_id = require_string(args, "project_id")
+        objective_id = optional_string(args, "objective_id")
+        payload = args.get("payload")
+        if payload is not None and not isinstance(payload, dict):
+            raise ValueError("'payload' must be an object when provided")
         with self._client_from_args(args) as client:
-            return client.get_project_readiness(project_id)
+            if operation == "list":
+                return client.list_open_ended_questions(
+                    project_id, run_id=optional_string(args, "run_id")
+                )
+            if operation == "create":
+                return client.create_open_ended_question(project_id, payload or {})
+            if operation == "get":
+                if objective_id is None:
+                    raise ValueError("'objective_id' is required for get")
+                return client.get_open_ended_question(project_id, objective_id)
+            if operation == "patch":
+                if objective_id is None:
+                    raise ValueError("'objective_id' is required for patch")
+                return client.patch_open_ended_question(
+                    project_id, objective_id, payload or {}
+                )
+            if operation == "transition":
+                if objective_id is None:
+                    raise ValueError("'objective_id' is required for transition")
+                return client.transition_open_ended_question(
+                    project_id, objective_id, payload or {}
+                )
+        raise ValueError("'operation' must be list, create, get, patch, or transition")
 
-    def _tool_get_run_progress(self, args: JSONDict) -> Any:
+    def _tool_directed_effort_outcomes(self, args: JSONDict) -> Any:
+        operation = require_string(args, "operation").strip().lower()
         project_id = require_string(args, "project_id")
-        run_id = require_string(args, "run_id")
+        objective_id = optional_string(args, "objective_id")
+        payload = args.get("payload")
+        if payload is not None and not isinstance(payload, dict):
+            raise ValueError("'payload' must be an object when provided")
         with self._client_from_args(args) as client:
-            return client.get_run_progress(project_id, run_id)
+            if operation == "list":
+                return client.list_directed_effort_outcomes(
+                    project_id, run_id=optional_string(args, "run_id")
+                )
+            if operation == "create":
+                return client.create_directed_effort_outcome(project_id, payload or {})
+            if operation == "get":
+                if objective_id is None:
+                    raise ValueError("'objective_id' is required for get")
+                return client.get_directed_effort_outcome(project_id, objective_id)
+            if operation == "patch":
+                if objective_id is None:
+                    raise ValueError("'objective_id' is required for patch")
+                return client.patch_directed_effort_outcome(
+                    project_id, objective_id, payload or {}
+                )
+            if operation == "transition":
+                if objective_id is None:
+                    raise ValueError("'objective_id' is required for transition")
+                return client.transition_directed_effort_outcome(
+                    project_id, objective_id, payload or {}
+                )
+        raise ValueError("'operation' must be list, create, get, patch, or transition")
 
     def serve_stdio(self) -> None:
         framing = "jsonl"

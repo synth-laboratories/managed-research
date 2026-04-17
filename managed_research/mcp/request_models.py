@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from managed_research.mcp.registry import JSONDict
+from managed_research.models.run_timeline import SmrBranchMode, SmrRunBranchRequest
 from managed_research.models.types import SmrRunnableProjectRequest
 from managed_research.models.smr_actor_models import normalize_actor_model_assignments
 from managed_research.models.smr_agent_kinds import coerce_smr_agent_kind
@@ -52,6 +53,21 @@ def optional_bool(payload: JSONDict, key: str, *, default: bool = False) -> bool
     if not isinstance(value, bool):
         raise ValueError(f"'{key}' must be a boolean when provided")
     return value
+
+
+def parse_branch_run_request(payload: JSONDict) -> SmrRunBranchRequest:
+    raw_mode = optional_string(payload, "mode")
+    mode = SmrBranchMode(raw_mode) if raw_mode is not None else SmrBranchMode.EXACT
+    return SmrRunBranchRequest(
+        checkpoint_id=optional_string(payload, "checkpoint_id"),
+        checkpoint_record_id=optional_string(payload, "checkpoint_record_id"),
+        checkpoint_uri=optional_string(payload, "checkpoint_uri"),
+        mode=mode,
+        message=optional_string(payload, "message"),
+        reason=optional_string(payload, "reason"),
+        title=optional_string(payload, "title"),
+        source_node_id=optional_string(payload, "source_node_id"),
+    )
 
 
 def require_smr_work_mode(payload: JSONDict, key: str) -> str:
@@ -247,7 +263,13 @@ class RunLaunchRequest:
     initial_runtime_messages: list[dict[str, Any]] | None = None
     workflow: dict[str, Any] | None = None
     sandbox_override: dict[str, Any] | None = None
+    local_execution: dict[str, Any] | None = None
+    execution_profile: dict[str, Any] | None = None
     run_policy: dict[str, Any] | None = None
+    kickoff_contract: dict[str, Any] | None = None
+    resource_bindings: dict[str, Any] | None = None
+    primary_parent_ref: dict[str, Any] | None = None
+    primary_parent: dict[str, Any] | None = None
     idempotency_key_run_create: str | None = None
     idempotency_key: str | None = None
 
@@ -272,7 +294,13 @@ class RunLaunchRequest:
             ),
             workflow=_optional_object(payload, "workflow"),
             sandbox_override=_optional_object(payload, "sandbox_override"),
+            local_execution=_optional_object(payload, "local_execution"),
+            execution_profile=_optional_object(payload, "execution_profile"),
             run_policy=optional_smr_run_policy(payload, "run_policy"),
+            kickoff_contract=_optional_object(payload, "kickoff_contract"),
+            resource_bindings=_optional_object(payload, "resource_bindings"),
+            primary_parent_ref=_optional_object(payload, "primary_parent_ref"),
+            primary_parent=_optional_object(payload, "primary_parent"),
             idempotency_key_run_create=optional_string(
                 payload, "idempotency_key_run_create"
             ),
@@ -293,7 +321,13 @@ class RunLaunchRequest:
             "initial_runtime_messages": self.initial_runtime_messages,
             "workflow": self.workflow,
             "sandbox_override": self.sandbox_override,
+            "local_execution": self.local_execution,
+            "execution_profile": self.execution_profile,
             "run_policy": self.run_policy,
+            "kickoff_contract": self.kickoff_contract,
+            "resource_bindings": self.resource_bindings,
+            "primary_parent_ref": self.primary_parent_ref,
+            "primary_parent": self.primary_parent,
             "idempotency_key_run_create": self.idempotency_key_run_create,
             "idempotency_key": self.idempotency_key,
         }

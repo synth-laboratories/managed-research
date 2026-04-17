@@ -28,7 +28,7 @@ curated knowledge.
 ## Install
 
 ```bash
-uv add synth-managed-research
+uv add managed-research
 ```
 
 ## Python SDK
@@ -37,6 +37,9 @@ uv add synth-managed-research
 from pathlib import Path
 
 from managed_research import (
+    LaunchPreflight,
+    ProjectSetupAuthority,
+    SemanticProgressSnapshot,
     SmrActorModelAssignment,
     SmrActorType,
     SmrAgentModel,
@@ -46,6 +49,7 @@ from managed_research import (
     SmrHostKind,
     SmrRunnableProjectRequest,
     SmrRuntimeKind,
+    SmrProjectSetupStatus,
     SmrWorkMode,
     SmrWorkerSubtype,
 )
@@ -83,16 +87,20 @@ kickoff = [
         "mode": "queue",
     }
 ]
-client.setup.prepare(project_id)
+setup_authority: ProjectSetupAuthority = client.progress.get_project_setup_authority(
+    project_id
+)
+if setup_authority.state is not SmrProjectSetupStatus.READY:
+    setup_authority = client.progress.prepare_project_setup_authority(project_id)
 client.get_capacity_lane_preview(project_id)
-preflight = client.get_launch_preflight(
+preflight: LaunchPreflight = client.progress.get_launch_preflight(
     project_id,
     host_kind=SmrHostKind.DAYTONA,
     work_mode=SmrWorkMode.DIRECTED_EFFORT,
     agent_profile="codex_gpt_5_4_medium",
     initial_runtime_messages=kickoff,
 )
-if preflight["clear_to_trigger"]:
+if preflight.clear_to_trigger:
     run = client.trigger_run(
         project_id,
         host_kind=SmrHostKind.DAYTONA,
@@ -100,16 +108,59 @@ if preflight["clear_to_trigger"]:
         agent_profile="codex_gpt_5_4_medium",
         initial_runtime_messages=kickoff,
     )
-    client.download_workspace_archive(project_id, Path("nanohorizon-workspace.tar.gz"))
+    run_state = client.get_run(run["run_id"], project_id=project_id)
+    primary_parent = client.runs.get_primary_parent(run["run_id"])
+    milestones = client.runs.list_primary_parent_milestones(run["run_id"])
+client.download_workspace_archive(project_id, Path("nanohorizon-workspace.tar.gz"))
 ```
 
 If you need org-wide durable context instead of project-scoped knowledge, use
 `set_org_knowledge(...)` and `get_org_knowledge()`.
 
-Compatibility note:
+## OpenAI Agents SDK via synth-ai
 
-- `create_project({...})` remains available for low-level callers
-- `get_project_readiness(project_id)` is now a compatibility alias over the pure setup projection
+Managed Research now exposes OpenAI compatibility through `synth-ai` so the
+lane contract and fallback semantics stay aligned with backend and
+horizons-private.
+
+Install `synth-ai` when you want this surface:
+
+```bash
+uv add synth-ai
+```
+
+Use it from the SMR client:
+
+```python
+from managed_research import (
+    OPENAI_TRANSPORT_MODE_AUTO,
+    SmrControlClient,
+)
+
+client = SmrControlClient(
+    api_key="sk_...",
+    openai_transport_mode=OPENAI_TRANSPORT_MODE_AUTO,  # backend_bff|direct_hp|auto
+)
+
+response = client.openai_agents_sdk.create_response(
+    {
+        "model": "gpt-5.4",
+        "input": [
+            {
+                "type": "message",
+                "role": "user",
+                "content": [{"type": "input_text", "text": "Summarize latest run progress."}],
+            }
+        ],
+    }
+)
+```
+
+Transport behavior:
+
+- `backend_bff`: always `/api/managed-agents/openai/v1/*`
+- `direct_hp`: always `/openai/v1/*`
+- `auto` (default): backend BFF first, fallback to direct only for `404/405/501`
 
 ## Launch Models
 
@@ -121,7 +172,7 @@ to pass `agent_model` directly, use one of these public model ids:
 
 Shared top-level launch selection is intentionally narrower:
 
-- top-level `agent_model` on `trigger_run(...)` / `get_run_start_blockers(...)` supports `gpt-5.4-mini`, `gpt-5.4`, `gpt-5.4-nano`, and `gpt-oss-120b`
+- top-level `agent_model` on `trigger_run(...)` / `get_launch_preflight(...)` supports `gpt-5.4-mini`, `gpt-5.4`, `gpt-5.4-nano`, and `gpt-oss-120b`
 - `gpt-5.3-codex` and `gpt-5.3-codex-spark` are `worker:engineer` only and must be assigned through actor-scoped config
 
 Python callers should use the enum-backed surface:
@@ -166,7 +217,7 @@ claude mcp add --transport http managed-research https://api.usesynth.ai/mcp
 Local stdio fallback:
 
 ```bash
-uv tool install synth-managed-research
+uv tool install managed-research
 managed-research-mcp
 ```
 
@@ -180,8 +231,9 @@ knowledge, and progress tools such as `smr_create_runnable_project`,
 `smr_get_project_setup`, `smr_prepare_project_setup`,
 `smr_get_capacity_lane_preview`, `smr_get_launch_preflight`,
 `smr_trigger_run`, `smr_get_run`,
-`smr_stop_run`, `smr_curated_knowledge`, `smr_runtime_message_queue`, and
-`smr_get_run_progress`.
+`smr_stop_run`, `smr_curated_knowledge`, `smr_runtime_message_queue`,
+`smr_list_run_questions`, `smr_open_ended_questions`, and
+`smr_directed_effort_outcomes`.
 
 Project knowledge example:
 
@@ -206,16 +258,17 @@ Project knowledge example:
 
 ## Launch Contract
 
-Use the same launch payload for blockers and trigger:
+Use the same launch payload for launch preflight and trigger:
 
 - create/select a runnable project
+- inspect or prepare project setup
 - attach a source repo or upload workspace files
 - optionally set project notes or curated knowledge
-- prepare setup
 - call `smr_get_capacity_lane_preview`
 - call `smr_get_launch_preflight`
 - call `smr_trigger_run`
-- poll with `smr_get_run`
+- inspect `smr_get_run` and noun reads such as run questions, OEQs, DEOs,
+  milestones, experiments, and the run primary parent
 - retrieve the workspace snapshot with `smr_get_workspace_download_url`,
   `smr_download_workspace_archive`, or `smr_get_project_git`
 
@@ -223,21 +276,18 @@ For submission-style demos such as Nanoprogram, the next step after workspace
 retrieval is local evaluation of `submission/optimizer.py` with the official
 harness.
 
-`smr_get_run_progress` is available on newer remigration surfaces, but the
-launch-day walkthrough uses `smr_get_run` because it works across the backend
-deployments we rehearse against.
+For inspection, prefer noun reads over custom progress projections:
+
+- `smr_get_run` for durable run state
+- `smr_list_run_questions` for pending interaction
+- `smr_open_ended_questions`, `smr_directed_effort_outcomes`,
+  `smr_get_run_primary_parent`, and milestone/experiment reads for semantic state
 
 `host_kind` is required for project-scoped launch preflight and trigger.
 
-Compatibility note:
-
-- `smr_create_project` remains available for low-level callers
-- `smr_get_project_readiness` is now a compatibility alias over the pure setup projection
-- `smr_get_run_start_blockers` is a compatibility alias over the launch-preflight path
-
 Kickoff prose is queue-first:
 
-- use `initial_runtime_messages` for opening intent on blockers and trigger
+- use `initial_runtime_messages` for opening intent on launch preflight and trigger
 - do not send the removed `prompt` field
 - if you migrated from older integrations, convert `prompt="..."` to
   `initial_runtime_messages=[{"body": "...", "mode": "queue"}]`

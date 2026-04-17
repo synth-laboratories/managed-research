@@ -179,27 +179,6 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_create_runnable_project,
         ),
         ToolDefinition(
-            name="smr_create_project",
-            description="Create a managed research project.",
-            input_schema=tool_schema(
-                {
-                    "name": {"type": "string", "description": "Human-readable project name."},
-                    "config": {
-                        "type": "object",
-                        "description": "Additional project configuration payload.",
-                    },
-                    "actor_model_assignments": _actor_model_assignment_schema(
-                        field_label=(
-                            "Optional durable actor-scoped model assignments stored under "
-                            "execution.actor_model_assignments."
-                        )
-                    ),
-                },
-                required=[],
-            ),
-            handler=server._tool_create_project,
-        ),
-        ToolDefinition(
             name="smr_list_projects",
             description="List managed research projects.",
             input_schema=tool_schema(
@@ -222,6 +201,18 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
                 required=["project_id"],
             ),
             handler=server._tool_get_project,
+        ),
+        ToolDefinition(
+            name="smr_rename_project",
+            description="Rename a managed research project without changing runs, repos, tasks, or artifacts.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "name": {"type": "string", "description": "New human-readable project name."},
+                },
+                required=["project_id", "name"],
+            ),
+            handler=server._tool_rename_project,
         ),
         ToolDefinition(
             name="smr_patch_project",
@@ -418,7 +409,7 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
         ),
         ToolDefinition(
             name="smr_get_limits",
-            description="Fetch resource limits for the authenticated org's plan. This is informative only; trigger and blockers remain authoritative.",
+            description="Fetch resource limits for the authenticated org's plan. This is informative only; setup authority and launch preflight remain authoritative.",
             input_schema=tool_schema({}, required=[]),
             handler=server._tool_get_limits,
         ),
@@ -426,7 +417,8 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
             name="smr_get_capacity_lane_preview",
             description=(
                 "Preview the preferred/resolved capacity lane before launch. "
-                "Call this before smr_get_run_start_blockers or smr_trigger_run when you need a user-facing launch check."
+                "Call this before smr_get_launch_preflight or smr_trigger_run "
+                "when you need a user-facing launch check."
             ),
             input_schema=tool_schema(
                 {
@@ -443,89 +435,6 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
                 required=["project_id"],
             ),
             handler=server._tool_get_capacity_lane_preview,
-        ),
-        ToolDefinition(
-            name="smr_get_run_start_blockers",
-            description=(
-                "Return ordered launch blockers for the same payload shape used by smr_trigger_run. "
-                "Use this before trigger when you want a clear 'can I launch?' answer."
-            ),
-            input_schema=tool_schema(
-                {
-                    "project_id": {"type": "string", "description": "Managed research project id."},
-                    "host_kind": {
-                        "type": "string",
-                        "enum": list(SMR_HOST_KIND_VALUES),
-                        "description": "Execution substrate for this run: local, docker, or daytona.",
-                    },
-                    "work_mode": {
-                        "type": "string",
-                        "enum": list(SMR_WORK_MODE_VALUES),
-                        "description": "Run work mode.",
-                    },
-                    "worker_pool_id": {
-                        "type": "string",
-                        "description": "Optional worker pool override.",
-                    },
-                    "timebox_seconds": {"type": "integer", "description": "Optional run timebox."},
-                    "agent_profile": {
-                        "type": "string",
-                        "description": "Optional agent profile override. Prefer this when you want an exact backend-managed preset.",
-                    },
-                    "agent_model": {
-                        "type": "string",
-                        "enum": list(SMR_AGENT_MODEL_VALUES),
-                        "description": "Optional run-level agent model override using a public model id such as gpt-5.4, gpt-5.4-nano, or gpt-oss-120b.",
-                    },
-                    "agent_kind": {
-                        "type": "string",
-                        "enum": list(SMR_AGENT_KIND_VALUES),
-                        "description": (
-                            "Optional run-level agent kind override. "
-                            "Public managed-research currently supports only codex."
-                        ),
-                    },
-                    "agent_model_params": {
-                        "type": "object",
-                        "description": "Optional agent model params override (for example reasoning_effort).",
-                    },
-                    "actor_model_overrides": _actor_model_assignment_schema(
-                        field_label=(
-                            "Optional actor-scoped model overrides keyed by actor_type "
-                            "and actor_subtype."
-                        )
-                    ),
-                    "initial_runtime_messages": {
-                        "type": "array",
-                        "description": "Optional kickoff runtime messages to enqueue durably before the run starts. Use this instead of the removed prompt field.",
-                        "items": {"type": "object"},
-                    },
-                    "workflow": {"type": "object", "description": "Optional workflow override."},
-                    "sandbox_override": {
-                        "type": "object",
-                        "description": "Optional sandbox override.",
-                    },
-                    "run_policy": run_policy_input_schema(),
-                    "idempotency_key_run_create": {
-                        "type": "string",
-                        "description": "Optional idempotency key for the launch request.",
-                    },
-                    "idempotency_key": {
-                        "type": "string",
-                        "description": "Deprecated compatibility alias for idempotency_key_run_create.",
-                    },
-                    "api_key": {
-                        "type": "string",
-                        "description": "Optional Synth API key override.",
-                    },
-                    "backend_base": {
-                        "type": "string",
-                        "description": "Optional backend base override.",
-                    },
-                },
-                required=["project_id", "host_kind", "work_mode"],
-            ),
-            handler=server._tool_get_run_start_blockers,
         ),
         ToolDefinition(
             name="smr_set_provider_key",
@@ -652,6 +561,42 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
                 required=["project_id", "output_path"],
             ),
             handler=server._tool_download_workspace_archive,
+        ),
+        ToolDefinition(
+            name="smr_open_ended_questions",
+            description="List, create, fetch, patch, or transition project-scoped open-ended questions.",
+            input_schema=tool_schema(
+                {
+                    "operation": {
+                        "type": "string",
+                        "enum": ["list", "create", "get", "patch", "transition"],
+                    },
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "objective_id": {"type": "string", "description": "Parent objective id for get/patch/transition."},
+                    "run_id": {"type": "string", "description": "Optional run filter when listing or creating."},
+                    "payload": {"type": "object", "description": "Create or patch payload."},
+                },
+                required=["operation", "project_id"],
+            ),
+            handler=server._tool_open_ended_questions,
+        ),
+        ToolDefinition(
+            name="smr_directed_effort_outcomes",
+            description="List, create, fetch, patch, or transition project-scoped directed effort outcomes.",
+            input_schema=tool_schema(
+                {
+                    "operation": {
+                        "type": "string",
+                        "enum": ["list", "create", "get", "patch", "transition"],
+                    },
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "objective_id": {"type": "string", "description": "Parent objective id for get/patch/transition."},
+                    "run_id": {"type": "string", "description": "Optional run filter when listing or creating."},
+                    "payload": {"type": "object", "description": "Create or patch payload."},
+                },
+                required=["operation", "project_id"],
+            ),
+            handler=server._tool_directed_effort_outcomes,
         ),
     ]
 

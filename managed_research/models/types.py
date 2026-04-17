@@ -46,8 +46,15 @@ def _require_string(payload: Mapping[str, object], key: str, *, label: str) -> s
     return value
 
 
-def _float_value(payload: Mapping[str, object], key: str) -> float:
+def _float_value(
+    payload: Mapping[str, object],
+    key: str,
+    *,
+    default: float | None = None,
+) -> float:
     value = payload.get(key)
+    if value is None and default is not None:
+        return float(default)
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f"{key} must be numeric")
     return float(value)
@@ -226,6 +233,509 @@ class WorkspaceUploadResult:
                 WorkspaceFileInput.from_wire(item) for item in uploaded_files_payload
             ],
         )
+
+
+@dataclass(frozen=True)
+class KickoffContractFile:
+    path: str
+    file_id: str | None = None
+    content_type: str | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> KickoffContractFile:
+        mapping = _require_mapping(payload, label="kickoff contract file")
+        return cls(
+            path=_require_string(
+                mapping,
+                "path",
+                label="kickoff contract file.path",
+            ),
+            file_id=_optional_string(mapping, "file_id"),
+            content_type=_optional_string(mapping, "content_type"),
+        )
+
+    def to_wire(self) -> dict[str, object]:
+        payload: dict[str, object] = {"path": self.path}
+        if self.file_id is not None:
+            payload["file_id"] = self.file_id
+        if self.content_type is not None:
+            payload["content_type"] = self.content_type
+        return payload
+
+
+@dataclass(frozen=True)
+class KickoffContract:
+    schema_version: int
+    contract_kind: str
+    run_objective: str
+    scenario: str | None = None
+    task_id: str | None = None
+    task_title: str | None = None
+    task_kind: str | None = None
+    repo_url: str | None = None
+    worker_pool_id: str | None = None
+    project_notes_framing: str | None = None
+    dispatch_requirements: dict[str, object] = field(default_factory=dict)
+    tasks: list[dict[str, object]] = field(default_factory=list)
+    task_briefs: list[str] = field(default_factory=list)
+    required_output_files: list[str] = field(default_factory=list)
+    allowed_repo_paths: list[str] = field(default_factory=list)
+    model_visible_contract_files: list[KickoffContractFile] = field(default_factory=list)
+    kickoff_contract_file: str | None = None
+    kickoff_contract_ref: str | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> KickoffContract:
+        mapping = _require_mapping(payload, label="kickoff contract")
+        task_payload = _optional_array(mapping, "tasks")
+        file_payload = _optional_array(mapping, "model_visible_contract_files")
+        return cls(
+            schema_version=_int_value(mapping, "schema_version"),
+            contract_kind=_require_string(
+                mapping,
+                "contract_kind",
+                label="kickoff contract.contract_kind",
+            ),
+            run_objective=_require_string(
+                mapping,
+                "run_objective",
+                label="kickoff contract.run_objective",
+            ),
+            scenario=_optional_string(mapping, "scenario"),
+            task_id=_optional_string(mapping, "task_id"),
+            task_title=_optional_string(mapping, "task_title"),
+            task_kind=_optional_string(mapping, "task_kind"),
+            repo_url=_optional_string(mapping, "repo_url"),
+            worker_pool_id=_optional_string(mapping, "worker_pool_id"),
+            project_notes_framing=_optional_string(mapping, "project_notes_framing"),
+            dispatch_requirements=_optional_object_dict(
+                mapping.get("dispatch_requirements")
+            ),
+            tasks=[_optional_object_dict(item) for item in task_payload],
+            task_briefs=_string_list(
+                mapping.get("task_briefs"),
+                label="kickoff contract.task_briefs",
+            ),
+            required_output_files=_string_list(
+                mapping.get("required_output_files"),
+                label="kickoff contract.required_output_files",
+            ),
+            allowed_repo_paths=_string_list(
+                mapping.get("allowed_repo_paths"),
+                label="kickoff contract.allowed_repo_paths",
+            ),
+            model_visible_contract_files=[
+                KickoffContractFile.from_wire(item) for item in file_payload
+            ],
+            kickoff_contract_file=_optional_string(mapping, "kickoff_contract_file"),
+            kickoff_contract_ref=_optional_string(mapping, "kickoff_contract_ref"),
+        )
+
+    def to_wire(self) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "schema_version": self.schema_version,
+            "contract_kind": self.contract_kind,
+            "run_objective": self.run_objective,
+            "dispatch_requirements": dict(self.dispatch_requirements),
+            "tasks": [dict(item) for item in self.tasks],
+            "task_briefs": list(self.task_briefs),
+            "required_output_files": list(self.required_output_files),
+            "allowed_repo_paths": list(self.allowed_repo_paths),
+            "model_visible_contract_files": [
+                item.to_wire() for item in self.model_visible_contract_files
+            ],
+        }
+        if self.scenario is not None:
+            payload["scenario"] = self.scenario
+        if self.task_id is not None:
+            payload["task_id"] = self.task_id
+        if self.task_title is not None:
+            payload["task_title"] = self.task_title
+        if self.task_kind is not None:
+            payload["task_kind"] = self.task_kind
+        if self.repo_url is not None:
+            payload["repo_url"] = self.repo_url
+        if self.worker_pool_id is not None:
+            payload["worker_pool_id"] = self.worker_pool_id
+        if self.project_notes_framing is not None:
+            payload["project_notes_framing"] = self.project_notes_framing
+        if self.kickoff_contract_file is not None:
+            payload["kickoff_contract_file"] = self.kickoff_contract_file
+        if self.kickoff_contract_ref is not None:
+            payload["kickoff_contract_ref"] = self.kickoff_contract_ref
+        return payload
+
+
+@dataclass(frozen=True)
+class StoredFile:
+    file_id: str
+    org_id: str
+    project_id: str
+    run_id: str | None = None
+    scope_kind: str | None = None
+    path: str | None = None
+    logical_name: str | None = None
+    content_type: str | None = None
+    encoding: str | None = None
+    visibility: str | None = None
+    storage_backend: str | None = None
+    content_sha256: str | None = None
+    content_bytes: int | None = None
+    metadata: dict[str, object] = field(default_factory=dict)
+    created_at: str | None = None
+    updated_at: str | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> StoredFile:
+        mapping = _require_mapping(payload, label="stored file")
+        return cls(
+            file_id=_require_string(mapping, "file_id", label="stored file.file_id"),
+            org_id=_require_string(mapping, "org_id", label="stored file.org_id"),
+            project_id=_require_string(
+                mapping, "project_id", label="stored file.project_id"
+            ),
+            run_id=_optional_string(mapping, "run_id"),
+            scope_kind=_optional_string(mapping, "scope_kind"),
+            path=_optional_string(mapping, "path"),
+            logical_name=_optional_string(mapping, "logical_name"),
+            content_type=_optional_string(mapping, "content_type"),
+            encoding=_optional_string(mapping, "encoding"),
+            visibility=_optional_string(mapping, "visibility"),
+            storage_backend=_optional_string(mapping, "storage_backend"),
+            content_sha256=_optional_string(mapping, "content_sha256"),
+            content_bytes=_optional_int(mapping, "content_bytes"),
+            metadata=_optional_object_dict(mapping.get("metadata")),
+            created_at=_optional_string(mapping, "created_at"),
+            updated_at=_optional_string(mapping, "updated_at"),
+        )
+
+
+@dataclass(frozen=True)
+class RunFileMount:
+    mount_id: str
+    run_id: str
+    file_id: str
+    mount_path: str | None = None
+    visibility: str | None = None
+    active: bool | None = None
+    metadata: dict[str, object] = field(default_factory=dict)
+    created_at: str | None = None
+    file: StoredFile | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> RunFileMount:
+        mapping = _require_mapping(payload, label="run file mount")
+        file_payload = mapping.get("file")
+        return cls(
+            mount_id=_require_string(mapping, "mount_id", label="run file mount.mount_id"),
+            run_id=_require_string(mapping, "run_id", label="run file mount.run_id"),
+            file_id=_require_string(mapping, "file_id", label="run file mount.file_id"),
+            mount_path=_optional_string(mapping, "mount_path"),
+            visibility=_optional_string(mapping, "visibility"),
+            active=_optional_bool(mapping, "active"),
+            metadata=_optional_object_dict(mapping.get("metadata")),
+            created_at=_optional_string(mapping, "created_at"),
+            file=StoredFile.from_wire(file_payload) if file_payload is not None else None,
+        )
+
+
+@dataclass(frozen=True)
+class RunOutputFile:
+    output_file_id: str
+    artifact_id: str
+    org_id: str
+    project_id: str
+    run_id: str
+    artifact_type: str | None = None
+    title: str | None = None
+    uri: str | None = None
+    digest: str | None = None
+    path: str | None = None
+    content_type: str | None = None
+    created_at: str | None = None
+    metadata: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> RunOutputFile:
+        mapping = _require_mapping(payload, label="run output file")
+        return cls(
+            output_file_id=_require_string(
+                mapping, "output_file_id", label="run output file.output_file_id"
+            ),
+            artifact_id=_require_string(
+                mapping, "artifact_id", label="run output file.artifact_id"
+            ),
+            org_id=_require_string(mapping, "org_id", label="run output file.org_id"),
+            project_id=_require_string(
+                mapping, "project_id", label="run output file.project_id"
+            ),
+            run_id=_require_string(mapping, "run_id", label="run output file.run_id"),
+            artifact_type=_optional_string(mapping, "artifact_type"),
+            title=_optional_string(mapping, "title"),
+            uri=_optional_string(mapping, "uri"),
+            digest=_optional_string(mapping, "digest"),
+            path=_optional_string(mapping, "path"),
+            content_type=_optional_string(mapping, "content_type"),
+            created_at=_optional_string(mapping, "created_at"),
+            metadata=_optional_object_dict(mapping.get("metadata")),
+        )
+
+
+@dataclass(frozen=True)
+class ResourceUploadResult:
+    project_id: str
+    run_id: str | None = None
+    file_count: int | None = None
+    bytes_uploaded: int | None = None
+    uploaded_files: list[StoredFile] = field(default_factory=list)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ResourceUploadResult:
+        mapping = _require_mapping(payload, label="resource upload result")
+        uploaded_files_payload = _optional_array(mapping, "uploaded_files")
+        return cls(
+            project_id=_require_string(
+                mapping, "project_id", label="resource upload result.project_id"
+            ),
+            run_id=_optional_string(mapping, "run_id"),
+            file_count=_optional_int(mapping, "file_count"),
+            bytes_uploaded=_optional_int(mapping, "bytes_uploaded"),
+            uploaded_files=[
+                StoredFile.from_wire(item) for item in uploaded_files_payload
+            ],
+        )
+
+
+@dataclass(frozen=True)
+class ExternalRepository:
+    repository_id: str
+    org_id: str
+    project_id: str
+    run_id: str | None = None
+    scope_kind: str | None = None
+    name: str | None = None
+    url: str | None = None
+    default_branch: str | None = None
+    role: str | None = None
+    metadata: dict[str, object] = field(default_factory=dict)
+    created_at: str | None = None
+    updated_at: str | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ExternalRepository:
+        mapping = _require_mapping(payload, label="external repository")
+        return cls(
+            repository_id=_require_string(
+                mapping, "repository_id", label="external repository.repository_id"
+            ),
+            org_id=_require_string(
+                mapping, "org_id", label="external repository.org_id"
+            ),
+            project_id=_require_string(
+                mapping, "project_id", label="external repository.project_id"
+            ),
+            run_id=_optional_string(mapping, "run_id"),
+            scope_kind=_optional_string(mapping, "scope_kind"),
+            name=_optional_string(mapping, "name"),
+            url=_optional_string(mapping, "url"),
+            default_branch=_optional_string(mapping, "default_branch"),
+            role=_optional_string(mapping, "role"),
+            metadata=_optional_object_dict(mapping.get("metadata")),
+            created_at=_optional_string(mapping, "created_at"),
+            updated_at=_optional_string(mapping, "updated_at"),
+        )
+
+
+@dataclass(frozen=True)
+class RunRepositoryMount:
+    mount_id: str
+    run_id: str
+    repository_id: str
+    mount_name: str | None = None
+    role: str | None = None
+    metadata: dict[str, object] = field(default_factory=dict)
+    created_at: str | None = None
+    repository: ExternalRepository | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> RunRepositoryMount:
+        mapping = _require_mapping(payload, label="run repository mount")
+        repository_payload = mapping.get("repository")
+        return cls(
+            mount_id=_require_string(
+                mapping, "mount_id", label="run repository mount.mount_id"
+            ),
+            run_id=_require_string(mapping, "run_id", label="run repository mount.run_id"),
+            repository_id=_require_string(
+                mapping,
+                "repository_id",
+                label="run repository mount.repository_id",
+            ),
+            mount_name=_optional_string(mapping, "mount_name"),
+            role=_optional_string(mapping, "role"),
+            metadata=_optional_object_dict(mapping.get("metadata")),
+            created_at=_optional_string(mapping, "created_at"),
+            repository=(
+                ExternalRepository.from_wire(repository_payload)
+                if repository_payload is not None
+                else None
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class CredentialRef:
+    credential_ref_id: str
+    org_id: str
+    project_id: str
+    run_id: str | None = None
+    scope_kind: str | None = None
+    kind: str | None = None
+    label: str | None = None
+    provider: str | None = None
+    funding_source: str | None = None
+    credential_name: str | None = None
+    metadata: dict[str, object] = field(default_factory=dict)
+    created_at: str | None = None
+    updated_at: str | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> CredentialRef:
+        mapping = _require_mapping(payload, label="credential ref")
+        return cls(
+            credential_ref_id=_require_string(
+                mapping, "credential_ref_id", label="credential ref.credential_ref_id"
+            ),
+            org_id=_require_string(mapping, "org_id", label="credential ref.org_id"),
+            project_id=_require_string(
+                mapping, "project_id", label="credential ref.project_id"
+            ),
+            run_id=_optional_string(mapping, "run_id"),
+            scope_kind=_optional_string(mapping, "scope_kind"),
+            kind=_optional_string(mapping, "kind"),
+            label=_optional_string(mapping, "label"),
+            provider=_optional_string(mapping, "provider"),
+            funding_source=_optional_string(mapping, "funding_source"),
+            credential_name=_optional_string(mapping, "credential_name"),
+            metadata=_optional_object_dict(mapping.get("metadata")),
+            created_at=_optional_string(mapping, "created_at"),
+            updated_at=_optional_string(mapping, "updated_at"),
+        )
+
+
+@dataclass(frozen=True)
+class RunCredentialBinding:
+    binding_id: str
+    run_id: str
+    credential_ref_id: str
+    metadata: dict[str, object] = field(default_factory=dict)
+    created_at: str | None = None
+    credential_ref: CredentialRef | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> RunCredentialBinding:
+        mapping = _require_mapping(payload, label="run credential binding")
+        credential_ref_payload = mapping.get("credential_ref")
+        return cls(
+            binding_id=_require_string(
+                mapping, "binding_id", label="run credential binding.binding_id"
+            ),
+            run_id=_require_string(
+                mapping, "run_id", label="run credential binding.run_id"
+            ),
+            credential_ref_id=_require_string(
+                mapping,
+                "credential_ref_id",
+                label="run credential binding.credential_ref_id",
+            ),
+            metadata=_optional_object_dict(mapping.get("metadata")),
+            created_at=_optional_string(mapping, "created_at"),
+            credential_ref=(
+                CredentialRef.from_wire(credential_ref_payload)
+                if credential_ref_payload is not None
+                else None
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class InlineExternalRepositoryBinding:
+    name: str
+    url: str
+    default_branch: str | None = None
+    role: str | None = None
+    metadata: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> InlineExternalRepositoryBinding:
+        mapping = _require_mapping(payload, label="inline external repository binding")
+        return cls(
+            name=_require_string(
+                mapping,
+                "name",
+                label="inline external repository binding.name",
+            ),
+            url=_require_string(
+                mapping,
+                "url",
+                label="inline external repository binding.url",
+            ),
+            default_branch=_optional_string(mapping, "default_branch"),
+            role=_optional_string(mapping, "role"),
+            metadata=_optional_object_dict(mapping.get("metadata")),
+        )
+
+    def to_wire(self) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "name": self.name,
+            "url": self.url,
+            "metadata": dict(self.metadata),
+        }
+        if self.default_branch is not None:
+            payload["default_branch"] = self.default_branch
+        if self.role is not None:
+            payload["role"] = self.role
+        return payload
+
+
+@dataclass(frozen=True)
+class RunResourceBindings:
+    external_repository_ids: list[str] = field(default_factory=list)
+    external_repositories: list[InlineExternalRepositoryBinding] = field(
+        default_factory=list
+    )
+    credential_ref_ids: list[str] = field(default_factory=list)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> RunResourceBindings:
+        mapping = _require_mapping(payload, label="run resource bindings")
+        external_repository_payload = _optional_array(mapping, "external_repositories")
+        return cls(
+            external_repository_ids=_string_list(
+                mapping.get("external_repository_ids"),
+                label="run resource bindings.external_repository_ids",
+            ),
+            external_repositories=[
+                InlineExternalRepositoryBinding.from_wire(item)
+                for item in external_repository_payload
+            ],
+            credential_ref_ids=_string_list(
+                mapping.get("credential_ref_ids"),
+                label="run resource bindings.credential_ref_ids",
+            ),
+        )
+
+    def to_wire(self) -> dict[str, object]:
+        payload: dict[str, object] = {}
+        if self.external_repository_ids:
+            payload["external_repository_ids"] = list(self.external_repository_ids)
+        if self.external_repositories:
+            payload["external_repositories"] = [
+                item.to_wire() for item in self.external_repositories
+            ]
+        if self.credential_ref_ids:
+            payload["credential_ref_ids"] = list(self.credential_ref_ids)
+        return payload
 
 
 @dataclass(frozen=True)
@@ -446,8 +956,10 @@ class SmrRunnableProjectRequest:
     budgets: dict[str, object] = field(default_factory=dict)
     key_policy: dict[str, object] = field(default_factory=dict)
     execution_policy: dict[str, object] = field(default_factory=dict)
+    research: dict[str, object] = field(default_factory=dict)
     scenario: str | None = None
     notes: str | None = None
+    retention_policy: dict[str, object] = field(default_factory=dict)
     metered_infra: dict[str, object] = field(default_factory=dict)
     schedule: dict[str, object] = field(default_factory=dict)
     integrations: dict[str, object] = field(default_factory=dict)
@@ -517,8 +1029,10 @@ class SmrRunnableProjectRequest:
             budgets=_optional_object_dict(mapping.get("budgets")),
             key_policy=_optional_object_dict(mapping.get("key_policy")),
             execution_policy=_optional_object_dict(mapping.get("execution_policy")),
+            research=_optional_object_dict(mapping.get("research")),
             scenario=_optional_string(mapping, "scenario"),
             notes=_optional_string(mapping, "notes"),
+            retention_policy=_optional_object_dict(mapping.get("retention_policy")),
             metered_infra=_optional_object_dict(mapping.get("metered_infra")),
             schedule=_optional_object_dict(mapping.get("schedule")),
             integrations=_optional_object_dict(mapping.get("integrations")),
@@ -542,6 +1056,8 @@ class SmrRunnableProjectRequest:
             "budgets": dict(self.budgets),
             "key_policy": dict(self.key_policy),
             "execution_policy": dict(self.execution_policy),
+            "research": dict(self.research),
+            "retention_policy": dict(self.retention_policy),
             "metered_infra": dict(self.metered_infra),
             "schedule": dict(self.schedule),
             "integrations": dict(self.integrations),
@@ -605,313 +1121,325 @@ class RunProgress:
         )
 
 
-class UsageAnalyticsSubjectKind(StrEnum):
-    ORG = "org"
-    MANAGED_ACCOUNT = "managed_account"
+class ParentObjectiveKind(StrEnum):
+    OPEN_ENDED_QUESTION = "open_ended_question"
+    DIRECTED_EFFORT_OUTCOME = "directed_effort_outcome"
+
+
+class ParentObjectiveEvaluationState(StrEnum):
+    ACTIVE = "active"
+    REVIEW_PENDING = "review_pending"
+    NEEDS_REVISION = "needs_revision"
+    SATISFIED = "satisfied"
+    PARTIAL = "partial"
+    FAILED = "failed"
+    MAX_ITERATIONS_REACHED = "max_iterations_reached"
+    INTERRUPTED = "interrupted"
+    WITHDRAWN = "withdrawn"
 
 
 @dataclass(frozen=True)
-class UsageAnalyticsSubject:
-    kind: UsageAnalyticsSubjectKind
-    org_id: str | None = None
-    managed_account_id: str | None = None
+class PrimaryParentRef:
+    kind: ParentObjectiveKind
+    id: str
 
     @classmethod
-    def for_org(cls, org_id: str) -> UsageAnalyticsSubject:
-        normalized = org_id.strip()
-        if not normalized:
-            raise ValueError("org_id is required")
-        return cls(kind=UsageAnalyticsSubjectKind.ORG, org_id=normalized)
-
-    @classmethod
-    def for_managed_account(
-        cls, managed_account_id: str
-    ) -> UsageAnalyticsSubject:
-        normalized = managed_account_id.strip()
-        if not normalized:
-            raise ValueError("managed_account_id is required")
-        return cls(
-            kind=UsageAnalyticsSubjectKind.MANAGED_ACCOUNT,
-            managed_account_id=normalized,
+    def from_wire(cls, payload: object) -> PrimaryParentRef:
+        mapping = _require_mapping(payload, label="primary parent ref")
+        kind = ParentObjectiveKind(
+            _require_string(mapping, "kind", label="primary parent ref.kind")
         )
-
-    @classmethod
-    def from_wire(cls, payload: object) -> UsageAnalyticsSubject:
-        mapping = _require_mapping(payload, label="usage analytics subject")
-        kind_value = _optional_string(mapping, "kind")
-        if kind_value is None:
-            raise ValueError("usage analytics subject.kind is required")
-        try:
-            kind = UsageAnalyticsSubjectKind(kind_value)
-        except ValueError as exc:
-            raise ValueError(
-                "usage analytics subject.kind must be 'org' or 'managed_account'"
-            ) from exc
-        org_id = _optional_string(mapping, "orgId")
-        managed_account_id = _optional_string(mapping, "managedAccountId")
-        if kind is UsageAnalyticsSubjectKind.ORG and (
-            org_id is None or managed_account_id is not None
-        ):
-            raise ValueError(
-                "usage analytics org subject requires orgId and forbids managedAccountId"
-            )
-        if kind is UsageAnalyticsSubjectKind.MANAGED_ACCOUNT and (
-            managed_account_id is None or org_id is not None
-        ):
-            raise ValueError(
-                "usage analytics managed_account subject requires managedAccountId and forbids orgId"
-            )
         return cls(
             kind=kind,
-            org_id=org_id,
-            managed_account_id=managed_account_id,
+            id=_require_string(mapping, "id", label="primary parent ref.id"),
         )
-
-    def to_wire(self) -> dict[str, str]:
-        payload = {"kind": self.kind.value}
-        if self.org_id is not None:
-            payload["orgId"] = self.org_id
-        if self.managed_account_id is not None:
-            payload["managedAccountId"] = self.managed_account_id
-        return payload
 
 
 @dataclass(frozen=True)
-class UsageAnalyticsWindow:
-    start_at: str
-    end_at: str
-    bucket: str
-    resolved_bucket: str | None = None
+class OpenEndedQuestion:
+    open_ended_question_id: str
+    project_id: str
+    run_id: str | None = None
+    title: str | None = None
+    question_text: str | None = None
+    evaluation_state: ParentObjectiveEvaluationState | None = None
 
     @classmethod
-    def from_wire(cls, payload: object) -> UsageAnalyticsWindow:
-        mapping = _require_mapping(payload, label="usage analytics window")
+    def from_wire(cls, payload: object) -> OpenEndedQuestion:
+        mapping = _require_mapping(payload, label="open ended question")
+        raw_state = _optional_string(mapping, "evaluation_state")
         return cls(
-            start_at=_require_string(
-                mapping, "startAt", label="usage analytics window.startAt"
+            open_ended_question_id=_require_string(
+                mapping,
+                "open_ended_question_id",
+                label="open ended question id",
             ),
-            end_at=_require_string(
-                mapping, "endAt", label="usage analytics window.endAt"
+            project_id=_require_string(mapping, "project_id", label="project id"),
+            run_id=_optional_string(mapping, "run_id"),
+            title=_optional_string(mapping, "title"),
+            question_text=_optional_string(mapping, "question_text"),
+            evaluation_state=(
+                ParentObjectiveEvaluationState(raw_state) if raw_state else None
             ),
-            bucket=_require_string(
-                mapping, "bucket", label="usage analytics window.bucket"
-            ),
-            resolved_bucket=_optional_string(mapping, "resolvedBucket"),
         )
 
 
 @dataclass(frozen=True)
-class UsageAnalyticsBreakdown:
-    gross_usage_usd: float
-    billed_amount_usd: float
-    internal_cost_usd: float
-    event_count: int
+class DirectedEffortOutcome:
+    directed_effort_outcome_id: str
+    project_id: str
+    run_id: str | None = None
+    title: str | None = None
+    outcome_text: str | None = None
+    evaluation_state: ParentObjectiveEvaluationState | None = None
 
     @classmethod
-    def from_wire(cls, payload: object) -> UsageAnalyticsBreakdown:
-        mapping = _require_mapping(payload, label="usage analytics breakdown")
+    def from_wire(cls, payload: object) -> DirectedEffortOutcome:
+        mapping = _require_mapping(payload, label="directed effort outcome")
+        raw_state = _optional_string(mapping, "evaluation_state")
         return cls(
-            gross_usage_usd=_float_value(mapping, "grossUsageUsd"),
-            billed_amount_usd=_float_value(mapping, "billedAmountUsd"),
-            internal_cost_usd=_float_value(mapping, "internalCostUsd"),
-            event_count=_int_value(mapping, "eventCount"),
-        )
-
-
-@dataclass(frozen=True)
-class UsageAnalyticsTotals:
-    gross_usage_usd: float
-    billed_amount_usd: float
-    internal_cost_usd: float
-    event_count: int
-    charged_event_count: int
-    by_billing_route: dict[str, UsageAnalyticsBreakdown]
-    by_usage_type: dict[str, UsageAnalyticsBreakdown]
-
-    @classmethod
-    def from_wire(cls, payload: object) -> UsageAnalyticsTotals:
-        mapping = _require_mapping(payload, label="usage analytics totals")
-        billing_route_payload = _require_mapping(
-            mapping.get("byBillingRoute"),
-            label="usage analytics totals.byBillingRoute",
-        )
-        usage_type_payload = _require_mapping(
-            mapping.get("byUsageType"),
-            label="usage analytics totals.byUsageType",
-        )
-        return cls(
-            gross_usage_usd=_float_value(mapping, "grossUsageUsd"),
-            billed_amount_usd=_float_value(mapping, "billedAmountUsd"),
-            internal_cost_usd=_float_value(mapping, "internalCostUsd"),
-            event_count=_int_value(mapping, "eventCount"),
-            charged_event_count=_int_value(mapping, "chargedEventCount"),
-            by_billing_route={
-                str(key): UsageAnalyticsBreakdown.from_wire(value)
-                for key, value in billing_route_payload.items()
-            },
-            by_usage_type={
-                str(key): UsageAnalyticsBreakdown.from_wire(value)
-                for key, value in usage_type_payload.items()
-            },
-        )
-
-
-@dataclass(frozen=True)
-class UsageAnalyticsBucket:
-    bucket_start: str
-    bucket_end: str
-    gross_usage_usd: float
-    billed_amount_usd: float
-    internal_cost_usd: float
-    event_count: int
-
-    @classmethod
-    def from_wire(cls, payload: object) -> UsageAnalyticsBucket:
-        mapping = _require_mapping(payload, label="usage analytics bucket")
-        return cls(
-            bucket_start=_require_string(
-                mapping, "bucketStart", label="usage analytics bucket.bucketStart"
+            directed_effort_outcome_id=_require_string(
+                mapping,
+                "directed_effort_outcome_id",
+                label="directed effort outcome id",
             ),
-            bucket_end=_require_string(
-                mapping, "bucketEnd", label="usage analytics bucket.bucketEnd"
+            project_id=_require_string(mapping, "project_id", label="project id"),
+            run_id=_optional_string(mapping, "run_id"),
+            title=_optional_string(mapping, "title"),
+            outcome_text=_optional_string(mapping, "outcome_text"),
+            evaluation_state=(
+                ParentObjectiveEvaluationState(raw_state) if raw_state else None
             ),
-            gross_usage_usd=_float_value(mapping, "grossUsageUsd"),
-            billed_amount_usd=_float_value(mapping, "billedAmountUsd"),
-            internal_cost_usd=_float_value(mapping, "internalCostUsd"),
-            event_count=_int_value(mapping, "eventCount"),
         )
 
 
 @dataclass(frozen=True)
-class UsageAnalyticsRow:
-    event_id: str
-    occurred_at: str
-    usage_type: str
-    provider: str
-    model: str | None
-    run_id: str | None
-    project_id: str | None
-    actor_id: str | None
-    billing_route: str
-    charged: bool
-    gross_usage_usd: float
-    billed_amount_usd: float
-    internal_cost_usd: float
-    quantity: float | None
-    quantity_unit: str | None
+class MilestoneProgress:
+    milestone_id: str
+    project_id: str
+    run_id: str | None = None
+    parent_kind: str | None = None
+    parent_id: str | None = None
+    milestone_kind: str | None = None
+    title: str | None = None
+    objective: str | None = None
+    state: str | None = None
+    validation_status: str | None = None
+    validation_summary: str | None = None
+    acceptance_criteria: list[str] = field(default_factory=list)
+    evidence_artifact_ids: list[str] = field(default_factory=list)
+    evidence_entry_ids: list[str] = field(default_factory=list)
+    position: int | None = None
+    revision: int | None = None
     metadata: dict[str, object] = field(default_factory=dict)
+    created_at: str | None = None
+    updated_at: str | None = None
 
     @classmethod
-    def from_wire(cls, payload: object) -> UsageAnalyticsRow:
-        mapping = _require_mapping(payload, label="usage analytics row")
-        event_id = _require_string(
-            mapping, "eventId", label="usage analytics row.eventId"
-        )
-        occurred_at = _require_string(
-            mapping, "occurredAt", label="usage analytics row.occurredAt"
-        )
-        usage_type = _require_string(
-            mapping, "usageType", label="usage analytics row.usageType"
-        )
-        provider = _require_string(
-            mapping, "provider", label="usage analytics row.provider"
-        )
-        billing_route = _require_string(
-            mapping, "billingRoute", label="usage analytics row.billingRoute"
-        )
-        charged = mapping.get("charged")
-        if not isinstance(charged, bool):
-            raise ValueError("usage analytics row.charged must be a boolean")
-        quantity_value = mapping.get("quantity")
-        if quantity_value is None:
-            quantity = None
-        elif isinstance(quantity_value, bool) or not isinstance(
-            quantity_value, (int, float)
-        ):
-            raise ValueError("usage analytics row.quantity must be numeric when provided")
-        else:
-            quantity = float(quantity_value)
+    def from_wire(cls, payload: object) -> MilestoneProgress:
+        mapping = _require_mapping(payload, label="milestone progress")
         return cls(
-            event_id=event_id,
-            occurred_at=occurred_at,
-            usage_type=usage_type,
-            provider=provider,
-            model=_optional_string(mapping, "model"),
-            run_id=_optional_string(mapping, "runId"),
-            project_id=_optional_string(mapping, "projectId"),
-            actor_id=_optional_string(mapping, "actorId"),
-            billing_route=billing_route,
-            charged=charged,
-            gross_usage_usd=_float_value(mapping, "grossUsageUsd"),
-            billed_amount_usd=_float_value(mapping, "billedAmountUsd"),
-            internal_cost_usd=_float_value(mapping, "internalCostUsd"),
-            quantity=quantity,
-            quantity_unit=_optional_string(mapping, "quantityUnit"),
-            metadata=_object_dict(mapping.get("metadata")),
+            milestone_id=_require_string(
+                mapping,
+                "milestone_id",
+                label="milestone progress.milestone_id",
+            ),
+            project_id=_require_string(
+                mapping,
+                "project_id",
+                label="milestone progress.project_id",
+            ),
+            run_id=_optional_string(mapping, "run_id"),
+            parent_kind=_optional_string(mapping, "parent_kind"),
+            parent_id=_optional_string(mapping, "parent_id"),
+            milestone_kind=_optional_string(mapping, "milestone_kind"),
+            title=_optional_string(mapping, "title"),
+            objective=_optional_string(mapping, "objective"),
+            state=_optional_string(mapping, "state"),
+            validation_status=_optional_string(mapping, "validation_status"),
+            validation_summary=_optional_string(mapping, "validation_summary"),
+            acceptance_criteria=_string_list(
+                mapping.get("acceptance_criteria"),
+                label="milestone progress.acceptance_criteria",
+            ),
+            evidence_artifact_ids=_string_list(
+                mapping.get("evidence_artifact_ids"),
+                label="milestone progress.evidence_artifact_ids",
+            ),
+            evidence_entry_ids=_string_list(
+                mapping.get("evidence_entry_ids"),
+                label="milestone progress.evidence_entry_ids",
+            ),
+            position=_optional_int(mapping, "position"),
+            revision=_optional_int(mapping, "revision"),
+            metadata=_optional_object_dict(mapping.get("metadata")),
+            created_at=_optional_string(mapping, "created_at"),
+            updated_at=_optional_string(mapping, "updated_at"),
         )
 
 
 @dataclass(frozen=True)
-class UsageAnalyticsPageInfo:
-    has_next_page: bool
-    end_cursor: str | None
+class ExperimentProgress:
+    experiment_id: str
+    project_id: str
+    run_id: str | None = None
+    parent_experiment_id: str | None = None
+    milestone_id: str | None = None
+    title: str | None = None
+    hypothesis: str | None = None
+    status: str | None = None
+    summary: str | None = None
+    recommendation: str | None = None
+    disposition: str | None = None
+    repos: list[str] = field(default_factory=list)
+    branches: list[str] = field(default_factory=list)
+    metrics_before: dict[str, object] = field(default_factory=dict)
+    metrics_after: dict[str, object] = field(default_factory=dict)
+    comparison_metadata: dict[str, object] = field(default_factory=dict)
+    linked_artifact_ids: list[str] = field(default_factory=list)
+    linked_entry_ids: list[str] = field(default_factory=list)
+    revision: int | None = None
+    metadata: dict[str, object] = field(default_factory=dict)
+    created_at: str | None = None
+    updated_at: str | None = None
 
     @classmethod
-    def from_wire(cls, payload: object) -> UsageAnalyticsPageInfo:
-        mapping = _require_mapping(payload, label="usage analytics page info")
-        has_next_page = mapping.get("hasNextPage")
-        if not isinstance(has_next_page, bool):
-            raise ValueError("usage analytics pageInfo.hasNextPage must be a boolean")
+    def from_wire(cls, payload: object) -> ExperimentProgress:
+        mapping = _require_mapping(payload, label="experiment progress")
         return cls(
-            has_next_page=has_next_page,
-            end_cursor=_optional_string(mapping, "endCursor"),
+            experiment_id=_require_string(
+                mapping,
+                "experiment_id",
+                label="experiment progress.experiment_id",
+            ),
+            project_id=_require_string(
+                mapping,
+                "project_id",
+                label="experiment progress.project_id",
+            ),
+            run_id=_optional_string(mapping, "run_id"),
+            parent_experiment_id=_optional_string(mapping, "parent_experiment_id"),
+            milestone_id=_optional_string(mapping, "milestone_id"),
+            title=_optional_string(mapping, "title"),
+            hypothesis=_optional_string(mapping, "hypothesis"),
+            status=_optional_string(mapping, "status"),
+            summary=_optional_string(mapping, "summary"),
+            recommendation=_optional_string(mapping, "recommendation"),
+            disposition=_optional_string(mapping, "disposition"),
+            repos=_string_list(mapping.get("repos"), label="experiment progress.repos"),
+            branches=_string_list(
+                mapping.get("branches"),
+                label="experiment progress.branches",
+            ),
+            metrics_before=_optional_object_dict(mapping.get("metrics_before")),
+            metrics_after=_optional_object_dict(mapping.get("metrics_after")),
+            comparison_metadata=_optional_object_dict(
+                mapping.get("comparison_metadata")
+            ),
+            linked_artifact_ids=_string_list(
+                mapping.get("linked_artifact_ids"),
+                label="experiment progress.linked_artifact_ids",
+            ),
+            linked_entry_ids=_string_list(
+                mapping.get("linked_entry_ids"),
+                label="experiment progress.linked_entry_ids",
+            ),
+            revision=_optional_int(mapping, "revision"),
+            metadata=_optional_object_dict(mapping.get("metadata")),
+            created_at=_optional_string(mapping, "created_at"),
+            updated_at=_optional_string(mapping, "updated_at"),
         )
 
 
 @dataclass(frozen=True)
-class UsageAnalyticsPayload:
-    subject: UsageAnalyticsSubject
-    window: UsageAnalyticsWindow
-    totals: UsageAnalyticsTotals
-    buckets: list[UsageAnalyticsBucket]
-    rows: list[UsageAnalyticsRow]
-    page_info: UsageAnalyticsPageInfo
+class SemanticProgressSnapshot:
+    project_id: str
+    run_id: str | None = None
+    primary_parent: PrimaryParentRef | None = None
+    run_progress: RunProgress | None = None
+    open_ended_questions: list[OpenEndedQuestion] = field(default_factory=list)
+    directed_effort_outcomes: list[DirectedEffortOutcome] = field(default_factory=list)
+    milestones: list[MilestoneProgress] = field(default_factory=list)
+    primary_parent_milestones: list[MilestoneProgress] = field(default_factory=list)
+    experiments: list[ExperimentProgress] = field(default_factory=list)
 
     @classmethod
-    def from_wire(cls, payload: object) -> UsageAnalyticsPayload:
-        mapping = _require_mapping(payload, label="usage analytics payload")
-        buckets_payload = _require_array(
-            mapping, "buckets", label="usage analytics payload.buckets"
-        )
-        rows_payload = _require_array(
-            mapping, "rows", label="usage analytics payload.rows"
-        )
+    def from_wire(cls, payload: object) -> SemanticProgressSnapshot:
+        mapping = _require_mapping(payload, label="semantic progress snapshot")
         return cls(
-            subject=UsageAnalyticsSubject.from_wire(mapping.get("subject")),
-            window=UsageAnalyticsWindow.from_wire(mapping.get("window")),
-            totals=UsageAnalyticsTotals.from_wire(mapping.get("totals")),
-            buckets=[
-                UsageAnalyticsBucket.from_wire(bucket_payload)
-                for bucket_payload in buckets_payload
+            project_id=_require_string(
+                mapping,
+                "project_id",
+                label="semantic progress snapshot.project_id",
+            ),
+            run_id=_optional_string(mapping, "run_id"),
+            primary_parent=(
+                PrimaryParentRef.from_wire(mapping.get("primary_parent"))
+                if mapping.get("primary_parent") is not None
+                else None
+            ),
+            run_progress=(
+                RunProgress.from_wire(mapping.get("run_progress"))
+                if mapping.get("run_progress") is not None
+                else None
+            ),
+            open_ended_questions=[
+                OpenEndedQuestion.from_wire(item)
+                for item in _optional_array(mapping, "open_ended_questions")
             ],
-            rows=[UsageAnalyticsRow.from_wire(row_payload) for row_payload in rows_payload],
-            page_info=UsageAnalyticsPageInfo.from_wire(mapping.get("pageInfo")),
+            directed_effort_outcomes=[
+                DirectedEffortOutcome.from_wire(item)
+                for item in _optional_array(mapping, "directed_effort_outcomes")
+            ],
+            milestones=[
+                MilestoneProgress.from_wire(item)
+                for item in _optional_array(mapping, "milestones")
+            ],
+            primary_parent_milestones=[
+                MilestoneProgress.from_wire(item)
+                for item in _optional_array(mapping, "primary_parent_milestones")
+            ],
+            experiments=[
+                ExperimentProgress.from_wire(item)
+                for item in _optional_array(mapping, "experiments")
+            ],
         )
+
+
+ProjectSetupAuthorityStatus = SmrProjectSetupStatus
+ProjectSetupAuthorityReason = SmrProjectSetupReason
+ProjectSetupAuthority = SmrProjectSetup
+LaunchPreflightBlocker = SmrLaunchPreflightBlocker
+LaunchPreflight = SmrLaunchPreflight
 
 
 __all__ = [
-    "ProjectReadiness",
+    "CredentialRef",
+    "DirectedEffortOutcome",
+    "ExperimentProgress",
+    "ExternalRepository",
+    "InlineExternalRepositoryBinding",
+    "LaunchPreflight",
+    "LaunchPreflightBlocker",
+    "MilestoneProgress",
+    "OpenEndedQuestion",
+    "ParentObjectiveEvaluationState",
+    "ParentObjectiveKind",
+    "PrimaryParentRef",
+    "ProjectSetupAuthority",
+    "ProjectSetupAuthorityReason",
+    "ProjectSetupAuthorityStatus",
     "ProviderKeyStatus",
     "RecommendedAction",
+    "ResourceUploadResult",
     "RunProgress",
-    "UsageAnalyticsBreakdown",
-    "UsageAnalyticsBucket",
-    "UsageAnalyticsPageInfo",
-    "UsageAnalyticsPayload",
-    "UsageAnalyticsRow",
-    "UsageAnalyticsSubject",
-    "UsageAnalyticsTotals",
-    "UsageAnalyticsWindow",
+    "RunCredentialBinding",
+    "RunFileMount",
+    "RunOutputFile",
+    "RunRepositoryMount",
+    "RunResourceBindings",
+    "SemanticProgressSnapshot",
+    "StoredFile",
     "WorkspaceFileInput",
     "WorkspaceInputsState",
     "WorkspaceSourceRepo",

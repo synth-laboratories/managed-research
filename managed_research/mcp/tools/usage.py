@@ -10,34 +10,53 @@ from managed_research.mcp.registry import ToolDefinition, tool_schema
 def build_usage_tools(server: Any) -> list[ToolDefinition]:
     return [
         ToolDefinition(
-            name="smr_get_usage_analytics",
-            description="Fetch gross usage vs billed amount analytics for an org or managed account.",
+            name="smr_get_billing_entitlements",
+            description="Fetch the canonical org-level entitlement snapshot.",
+            input_schema=tool_schema({}, required=[]),
+            handler=server._tool_get_billing_entitlements,
+        ),
+        ToolDefinition(
+            name="smr_get_run_usage",
+            description="Fetch canonical nominal, billed, internal, token, and breakdown usage for a run.",
             input_schema=tool_schema(
                 {
-                    "subject_kind": {
+                    "run_id": {
                         "type": "string",
-                        "enum": ["org", "managed_account"],
-                        "description": "Analytics subject kind.",
+                        "description": "Run id.",
                     },
-                    "org_id": {"type": "string", "description": "Org id when querying org-scoped usage."},
-                    "managed_account_id": {
-                        "type": "string",
-                        "description": "Managed pooled-account id when querying managed-account usage.",
-                    },
-                    "start_at": {"type": "string", "description": "Inclusive ISO datetime window start."},
-                    "end_at": {"type": "string", "description": "Exclusive ISO datetime window end."},
-                    "bucket": {
-                        "type": "string",
-                        "enum": ["AUTO", "HOUR", "DAY", "WEEK"],
-                        "description": "Chart bucket size.",
-                    },
-                    "first": {"type": "integer", "description": "Maximum drilldown rows to return."},
-                    "after": {"type": "string", "description": "Opaque pagination cursor from a previous response."},
                 },
-                required=["subject_kind", "start_at", "end_at", "bucket", "first"],
+                required=["run_id"],
             ),
-            handler=server._tool_get_usage_analytics,
-        )
+            handler=server._tool_get_run_usage,
+        ),
+        ToolDefinition(
+            name="smr_get_project_usage",
+            description="Fetch canonical project usage rollups and budgets.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project id.",
+                    },
+                },
+                required=["project_id"],
+            ),
+            handler=server._tool_get_project_usage,
+        ),
+        ToolDefinition(
+            name="smr_get_project_economics",
+            description="Fetch canonical project economics: usage, entitlements, and overlay posture.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Project id.",
+                    },
+                },
+                required=["project_id"],
+            ),
+            handler=server._tool_get_project_economics,
+        ),
     ]
 
 

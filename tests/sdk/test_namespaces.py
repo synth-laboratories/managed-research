@@ -32,5 +32,7 @@ def test_namespace_properties_are_stable() -> None:
     assert client.workspace_inputs is client.workspace_inputs
     assert client.progress is client.progress
     assert client.usage is client.usage
+    assert callable(client.runs.get_logical_timeline)
+    assert callable(client.runs.branch_from_checkpoint)
 
     client.close()

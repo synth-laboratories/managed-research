@@ -3,7 +3,7 @@ requires = ["hatchling>=1.27.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "synth-managed-research"
+name = "managed-research"
 version = "0.2025.0409"
 description = "Public SDK, MCP, and schemas for Managed Research."
 readme = "PACKAGE_README.md"

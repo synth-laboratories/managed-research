@@ -62,20 +62,6 @@ _STATIC_ENUM_SPECS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
         ("synth_managed", "customer_byok", "user_connected"),
     ),
     (
-        "smr_usage_types.py",
-        "SmrUsageType",
-        "usage_type",
-        (
-            "inference",
-            "metered_tool",
-            "metered_infra",
-            "sandbox",
-            "coding_agent",
-            "research",
-            "other",
-        ),
-    ),
-    (
         "smr_credential_providers.py",
         "SmrCredentialProvider",
         "provider",

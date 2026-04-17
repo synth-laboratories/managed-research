@@ -48,7 +48,10 @@ def build_progress_tools(server: Any) -> list[ToolDefinition]:
     return [
         ToolDefinition(
             name="smr_get_project_setup",
-            description="Fetch the pure project setup projection for a managed research project.",
+            description=(
+                "Fetch the canonical project setup authority for a managed research "
+                "project."
+            ),
             input_schema=tool_schema(
                 {"project_id": {"type": "string", "description": "Managed research project id."}},
                 required=["project_id"],
@@ -57,7 +60,10 @@ def build_progress_tools(server: Any) -> list[ToolDefinition]:
         ),
         ToolDefinition(
             name="smr_prepare_project_setup",
-            description="Run the explicit project setup preparation/bootstrap flow for API and eval callers.",
+            description=(
+                "Run the explicit setup-authority preparation step before launch "
+                "preflight and trigger."
+            ),
             input_schema=tool_schema(
                 {"project_id": {"type": "string", "description": "Managed research project id."}},
                 required=["project_id"],
@@ -66,7 +72,9 @@ def build_progress_tools(server: Any) -> list[ToolDefinition]:
         ),
         ToolDefinition(
             name="smr_get_launch_preflight",
-            description="Fetch the authoritative launch preflight for a concrete run request.",
+            description=(
+                "Fetch the canonical launch preflight for a concrete run request."
+            ),
             input_schema=tool_schema(
                 {
                     "project_id": {"type": "string", "description": "Managed research project id."},
@@ -100,34 +108,37 @@ def build_progress_tools(server: Any) -> list[ToolDefinition]:
                     "initial_runtime_messages": {"type": "array", "items": {"type": "object"}, "description": "Optional kickoff runtime messages."},
                     "workflow": {"type": "object", "description": "Optional workflow payload."},
                     "sandbox_override": {"type": "object", "description": "Optional sandbox override."},
+                    "local_execution": {
+                        "type": "object",
+                        "description": "Explicit synth-dev local lane identity for slot-backed launches.",
+                    },
+                    "execution_profile": {
+                        "type": "object",
+                        "description": "Explicit product execution profile for local docker/daytona launches.",
+                    },
                     "run_policy": run_policy_input_schema(),
+                    "kickoff_contract": {
+                        "type": "object",
+                        "description": "Optional staged-run kickoff contract.",
+                    },
+                    "resource_bindings": {
+                        "type": "object",
+                        "description": "Optional Phase 3 run resource bindings for external repos and credential refs.",
+                    },
+                    "primary_parent_ref": {
+                        "type": "object",
+                        "description": "Optional existing project-scoped parent objective binding.",
+                    },
+                    "primary_parent": {
+                        "type": "object",
+                        "description": "Optional inline run-scoped parent objective creation payload.",
+                    },
                     "idempotency_key_run_create": {"type": "string", "description": "Optional idempotency key."},
                     "idempotency_key": {"type": "string", "description": "Deprecated compatibility alias."},
                 },
                 required=["project_id", "host_kind", "work_mode"],
             ),
             handler=server._tool_get_launch_preflight,
-        ),
-        ToolDefinition(
-            name="smr_get_project_readiness",
-            description="Fetch a project readiness projection with blockers and recommended next actions.",
-            input_schema=tool_schema(
-                {"project_id": {"type": "string", "description": "Managed research project id."}},
-                required=["project_id"],
-            ),
-            handler=server._tool_get_project_readiness,
-        ),
-        ToolDefinition(
-            name="smr_get_run_progress",
-            description="Fetch a run progress projection with blockers and recommended next actions.",
-            input_schema=tool_schema(
-                {
-                    "project_id": {"type": "string", "description": "Managed research project id."},
-                    "run_id": {"type": "string", "description": "Run id."},
-                },
-                required=["project_id", "run_id"],
-            ),
-            handler=server._tool_get_run_progress,
         ),
     ]
 

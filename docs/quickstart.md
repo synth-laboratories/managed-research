@@ -18,7 +18,7 @@ These are intentionally separate surfaces.
 Install the published package:
 
 ```bash
-uv add synth-managed-research
+uv add managed-research
 ```
 
 Use the Python SDK:
@@ -27,12 +27,15 @@ Use the Python SDK:
 from pathlib import Path
 
 from managed_research import (
+    LaunchPreflight,
+    ProjectSetupAuthority,
     SmrActorModelAssignment,
     SmrActorType,
     SmrAgentProfileBindings,
     SmrControlClient,
     SmrEnvironmentKind,
     SmrHostKind,
+    SmrProjectSetupStatus,
     SmrRunnableProjectRequest,
     SmrRuntimeKind,
     SmrWorkMode,
@@ -72,16 +75,20 @@ kickoff = [
         "mode": "queue",
     }
 ]
-client.setup.prepare(project_id)
+setup_authority: ProjectSetupAuthority = client.progress.get_project_setup_authority(
+    project_id
+)
+if setup_authority.state is not SmrProjectSetupStatus.READY:
+    setup_authority = client.progress.prepare_project_setup_authority(project_id)
 client.get_capacity_lane_preview(project_id)
-preflight = client.get_launch_preflight(
+preflight: LaunchPreflight = client.progress.get_launch_preflight(
     project_id,
     host_kind=SmrHostKind.DAYTONA,
     work_mode=SmrWorkMode.DIRECTED_EFFORT,
     agent_profile="codex_gpt_5_4_medium",
     initial_runtime_messages=kickoff,
 )
-if preflight["clear_to_trigger"]:
+if preflight.clear_to_trigger:
     client.trigger_run(
         project_id,
         host_kind=SmrHostKind.DAYTONA,
@@ -147,14 +154,6 @@ client.trigger_run(
 After extracting the archive, validate the submission with the project-specific
 harness you are targeting.
 
-Compatibility note:
-
-- `create_project({...})` remains available for low-level callers, but it is not
-  the recommended launch path for evals or new integrations
-- `get_project_readiness(project_id)` is now a compatibility alias over the pure
-  setup projection; use `client.setup.get(...)` or `client.get_project_setup(...)`
-  for the primary flow
-
 Kickoff migration note:
 
 - use `initial_runtime_messages` for opening intent
@@ -174,7 +173,7 @@ claude mcp add --transport http managed-research https://api.usesynth.ai/mcp
 Local stdio fallback:
 
 ```bash
-uv tool install synth-managed-research
+uv tool install managed-research
 managed-research-mcp
 ```
 
@@ -189,5 +188,6 @@ For MCP clients, the equivalent flow is:
 7. `smr_get_capacity_lane_preview`
 8. `smr_get_launch_preflight`
 9. `smr_trigger_run`
-10. `smr_get_run`
+10. `smr_get_run` plus noun reads such as `smr_list_run_questions`,
+    `smr_open_ended_questions`, and `smr_directed_effort_outcomes`
 11. `smr_get_workspace_download_url`, `smr_download_workspace_archive`, or `smr_get_project_git`

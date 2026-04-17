@@ -49,9 +49,9 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
         ToolDefinition(
             name="smr_trigger_run",
             description=(
-                "Trigger a managed research run. Call smr_get_capacity_lane_preview and "
-                "smr_get_run_start_blockers first when you want a user-facing launch check, "
-                "and always branch on result.error in MCP clients."
+                "Trigger a managed research run. Follow the canonical setup -> "
+                "launch-preflight -> trigger flow, and always branch on "
+                "result.error in MCP clients."
             ),
             input_schema=tool_schema(
                 {
@@ -108,7 +108,31 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "type": "object",
                         "description": "Optional sandbox override.",
                     },
+                    "local_execution": {
+                        "type": "object",
+                        "description": "Explicit synth-dev local lane identity for slot-backed launches.",
+                    },
+                    "execution_profile": {
+                        "type": "object",
+                        "description": "Explicit product execution profile for local docker/daytona launches.",
+                    },
                     "run_policy": run_policy_input_schema(),
+                    "kickoff_contract": {
+                        "type": "object",
+                        "description": "Optional staged-run kickoff contract. This becomes the authoritative staged contract persisted on the run.",
+                    },
+                    "resource_bindings": {
+                        "type": "object",
+                        "description": "Optional Phase 3 run resource bindings for external repos and credential refs.",
+                    },
+                    "primary_parent_ref": {
+                        "type": "object",
+                        "description": "Optional existing project-scoped parent objective binding.",
+                    },
+                    "primary_parent": {
+                        "type": "object",
+                        "description": "Optional inline run-scoped parent objective creation payload.",
+                    },
                     "idempotency_key_run_create": {
                         "type": "string",
                         "description": "Optional idempotency key for the launch request.",
@@ -152,6 +176,68 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_get_run,
         ),
         ToolDefinition(
+            name="smr_get_run_logical_timeline",
+            description=(
+                "Read the operator-facing logical timeline for a run. "
+                "Use this for checkpoint, branch, and queue chronology instead of the low-level runtime timeline."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_get_run_logical_timeline,
+        ),
+        ToolDefinition(
+            name="smr_get_run_traces",
+            description=(
+                "Read persisted run traces for a run. "
+                "Use this to inspect or download session-backed Codex traces and other persisted operator-facing trace artifacts."
+            ),
+            input_schema=tool_schema(
+                {
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
+                },
+                required=["run_id"],
+            ),
+            handler=server._tool_get_run_traces,
+        ),
+        ToolDefinition(
+            name="smr_get_run_actor_usage",
+            description=(
+                "Read actor-centric usage for a run. "
+                "Use this for truthful per-actor spend, provider, and model activity rather than guessing from worker config."
+            ),
+            input_schema=tool_schema(
+                {
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
+                },
+                required=["run_id"],
+            ),
+            handler=server._tool_get_run_actor_usage,
+        ),
+        ToolDefinition(
+            name="smr_get_run_primary_parent",
+            description="Fetch the bound primary parent objective for a run.",
+            input_schema=tool_schema(
+                {
+                    "run_id": {"type": "string", "description": "Run id."},
+                },
+                required=["run_id"],
+            ),
+            handler=server._tool_get_run_primary_parent,
+        ),
+        ToolDefinition(
             name="smr_stop_run",
             description="Stop a queued or running run.",
             input_schema=tool_schema(
@@ -167,10 +253,86 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_stop_run,
         ),
         ToolDefinition(
+            name="smr_pause_run",
+            description="Pause a live run without stopping it.",
+            input_schema=tool_schema(
+                {
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
+                },
+                required=["run_id"],
+            ),
+            handler=server._tool_pause_run,
+        ),
+        ToolDefinition(
+            name="smr_resume_run",
+            description="Resume a paused run.",
+            input_schema=tool_schema(
+                {
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
+                },
+                required=["run_id"],
+            ),
+            handler=server._tool_resume_run,
+        ),
+        ToolDefinition(
+            name="smr_branch_run_from_checkpoint",
+            description=(
+                "Create a child run from a checkpoint. "
+                "Use mode=exact for a pure branch and mode=with_message to seed the child with one bootstrap message."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement. Requires run_id when present.",
+                    },
+                    "run_id": {"type": "string", "description": "Optional run id scope."},
+                    "checkpoint_id": {
+                        "type": "string",
+                        "description": "Checkpoint id reference.",
+                    },
+                    "checkpoint_record_id": {
+                        "type": "string",
+                        "description": "Checkpoint record id reference.",
+                    },
+                    "checkpoint_uri": {
+                        "type": "string",
+                        "description": "Checkpoint URI reference.",
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": ["exact", "with_message"],
+                        "description": "Whether to create an exact branch or bootstrap the child with a new message.",
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Required when mode=with_message.",
+                    },
+                    "reason": {"type": "string", "description": "Optional operator reason."},
+                    "title": {"type": "string", "description": "Optional branch label."},
+                    "source_node_id": {
+                        "type": "string",
+                        "description": "Optional logical timeline node provenance.",
+                    },
+                },
+                required=[],
+            ),
+            handler=server._tool_branch_run_from_checkpoint,
+        ),
+        ToolDefinition(
             name="smr_runtime_message_queue",
             description=(
                 "List or enqueue durable runtime messages for a run. "
-                "Use operation=list for inspection and operation=enqueue for operator steering."
+                "Use operation=list for inspection and operation=enqueue for live operator steering. "
+                "Do not use this tool to branch from checkpoints."
             ),
             input_schema=tool_schema(
                 {
@@ -298,7 +460,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
         ),
         ToolDefinition(
             name="smr_restore_run_checkpoint",
-            description="Restore a run to a checkpoint.",
+            description="Restore a run to a checkpoint. Use smr_branch_run_from_checkpoint for child-run branching.",
             input_schema=tool_schema(
                 {
                     "run_id": {"type": "string", "description": "Run id."},

@@ -1,4 +1,4 @@
-# synth-managed-research
+# managed-research
 
 Managed Research is Synth's product for applied AI teams that want repeatable,
 inspectable research workflows against real repos. Wave 1 is strongest at
@@ -29,21 +29,30 @@ Python import surface:
 from managed_research.sdk.client import SmrControlClient
 ```
 
+OpenAI Agents SDK bridge via `synth-ai`:
+
+- install with `uv add synth-ai`
+- use `client.openai_agents_sdk` from `SmrControlClient`
+- set `openai_transport_mode` to `backend_bff`, `direct_hp`, or `auto`
+  (`auto` is backend-first with fallback to direct on `404/405/501`)
+
 Recommended launch flow:
 
+- create a runnable project
+- inspect or prepare project setup
 - attach source repo or upload workspace files
 - optionally set or append project notebook notes
 - optionally set org or project curated knowledge
-- check readiness
 - preview lane with `get_capacity_lane_preview`
-- inspect blockers with `get_run_start_blockers`
+- run launch preflight with `get_launch_preflight`
 - trigger with `trigger_run`
-- monitor progress
+- inspect the run plus noun reads like questions, OEQs, DEOs, milestones,
+  experiments, and the run primary parent
 - retrieve the project workspace snapshot
 
 Kickoff intent is queue-first:
 
-- use `initial_runtime_messages` on blockers and trigger
+- use `initial_runtime_messages` on launch preflight and trigger
 - the legacy `prompt` field is no longer accepted
 - migrate `prompt="..."` to
   `initial_runtime_messages=[{"body": "...", "mode": "queue"}]`
@@ -74,7 +83,7 @@ claude mcp add --transport http managed-research https://api.usesynth.ai/mcp
 Local stdio fallback:
 
 ```bash
-uv tool install synth-managed-research
+uv tool install managed-research
 managed-research-mcp
 ```
 
