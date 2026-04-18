@@ -30,14 +30,24 @@ from managed_research.mcp.request_models import (
 )
 from managed_research.mcp.tools.approvals import build_approval_tools
 from managed_research.mcp.tools.artifacts import build_artifact_tools
+from managed_research.mcp.tools.datasets import build_dataset_tools
+from managed_research.mcp.tools.exports import build_export_tools
+from managed_research.mcp.tools.files import build_file_tools
+from managed_research.mcp.tools.github import build_github_tools
 from managed_research.mcp.tools.integrations import build_integration_tools
 from managed_research.mcp.tools.logs import build_log_tools
+from managed_research.mcp.tools.models import build_model_tools
+from managed_research.mcp.tools.outputs import build_output_tools
 from managed_research.mcp.tools.progress import build_progress_tools
 from managed_research.mcp.tools.projects import build_project_tools
+from managed_research.mcp.tools.prs import build_pr_tools
+from managed_research.mcp.tools.readiness import build_readiness_tools
+from managed_research.mcp.tools.repos import build_repo_tools
 from managed_research.mcp.tools.resources import build_resource_tools
 from managed_research.mcp.tools.runs import build_run_tools
 from managed_research.mcp.tools.usage import build_usage_tools
 from managed_research.mcp.tools.workspace_inputs import build_workspace_input_tools
+from managed_research.mcp.tools.trained_models import build_trained_model_tools
 from managed_research.sdk.client import SmrControlClient
 from managed_research.version import __version__
 
@@ -143,6 +153,15 @@ class ManagedResearchMcpServer:
         return [
             *build_project_tools(self),
             *build_workspace_input_tools(self),
+            *build_github_tools(self),
+            *build_export_tools(self),
+            *build_repo_tools(self),
+            *build_dataset_tools(self),
+            *build_file_tools(self),
+            *build_pr_tools(self),
+            *build_model_tools(self),
+            *build_output_tools(self),
+            *build_readiness_tools(self),
             *build_resource_tools(self),
             *build_run_tools(self),
             *build_progress_tools(self),
@@ -151,6 +170,7 @@ class ManagedResearchMcpServer:
             *build_artifact_tools(self),
             *build_integration_tools(self),
             *build_usage_tools(self),
+            *build_trained_model_tools(self),
         ]
 
     def _tool_health_check(self, args: JSONDict) -> Any:
@@ -179,10 +199,166 @@ class ManagedResearchMcpServer:
                 checks["project_status"] = client.get_project_status(project_id)
         return {"ok": True, "checks": checks}
 
+    def _tool_setup_github_status(self, args: JSONDict) -> Any:
+        with self._client_from_args(args) as client:
+            return client.get_github_status()
+
+    def _tool_setup_github_start_oauth(self, args: JSONDict) -> Any:
+        redirect_uri = optional_string(args, "redirect_uri")
+        with self._client_from_args(args) as client:
+            return client.start_github_oauth(redirect_uri=redirect_uri)
+
+    def _tool_setup_github_list_repos(self, args: JSONDict) -> Any:
+        page = optional_int(args, "page")
+        per_page = optional_int(args, "per_page")
+        with self._client_from_args(args) as client:
+            return {
+                "repos": client.list_github_repos(page=page, per_page=per_page),
+            }
+
+    def _tool_setup_github_disconnect(self, args: JSONDict) -> Any:
+        with self._client_from_args(args) as client:
+            return client.disconnect_github()
+
+    def _tool_setup_exports_list_targets(self, args: JSONDict) -> Any:
+        with self._client_from_args(args) as client:
+            return client.list_export_targets()
+
+    def _tool_setup_exports_create_target(self, args: JSONDict) -> Any:
+        label = require_string(args, "label")
+        bucket = require_string(args, "bucket")
+        access_key_id = require_string(args, "access_key_id")
+        secret_access_key = require_string(args, "secret_access_key")
+        prefix = optional_string(args, "prefix")
+        region = optional_string(args, "region")
+        endpoint_url = optional_string(args, "endpoint_url")
+        with self._client_from_args(args) as client:
+            return client.create_export_target(
+                {
+                    "kind": "s3",
+                    "label": label,
+                    "config": {
+                        "bucket": bucket,
+                        "prefix": prefix,
+                        "region": region,
+                        "endpoint_url": endpoint_url,
+                    },
+                    "access_key_id": access_key_id,
+                    "secret_access_key": secret_access_key,
+                }
+            )
+
+    def _tool_work_repos_list(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.list_project_repo_bindings(project_id)
+
+    def _tool_work_repos_attach(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        github_repo = require_string(args, "github_repo")
+        pr_write_enabled = optional_bool(args, "pr_write_enabled", default=False)
+        with self._client_from_args(args) as client:
+            return client.attach_project_repo(
+                project_id,
+                repo=github_repo,
+                pr_write_enabled=pr_write_enabled,
+            )
+
+    def _tool_work_repos_detach(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        github_repo = require_string(args, "github_repo")
+        with self._client_from_args(args) as client:
+            return client.detach_project_repo(project_id, repo=github_repo)
+
+    def _tool_work_datasets_list(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.list_project_datasets(project_id)
+
+    def _tool_work_datasets_upload(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        name = require_string(args, "name")
+        content = require_string(args, "content")
+        payload: dict[str, Any] = {
+            "name": name,
+            "content": content,
+            "encoding": optional_string(args, "encoding") or "text",
+        }
+        content_type = optional_string(args, "content_type")
+        format_value = optional_string(args, "format")
+        row_count = optional_int(args, "row_count")
+        metadata = args.get("metadata")
+        if content_type is not None:
+            payload["content_type"] = content_type
+        if format_value is not None:
+            payload["format"] = format_value
+        if row_count is not None:
+            payload["row_count"] = row_count
+        if isinstance(metadata, dict):
+            payload["metadata"] = dict(metadata)
+        with self._client_from_args(args) as client:
+            return client.upload_project_dataset(project_id, payload)
+
+    def _tool_work_datasets_download(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        dataset_id = require_string(args, "dataset_id")
+        with self._client_from_args(args) as client:
+            return client.download_project_dataset(project_id, dataset_id)
+
+    def _tool_results_outputs_list(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.list_project_outputs(project_id)
+
+    def _tool_results_prs_list(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.list_project_prs(project_id)
+
+    def _tool_results_prs_get(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        pr_id = require_string(args, "pr_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_pr(project_id, pr_id)
+
+    def _tool_results_models_list(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.list_project_models(project_id)
+
+    def _tool_results_models_get(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        model_id = require_string(args, "model_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_model(project_id, model_id)
+
+    def _tool_results_models_download(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        model_id = require_string(args, "model_id")
+        with self._client_from_args(args) as client:
+            return client.download_project_model(project_id, model_id)
+
+    def _tool_results_models_export(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        model_id = require_string(args, "model_id")
+        with self._client_from_args(args) as client:
+            return client.export_project_model(project_id, model_id)
+
+    def _tool_status_readiness(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_readiness(project_id)
+
     def _tool_create_runnable_project(self, args: JSONDict) -> Any:
         request = RunnableProjectCreateRequest.from_payload(args)
         with self._client_from_args(args) as client:
             return client.create_runnable_project(request.request)
+
+    def _tool_create_project(self, args: JSONDict) -> Any:
+        config = args.get("config")
+        if config is not None and not isinstance(config, dict):
+            raise ValueError("'config' must be an object when provided")
+        return self._tool_create_runnable_project(args)
 
     def _tool_list_projects(self, args: JSONDict) -> Any:
         include_archived = optional_bool(args, "include_archived", default=False)
@@ -408,6 +584,79 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.upload_workspace_files(request.project_id, request.files)
 
+    # --- trained model registry --------------------------------------------
+
+    @staticmethod
+    def _optional_float_arg(payload: JSONDict, key: str) -> float | None:
+        value = payload.get(key)
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            raise ValueError(f"{key} must be a number, not bool")
+        try:
+            return float(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{key} must be a number") from exc
+
+    def _tool_register_trained_model(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        base_model = require_string(args, "base_model")
+        method = require_string(args, "method")
+        tinker_path = require_string(args, "tinker_path")
+        metadata = args.get("metadata")
+        if metadata is not None and not isinstance(metadata, dict):
+            raise ValueError("metadata must be an object")
+        with self._client_from_args(args) as client:
+            return client.trained_models.register(
+                run_id=run_id,
+                base_model=base_model,
+                method=method,
+                tinker_path=tinker_path,
+                task_id=optional_string(args, "task_id"),
+                episode_id=optional_string(args, "episode_id"),
+                lora_rank=optional_int(args, "lora_rank"),
+                base_metric=self._optional_float_arg(args, "base_metric"),
+                tuned_metric=self._optional_float_arg(args, "tuned_metric"),
+                uplift_abs=self._optional_float_arg(args, "uplift_abs"),
+                train_cost_usd=self._optional_float_arg(args, "train_cost_usd"),
+                metadata=metadata or {},
+            )
+
+    def _tool_get_trained_model(self, args: JSONDict) -> Any:
+        model_id = require_string(args, "model_id")
+        with self._client_from_args(args) as client:
+            return client.trained_models.get(model_id)
+
+    def _tool_list_trained_models_for_run(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.trained_models.list_for_run(run_id)
+
+    def _tool_update_trained_model(self, args: JSONDict) -> Any:
+        model_id = require_string(args, "model_id")
+        metadata_patch = args.get("metadata_patch")
+        if metadata_patch is not None and not isinstance(metadata_patch, dict):
+            raise ValueError("metadata_patch must be an object")
+        with self._client_from_args(args) as client:
+            return client.trained_models.update(
+                model_id,
+                tuned_metric=self._optional_float_arg(args, "tuned_metric"),
+                uplift_abs=self._optional_float_arg(args, "uplift_abs"),
+                train_cost_usd=self._optional_float_arg(args, "train_cost_usd"),
+                status=optional_string(args, "status"),
+                metadata_patch=metadata_patch,
+            )
+
+    def _tool_delete_trained_model(self, args: JSONDict) -> Any:
+        model_id = require_string(args, "model_id")
+        with self._client_from_args(args) as client:
+            return client.trained_models.delete(model_id)
+
+    def _tool_get_run_cost_summary(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.run_cost.summary(run_id)
+
     def _tool_list_project_files(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         visibility = optional_string(args, "visibility")
@@ -456,7 +705,7 @@ class ManagedResearchMcpServer:
         artifact_type = optional_string(args, "artifact_type")
         limit = optional_int(args, "limit")
         with self._client_from_args(args) as client:
-            return client.list_run_output_files(
+            return client.files.list_outputs(
                 run_id,
                 artifact_type=artifact_type,
                 limit=limit,
@@ -464,12 +713,12 @@ class ManagedResearchMcpServer:
 
     def _tool_get_run_output_file_content(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
-        artifact_id = require_string(args, "artifact_id")
+        output_file_id = require_string(args, "output_file_id")
         disposition = optional_string(args, "disposition") or "inline"
         with self._client_from_args(args) as client:
-            return client.get_run_output_file_content(
+            return client.files.get_output_content(
                 run_id,
-                artifact_id,
+                output_file_id,
                 disposition=disposition,
             )
 
@@ -597,6 +846,19 @@ class ManagedResearchMcpServer:
                 return payload
             raise
 
+    def _tool_get_run_start_blockers(self, args: JSONDict) -> Any:
+        request = RunLaunchRequest.from_payload(args)
+        with self._client_from_args(args) as client:
+            if hasattr(client, "get_run_start_blockers"):
+                return client.get_run_start_blockers(
+                    request.project_id,
+                    **request.client_kwargs(),
+                )
+            return client.get_launch_preflight(
+                request.project_id,
+                **request.client_kwargs(),
+            )
+
     def _tool_list_runs(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         active_only = optional_bool(args, "active_only", default=False)
@@ -700,7 +962,7 @@ class ManagedResearchMcpServer:
                         if str(item).strip()
                     ]
                     viewer_target = cleaned_targets or None
-                return client.list_runtime_messages(
+                return client.runs.list_runtime_messages(
                     run_id,
                     status=status,
                     viewer_role=viewer_role,
@@ -831,7 +1093,7 @@ class ManagedResearchMcpServer:
         project_id = require_string(args, "project_id")
         run_id = require_string(args, "run_id")
         with self._client_from_args(args) as client:
-            return client.list_run_log_archives(project_id, run_id)
+            return client.logs.list_run_archives(project_id, run_id)
 
     def _tool_get_launch_preflight(self, args: JSONDict) -> Any:
         request = RunLaunchRequest.from_payload(args)

@@ -29,6 +29,21 @@ reads such as `get_run(...)`, `list_run_questions(...)`,
 
 Raw dict/list compatibility still exists on `SmrControlClient` where MCP and lower-level callers depend on wire-shaped payloads.
 
+Noun-first namespaces now mirror the customer surface:
+
+- org-scoped setup: `client.github`, `client.credentials`, `client.exports`
+- project-scoped work/results/status: `client.project(id).repos`, `.datasets`,
+  `.files`, `.prs`, `.models`, `.outputs`, and `.readiness()`
+
+Contract posture:
+
+- backend route and schema shape stay authoritative through
+  `/Users/joshpurtell/Documents/GitHub/backend/smr_openapi.yaml`
+- backend-to-SDK drift is checked with
+  `/Users/joshpurtell/Documents/GitHub/backend/scripts/validate_smr_openapi.py`
+- legacy names may remain as wrappers, but new noun behavior belongs only on
+  the flat namespaces above
+
 Examples:
 
 ```python

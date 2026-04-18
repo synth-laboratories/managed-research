@@ -21,6 +21,13 @@ Install the published package:
 uv add managed-research
 ```
 
+Use the Python SDK. The durable setup flow is readiness-driven:
+
+1. Connect org-level setup nouns such as GitHub and exports.
+2. Add project work nouns such as repos, datasets, and files.
+3. Check `project.readiness()` until the project is unblocked.
+4. Trigger runs, then inspect result nouns such as PRs, models, and outputs.
+
 Use the Python SDK:
 
 ```python
@@ -59,16 +66,13 @@ project = client.create_runnable_project(
     )
 )
 project_id = project["project_id"]
-client.attach_source_repo(
-    project_id,
-    "https://github.com/synth-laboratories/nanohorizon.git",
-    default_branch="main",
-)
-client.set_project_knowledge(
-    project_id,
-    "Known benchmark constraints, prior prompt findings, and durable lessons for NanoHorizon.",
-)
-client.get_project_knowledge(project_id)
+project_client = client.project(project_id)
+client.github.start_oauth()
+project_client.repos.attach(github_repo="synth-laboratories/nanohorizon")
+project_client.files.upload("constraints.md", name="constraints.md")
+readiness = project_client.readiness()
+if not readiness.get("ready"):
+    raise RuntimeError(f"project not ready: {readiness}")
 kickoff = [
     {
         "body": "Inspect the repo, improve the benchmark-facing workflow, and leave behind evidence that explains what changed.",
@@ -96,7 +100,10 @@ if preflight.clear_to_trigger:
         agent_profile="codex_gpt_5_4_medium",
         initial_runtime_messages=kickoff,
     )
-    client.download_workspace_archive(project_id, Path("nanohorizon-workspace.tar.gz"))
+    prs = project_client.prs.list()
+    models = project_client.models.list()
+    outputs = project_client.outputs.list()
+    export_targets = client.exports.list_targets()
 ```
 
 If you need org-wide durable context instead, use `set_org_knowledge(...)` and
@@ -177,17 +184,17 @@ uv tool install managed-research
 managed-research-mcp
 ```
 
-For MCP clients, the equivalent flow is:
+For MCP clients, the equivalent flow is readiness-first as well:
 
 1. `smr_health_check`
 2. `smr_create_runnable_project` or `smr_list_projects`
-3. `smr_attach_source_repo` or `smr_upload_workspace_files`
-4. optionally `smr_set_project_notes`
-5. optionally `smr_set_project_knowledge`
-6. `smr_prepare_project_setup`
-7. `smr_get_capacity_lane_preview`
-8. `smr_get_launch_preflight`
-9. `smr_trigger_run`
-10. `smr_get_run` plus noun reads such as `smr_list_run_questions`,
-    `smr_open_ended_questions`, and `smr_directed_effort_outcomes`
-11. `smr_get_workspace_download_url`, `smr_download_workspace_archive`, or `smr_get_project_git`
+3. `smr_setup_github_start_oauth`
+4. `smr_work_repos_attach` or `smr_work_files_upload`
+5. optionally `smr_set_project_notes`
+6. optionally `smr_set_project_knowledge`
+7. `smr_prepare_project_setup`
+8. `smr_get_capacity_lane_preview`
+9. `smr_get_launch_preflight`
+10. `smr_trigger_run`
+11. `smr_results_prs_list`, `smr_results_models_list`, and `smr_results_outputs_list`
+12. `smr_get_workspace_download_url`, `smr_download_workspace_archive`, or `smr_get_project_git`

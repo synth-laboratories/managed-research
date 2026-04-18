@@ -442,7 +442,6 @@ class RunFileMount:
 @dataclass(frozen=True)
 class RunOutputFile:
     output_file_id: str
-    artifact_id: str
     org_id: str
     project_id: str
     run_id: str
@@ -452,6 +451,8 @@ class RunOutputFile:
     digest: str | None = None
     path: str | None = None
     content_type: str | None = None
+    failure_reason: str | None = None
+    failure_source: str | None = None
     created_at: str | None = None
     metadata: dict[str, object] = field(default_factory=dict)
 
@@ -461,9 +462,6 @@ class RunOutputFile:
         return cls(
             output_file_id=_require_string(
                 mapping, "output_file_id", label="run output file.output_file_id"
-            ),
-            artifact_id=_require_string(
-                mapping, "artifact_id", label="run output file.artifact_id"
             ),
             org_id=_require_string(mapping, "org_id", label="run output file.org_id"),
             project_id=_require_string(
@@ -476,6 +474,8 @@ class RunOutputFile:
             digest=_optional_string(mapping, "digest"),
             path=_optional_string(mapping, "path"),
             content_type=_optional_string(mapping, "content_type"),
+            failure_reason=_optional_string(mapping, "failure_reason"),
+            failure_source=_optional_string(mapping, "failure_source"),
             created_at=_optional_string(mapping, "created_at"),
             metadata=_optional_object_dict(mapping.get("metadata")),
         )

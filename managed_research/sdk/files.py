@@ -70,7 +70,7 @@ class FilesAPI(_ClientNamespace):
     ) -> list[RunOutputFile]:
         return [
             RunOutputFile.from_wire(item)
-            for item in self._client.list_run_output_files(
+            for item in self._client._list_run_output_files(
                 run_id,
                 artifact_type=artifact_type,
                 limit=limit,
@@ -80,13 +80,13 @@ class FilesAPI(_ClientNamespace):
     def get_output_content(
         self,
         run_id: str,
-        artifact_id: str,
+        output_file_id: str,
         *,
         disposition: str = "inline",
     ) -> dict[str, Any]:
-        return self._client.get_run_output_file_content(
+        return self._client._get_run_output_file_content(
             run_id,
-            artifact_id,
+            output_file_id,
             disposition=disposition,
         )
 

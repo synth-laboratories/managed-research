@@ -1,10 +1,3 @@
-"""Artifact-oriented SDK namespace."""
+"""Artifact namespace removed; use files, logs, and runs canonical surfaces."""
 
-from managed_research.sdk._base import _ClientNamespace
-
-
-class ArtifactsAPI(_ClientNamespace):
-    """Reserved for artifact helpers as they are remigrated."""
-
-
-__all__ = ["ArtifactsAPI"]
+__all__: list[str] = []

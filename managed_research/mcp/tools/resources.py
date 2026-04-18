@@ -101,7 +101,7 @@ def build_resource_tools(server: Any) -> list[ToolDefinition]:
         ),
         ToolDefinition(
             name="smr_list_run_output_files",
-            description="List early-downloadable run output files projected from artifacts.",
+            description="List run output files from the canonical public run-output surface.",
             input_schema=tool_schema(
                 {
                     "run_id": {"type": "string"},
@@ -118,10 +118,10 @@ def build_resource_tools(server: Any) -> list[ToolDefinition]:
             input_schema=tool_schema(
                 {
                     "run_id": {"type": "string"},
-                    "artifact_id": {"type": "string"},
+                    "output_file_id": {"type": "string"},
                     "disposition": {"type": "string"},
                 },
-                required=["run_id", "artifact_id"],
+                required=["run_id", "output_file_id"],
             ),
             handler=server._tool_get_run_output_file_content,
         ),

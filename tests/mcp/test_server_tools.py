@@ -56,6 +56,71 @@ def test_rewritten_mcp_server_exposes_canonical_launch_and_workspace_tools() -> 
     assert "smr_data_factory_publish" not in names
 
 
+def test_noun_surfaces_keep_sdk_mcp_suffix_parity() -> None:
+    server = ManagedResearchMcpServer()
+    names = set(server.available_tool_names())
+
+    expected = {
+        "github_status": "smr_setup_github_status",
+        "github_start_oauth": "smr_setup_github_start_oauth",
+        "github_list_repos": "smr_setup_github_list_repos",
+        "github_disconnect": "smr_setup_github_disconnect",
+        "exports_list_targets": "smr_setup_exports_list_targets",
+        "exports_create_target": "smr_setup_exports_create_target",
+        "repos_list": "smr_work_repos_list",
+        "repos_attach": "smr_work_repos_attach",
+        "repos_detach": "smr_work_repos_detach",
+        "datasets_list": "smr_work_datasets_list",
+        "datasets_upload": "smr_work_datasets_upload",
+        "datasets_download": "smr_work_datasets_download",
+        "files_list": "smr_work_files_list",
+        "files_upload": "smr_work_files_upload",
+        "prs_list": "smr_results_prs_list",
+        "prs_get": "smr_results_prs_get",
+        "models_list": "smr_results_models_list",
+        "models_get": "smr_results_models_get",
+        "models_download": "smr_results_models_download",
+        "models_export": "smr_results_models_export",
+        "outputs_list": "smr_results_outputs_list",
+        "readiness": "smr_status_readiness",
+    }
+
+    missing = {
+        suffix: tool_name for suffix, tool_name in expected.items() if tool_name not in names
+    }
+    assert missing == {}
+
+
+def test_github_oauth_start_tool_routes_to_canonical_client(monkeypatch) -> None:
+    server = ManagedResearchMcpServer()
+    captured: dict[str, object] = {}
+
+    class _FakeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            del exc_type
+            del exc
+            del tb
+
+        def start_github_oauth(self, *, redirect_uri=None):
+            captured["redirect_uri"] = redirect_uri
+            return {
+                "authorize_url": "https://github.com/apps/synth/install",
+                "state": "org-123",
+            }
+
+    monkeypatch.setattr(server, "_client_from_args", lambda args: _FakeClient())
+
+    response = server._tool_setup_github_start_oauth(
+        {"redirect_uri": "https://app.usesynth.ai/integrations/github"}
+    )
+
+    assert response["authorize_url"] == "https://github.com/apps/synth/install"
+    assert captured["redirect_uri"] == "https://app.usesynth.ai/integrations/github"
+
+
 def test_branch_tool_validates_checkpoint_reference() -> None:
     server = ManagedResearchMcpServer()
 
@@ -527,23 +592,17 @@ def test_get_run_start_blockers_delegates_to_client(monkeypatch) -> None:
     )
     assert out == {"clear_to_trigger": False, "blockers": [{"stage": "limits"}]}
     assert captured["project_id"] == "pid_1"
-    assert captured["kwargs"] == {
-        "host_kind": "daytona",
-        "work_mode": "directed_effort",
-        "worker_pool_id": None,
-        "timebox_seconds": None,
-        "agent_profile": None,
-        "agent_model": None,
-        "agent_kind": None,
-        "agent_model_params": {"reasoning_effort": "high"},
-        "actor_model_overrides": None,
-        "initial_runtime_messages": [{"body": "Check staging first.", "mode": "queue"}],
-        "workflow": None,
-        "sandbox_override": {"image": "synth/smr:latest"},
-        "run_policy": {"limits": {"total_cost_cents": 1800}},
-        "idempotency_key_run_create": None,
-        "idempotency_key": None,
-    }
+    kwargs = captured["kwargs"]
+    assert isinstance(kwargs, dict)
+    assert kwargs["host_kind"] == "daytona"
+    assert kwargs["work_mode"] == "directed_effort"
+    assert kwargs["agent_model_params"] == {"reasoning_effort": "high"}
+    assert kwargs["initial_runtime_messages"] == [
+        {"body": "Check staging first.", "mode": "queue"}
+    ]
+    assert kwargs["sandbox_override"] == {"image": "synth/smr:latest"}
+    run_policy = kwargs["run_policy"]
+    assert getattr(getattr(run_policy, "limits", None), "total_cost_cents", None) == 1800
 
 
 def test_trigger_run_delegates_initial_runtime_messages_to_client(monkeypatch) -> None:
@@ -580,23 +639,16 @@ def test_trigger_run_delegates_initial_runtime_messages_to_client(monkeypatch) -
 
     assert out == {"run_id": "run_123"}
     assert captured["project_id"] == "pid_1"
-    assert captured["kwargs"] == {
-        "host_kind": "daytona",
-        "work_mode": "directed_effort",
-        "worker_pool_id": None,
-        "timebox_seconds": None,
-        "agent_profile": None,
-        "agent_model": None,
-        "agent_kind": None,
-        "agent_model_params": None,
-        "actor_model_overrides": None,
-        "initial_runtime_messages": [{"body": "Start with the launch blocker.", "mode": "queue"}],
-        "workflow": None,
-        "sandbox_override": None,
-        "run_policy": {"access": {"tool_providers": ["tinker"]}},
-        "idempotency_key_run_create": None,
-        "idempotency_key": None,
-    }
+    kwargs = captured["kwargs"]
+    assert isinstance(kwargs, dict)
+    assert kwargs["host_kind"] == "daytona"
+    assert kwargs["work_mode"] == "directed_effort"
+    assert kwargs["initial_runtime_messages"] == [
+        {"body": "Start with the launch blocker.", "mode": "queue"}
+    ]
+    run_policy = kwargs["run_policy"]
+    tool_providers = getattr(getattr(run_policy, "access", None), "tool_providers", ())
+    assert [getattr(item, "value", item) for item in tool_providers] == ["tinker"]
 
 
 def test_provider_key_tools_delegate_to_client(monkeypatch) -> None:

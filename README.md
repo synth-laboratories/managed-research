@@ -66,6 +66,12 @@ project = client.create_runnable_project(
             orchestrator_profile_id="codex_gpt_5_4_medium",
             default_worker_profile_id="codex_gpt_5_4_medium",
         ),
+        execution_policy={
+            "timeouts": {
+                "active_turn_timeout_seconds": 900,
+                "orchestrator_first_turn_timeout_seconds": 300,
+            }
+        },
         notes="Operator notebook only. Kickoff intent belongs in runtime messages.",
         scenario="nanohorizon-demo",
     )

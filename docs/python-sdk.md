@@ -108,6 +108,10 @@ changing the internal Synth-managed project repo invariant.
 
 - `client.files` manages durable uploaded files, run file mounts, and early
   run output retrieval
+- `client.runs.list_runtime_messages(run_id)` reads the operator-visible
+  runtime stream, including kickoff/control messages by default
+- `client.logs.list_run_archives(project_id, run_id)` is the canonical log
+  archive reader
 - `client.repositories` manages optional external repositories; these are
   additive context repos and do not replace the internal project repo
 - `client.credentials` manages project-scoped credential refs and run bindings
@@ -143,6 +147,12 @@ project = client.create_runnable_project(
             orchestrator_profile_id="codex_gpt_5_4_medium",
             default_worker_profile_id="codex_gpt_5_4_medium",
         ),
+        execution_policy={
+            "timeouts": {
+                "active_turn_timeout_seconds": 900,
+                "orchestrator_first_turn_timeout_seconds": 300,
+            }
+        },
         notes="Notebook only. Kickoff intent belongs in runtime messages.",
         scenario="nanohorizon-sdk-demo",
     )

@@ -79,21 +79,6 @@ class RunHandle:
             project_id=self.project_id,
         )
 
-    def artifacts(
-        self,
-        *,
-        artifact_type: str | None = None,
-        limit: int | None = None,
-        cursor: str | None = None,
-    ) -> list[dict[str, Any]]:
-        return self._client.list_project_run_artifacts(
-            self.project_id,
-            self.run_id,
-            artifact_type=artifact_type,
-            limit=limit,
-            cursor=cursor,
-        )
-
     def stop(self) -> dict[str, Any]:
         return self._client.stop_run(self.run_id, project_id=self.project_id)
 
@@ -275,7 +260,7 @@ class RunsAPI(_ClientNamespace):
         viewer_target: str | list[str] | None = None,
         limit: int | None = None,
     ) -> list[dict[str, Any]]:
-        return self._client.list_runtime_messages(
+        return self._client._list_runtime_messages(
             run_id,
             status=status,
             viewer_role=viewer_role,

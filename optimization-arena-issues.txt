@@ -1,0 +1,389 @@
+Optimization Arena × Managed Research — Papercuts Log
+======================================================
+
+Running log of friction hit while using managed-research to hillclimb on
+optimizationarena.com/dogfight (and similar leaderboard-style benchmarks).
+Append as we find more. Keep entries short; link code/PRs when relevant.
+
+Intended loop (for reference)
+-----------------------------
+1. create_runnable_project (scenario = optimization-arena-dogfight)
+2. attach_source_repo (arena starter / fork with submission/optimizer.py)
+3. set_project_knowledge (scoring rules, baseline, prior-run takeaways)
+4. preflight + trigger_run with queue-first kickoff
+5. steer via runtime messages while watching experiments
+6. download_workspace_archive → extract submission artifact
+7. upload to optimizationarena.com/dogfight BY HAND
+8. stuff rank + delta back into project_knowledge; re-trigger
+
+
+Papercuts
+---------
+
+[2026-04-17] No first-class score/metric noun
+  SMR has typed nouns for runs, experiments, milestones, questions, OEQs, DEOs —
+  but not for "this artifact scored 0.47 against harness Y." For any
+  benchmark-submission workflow the score IS the point of the run, and today it
+  lives in one of:
+    - stdout / runtime messages (parse-y, fragile)
+    - a convention file the agent writes (scores.jsonl) — every scenario reinvents
+    - project_knowledge text (lossy, unstructured)
+  Wanted: experiment.metrics dict (or submission_score event) with
+  {harness_id, score, artifact_ref, timestamp}, readable via
+  smr_list_experiment_metrics(run_id). Unlocks score-over-time sparkline,
+  automatic knowledge accumulation, typed rollback, cross-run comparison.
+
+[2026-04-17] No first-class "benchmark submission" noun / workflow
+  Nanoprogram is documented as submission-style but there's no SmrSubmissionRequest
+  / verify_submission helper. Every arena integration reinvents
+  "pull archive → run harness → diff score → note."
+
+[2026-04-17] Archive is the only egress path for iterative work
+  download_workspace_archive re-pulls a tarball. For hillclimb cadence you want
+  incremental access to submission/optimizer.py + latest score without
+  re-archiving. smr_get_project_git helps but scoring output isn't first-class.
+
+[2026-04-17] No typed "score regressed, rollback" primitive
+  Dogfight-style hillclimbing is extremely feedback-loop-heavy. Today rollback is
+  a queue message ("revert to the version before X"). Should be a typed interrupt
+  against a specific experiment / commit.
+
+[2026-04-17] smr_limit_exceeded on trigger hits often at hillclimb cadence
+  MCP returns success with structured denial (README:305-318) — subtle, easy to
+  miss. SDK has no retries/backoff helper for this case.
+
+[2026-04-17] Scenario is a magic string
+  scenario="nanohorizon-demo" / "optimization-arena-dogfight" is stringly typed.
+  No Scenario enum, no preflight-validated scenario metadata (expected harness,
+  expected artifact path, expected score shape). Hard to make declarative.
+
+[2026-04-17] project_knowledge vs project_notes vs org_knowledge still confusing
+  README calls it out. For hillclimb the user wants "carry last 3 failed
+  approaches forward" — needs a convention, not three APIs to pick between.
+
+[2026-04-17] No arena-upload connector (by design, but note the cost)
+  Correct boundary — arenas change formats and human checkpoint is desirable.
+  Still, the last-mile "we submitted" moment lives entirely outside Synth, and
+  users alt-tab to the arena site constantly. A copy-artifact-url affordance
+  would help.
+
+
+New entries go below this line — date, one-line title, 1-5 lines of detail.
+
+===============================================================================
+2026-04-17 RERUN (run 56f76ec3, post-eng-fix) — what landed, what didn't
+===============================================================================
+
+FIXED (verified):
+  ✅ Run now terminates as state=failed with lifecycle.failure populated
+     (family=runtime, detail=full error string) instead of wedging in "running"
+     forever. Burn dropped 35c -> 7c because cleanup happens on the first
+     nonretryable rejection.
+  ✅ initial_runtime_messages visible via c.runs.list_runtime_messages —
+     topic=smr.trigger.initial_runtime_message, target=role:orchestrator,
+     seq=1. Operators can now read what the orchestrator saw.
+  ✅ runtime_checkpoint outputs carry typed failure_reason / failure_source
+     when they fail. Prior run had 20× null-reason entries; this run has 1
+     with "RuntimeError: workspace does not exist: /Users/.../workspace"
+     populated.
+
+BROKEN DIFFERENTLY — plan_tasks count check still rejects, new shape
+  The fix counted unique resolved_task_key WITHIN one intent. It does not
+  account for persisted tasks from PRIOR intents on the same run.
+  Run 56f76ec3 log sequence:
+    intent A (1 requested, 1 resolved, 1 persisted) → ACCEPTED, run_task_count=1
+    intent B (2 requested, 2 resolved, 2 persisted) → REJECTED with
+       "repo_like_task_count_mismatch:requested=2:persisted=3"
+  Backend's _plan_persistence_mismatch_reasons() now uses
+  persisted_repo_like_count that counts ALL run tasks (cumulative), compared
+  against requested_repo_like_count from THIS intent only. Any second
+  plan_tasks call on a run will fail this check.
+  Ref: backend/app/smr/runtime/runtime_intents.py — the
+  `_plan_persistence_mismatch_reasons` function needs to either scope
+  persisted-count to tasks added by THIS intent, OR the orchestrator needs
+  to treat plan_tasks as replace-not-append (and backend needs to support
+  that idempotency contract).
+  Orthogonal symptom: orchestrator called plan_tasks twice in 4 seconds with
+  conflicting plans (intent A: task_key=prop-amm-optimize-v1 affinity
+  prop-amm-optimization; intent B: task_keys=prop_amm_baseline_measurement
+  + prop_amm_iteration_1 affinity prop_amm). No overlap. If replanning is
+  intentional, the backend needs replace semantics. If it's not intentional,
+  the orchestrator is double-emitting.
+
+NEW blockers surfaced in reruns
+
+  [2026-04-17] workspace materialization races the first before_actor checkpoint
+    Only runtime_checkpoint_failed entry on this run:
+      failure_reason="RuntimeError: workspace does not exist:
+        /Users/joshpurtell/Documents/GitHub/synth-dev/.out/smr/projects/
+        91b5879f-.../runs/56f76ec3-.../workspace"
+      failure_source=state_machine_runtime
+      turn=1, before_actor:orchestrator
+    The state-machine runtime tries to snapshot the workspace BEFORE the
+    workspace has been materialized. Subsequent checkpoints on the same run
+    succeed (2× runtime_checkpoint_manifest), so it's a turn-1-only race.
+
+  [2026-04-17] Silent profile downgrade still happening
+    Project created with orchestrator_profile_id=codex_gpt_5_4_medium and
+    default_worker_profile_id=codex_gpt_5_4_medium. Plan_tasks intent B
+    shows target_kind=codex_gpt_5_4_mini_medium (the mini variant) for
+    both persisted tasks. Matches the earlier "preflight routed big model
+    to mini" observation. Users get silently downgraded.
+
+  [2026-04-17] `docker image inspection timed out while validating local execution profile` on first trigger
+    Reproducible structured denial on first trigger_run after backend
+    restart:
+      SmrStructuredDenialError: docker image inspection timed out while
+      validating local execution profile reportbench_local_native_docker:
+      synth-local-smr-runtime:95beaf733e9a
+    Shell `docker image inspect` on the same image returned <1s. Backend's
+    validation has an aggressive internal timeout against a cold colima
+    socket. Second trigger_run on the same project succeeded. Transient
+    but will bite any post-restart workflow.
+
+  [2026-04-17] Default SDK HTTP timeout 30s too short for post-restart first call
+    SmrControlClient() default timeout_seconds=30.0 → httpx.ReadTimeout on
+    first create_runnable_project after backend restart (backend doing lazy
+    import/db warmup). Bumped to 120.0 and it worked. 30s is fine steady
+    state, but the first-call-after-restart path needs either a longer
+    default or internal retry.
+
+===============================================================================
+synth-dev local stack papercuts discovered getting to the rerun point
+===============================================================================
+
+  [2026-04-17] `local_cli.py restart <slot> <native services>` silently no-ops when env unchanged
+    Stop+start path exists in _native_restart_processes, but start_service()
+    returns early when existing pid is alive AND
+    _existing_service_matches_expected_env(). Cache hides the fact that the
+    module-level python code (e.g. the eng's runtime_intents.py fix) is
+    STILL STALE — the running process's import cache wasn't invalidated.
+    Reported "starting → ready" for each service with
+    native_restart_processes=7.026s, but PIDs and process start time were
+    unchanged. Had to `kill -9` the pids by hand and re-invoke restart.
+    Ref: synth-dev/slots/native_processes.py `start_service`.
+    The bug is that a SOURCE CODE CHANGE on disk is not part of the env
+    signature used by the equality check, so the cache reuses a stale
+    process. For CLI `restart`, bypass the equality check entirely — the
+    whole point of "restart" is to restart.
+
+  [2026-04-17] resource_watchdog swap threshold not env-configurable
+    synth-dev/local_dev/cli/observability/resource_watchdog.py:29 has
+    _SWAP_USED_BLOCKING_BYTES = 13 * _GIB as a module-level constant. No
+    env override. macOS swap drains lazily after freeing RAM, so even
+    right-sized workloads can hit a false-positive blocker for minutes.
+    Needs LOCAL_DEV_SWAP_BLOCKING_GB or similar escape hatch.
+
+  [2026-04-17] `make down INSTANCE=slotN` doesn't stop dockerized native-service containers
+    Tore down slot2 and slot3 via `make down`. The compose infra containers
+    (db, redis, minio, temporal, victorialogs, git-server, sublinear)
+    stopped correctly. But the `synth-slotN-backend-api-1`,
+    `synth-slotN-smr-runtime-1`, `synth-slotN-temporal-worker-1`,
+    `synth-slotN-rhodes-worker-1`, and `synth-slotN-horizons-private-1`
+    containers kept running. Had to `docker stop` them manually. The
+    active_local_slots watchdog kept counting them as live slots.
+
+===============================================================================
+managed-research SDK namespace drift (need doc update)
+===============================================================================
+
+  [2026-04-17] Top-level list_runtime_messages / list_run_output_files still
+  exist in dir() as private (_list_runtime_messages, _list_run_output_files)
+  but calling the public name raises AttributeError. Per the eng handoff,
+  canonical callers are:
+    - c.runs.list_runtime_messages(run_id)
+    - c.files.list_outputs(run_id=...)        (note: kwarg-only!)
+    - c.files.get_output_content(...)
+  README / docs / any external example code that used the old spellings
+  will AttributeError cold. Also: c.files.list_outputs requires run_id as
+  keyword; positional raises TypeError. Consistent with other methods but
+  no way for the caller to know without reading source.
+  Returned items are typed Pydantic models (RunOutputFile), not dicts. Old
+  code doing `f.get('artifact_type')` raises AttributeError; need
+  `f.artifact_type`. Breaking rename + breaking typing change in the same
+  release.
+
+[2026-04-17] plan_tasks dedupe contradicts its own count-check — BLOCKING
+  Code pointer: backend/app/smr/runtime/runtime_intents.py
+    - semantic_task_dedupe loop around line 1894-2028 (collapses tasks sharing
+      task_affinity_key to one resolved_task_key)
+    - _plan_persistence_mismatch_reasons() at line 336 compares
+      requested_repo_like_count vs persisted_repo_like_count as raw counts
+      (line 342-352) — this runs AFTER dedupe, so any time N>1 tasks share an
+      affinity key, the check fires
+    - Result: SmrPlanTasksIntent rejected with
+      error_code=runtime_intent_nonretryable_failure, orchestrator gives up,
+      run wedges in "running" state forever (state_machine.waiting_fallthrough
+      every ~15s)
+  Trivial fix: count UNIQUE resolved_task_key in requested_task_summaries
+  instead of raw count. Or skip the count check when any requested.resolved_key
+  != requested.task_key (dedupe occurred).
+  Reproduce: any orchestrator that plans 2+ tasks with the same
+  task_affinity_key. Current Codex orchestrator prompt for prop-amm hits this
+  100% — it planned baseline_score + optimize_candidate both with
+  task_affinity_key="prop-amm-optimization".
+
+[2026-04-17] Codex worker active_turn_timeout=120s hardcoded default — BLOCKING for compiled
+  Code pointer: backend/horizons/workers/codex/session.py:77-78
+    _ACTIVE_TURN_TIMEOUT_SECONDS = float(
+        os.getenv("HORIZONS_CODEX_ACTIVE_TURN_TIMEOUT_SECONDS", "120").strip() or "120"
+    )
+  Module-level constant, read once at import. No per-run, per-project, or
+  per-task override. A fresh `cargo install --path crates/cli` on
+  prop-amm-challenge takes minutes on M-series; same for any Rust, C++, Go
+  build-from-scratch benchmark. Also kills Python-with-torch/vllm boot, and
+  anything that clones a large repo first.
+  Also: backend/app/smr/runtime/adapters/actor_runtime.py:119-120 has separate
+  orchestrator first-turn timeouts (default 120s, local-docker 60s) — same
+  shape of hardcoded module-level defaults.
+  Fix: read from run.config / project.config / kickoff_contract, with env var
+  as fallback. Ideally expose as a field on SmrRunnableProjectRequest or
+  execution_policy.
+
+[2026-04-17] Run wedges "running" forever after nonretryable intent rejection
+  When plan_tasks fails nonretryably, the state machine enters
+  waiting_fallthrough (task_total=1, runnable_tasks=0, orchestrator_demands=False,
+  active_orchestrators=0, active_workers=0, blocked_reason=None) and ticks every
+  ~15s indefinitely. No auto-terminate, no surfaced failure, lifecycle.failure
+  stays null, run.state stays "running". Only way out is client.stop_run().
+  Fix: when a nonretryable intent rejection happens, move the run to a
+  terminal failure state with error_code surfaced on run.lifecycle.failure so
+  SDK users can detect it without tailing logs.
+
+[2026-04-17] Kickoff runtime messages don't appear in list_runtime_messages
+  Passed initial_runtime_messages=[{"body":"...","mode":"queue"}] to both
+  preflight and trigger_run. Orchestrator DID receive the prompt (it planned
+  prop-amm-specific tasks correctly). But c.list_runtime_messages(run_id)
+  returned []. So the kickoff landed somewhere that's not the queryable runtime
+  message stream. Hard to introspect what the orchestrator actually saw.
+  Expectation: initial_runtime_messages should appear as the first entries in
+  list_runtime_messages, OR there should be a documented separate read path
+  (get_kickoff_contract? get_run_trigger?). Neither exists today.
+
+[2026-04-17] runtime_checkpoint_failed × 20 with no detail surfaced
+  list_run_output_files(run_id) returned 20 entries, all
+  artifact_type="runtime_checkpoint_failed", title pattern
+  "Runtime checkpoint failed (...before_actor:orchestrator)". uri/digest/path
+  all null. No way to read what failed. The checkpoint failures happened
+  before the worker even spawned, so they aren't caused by the timeout —
+  they're a separate silent bug. Needs either (a) a reason field, (b)
+  stderr/log pointer, or (c) suppression when expected.
+
+[2026-04-17] SDK artifact/output naming is inconsistent
+  - PyPI stub (v0.1.0) exposes c.list_run_artifacts + list_run_artifacts_typed.
+  - Local source (v0.2025.0409) removed both; the equivalent is
+    c.list_run_output_files (which returns entries with BOTH output_file_id
+    AND artifact_id, same value). Two names for one thing, and the PyPI API
+    doesn't exist at all in source.
+  - c.runs namespace has no .list_artifacts or .list_output_files — readers are
+    only on the top-level client, writers/triggers are on c.runs. Mixed.
+  - get_run_results shown in PyPI dir() → AttributeError on local source.
+
+[2026-04-17] list_run_log_archives signature is kwarg-only without annotation
+  c.list_run_log_archives(run_id) raises
+  TypeError: ... missing 1 required positional argument: 'run_id'
+  Even though run_id is clearly the first (and only) arg. Means the def has
+  `*,` before `run_id:`. No `*` visible in dir() or docstring. Just call it
+  as list_run_log_archives(run_id=RID). Trivia but annoying.
+
+[2026-04-17] Dogfight workload is model-training, not code-hillclimb
+  Expected "tweak submission/optimizer.py" pattern (Nanoprogram-shaped). Actual:
+  submit a <250K-param ONNX file, float32[1,224] → float32[1,3], scored by Elo
+  over 100 matches. Starter repo (github.com/benedictbrady/dogfight-challenge)
+  provides only a Rust sim + validator + CLI — NO training harness, no Python
+  wrapper, no gym-style env, no self-play loop. SMR agent has to write all of
+  training infra from scratch OR hand-craft a tiny MLP and search weights.
+  Implication: SMR's current scenario story assumes code-shaped artifacts; for
+  model-shaped artifacts you need either (a) scenario presets that pre-seed
+  training infra, or (b) docs that steer users toward code-hillclimb benchmarks
+  and away from model-training ones until infra exists.
+
+[2026-04-17] Rust toolchain required in sandbox for Dogfight specifically
+  `make build` = `cargo build --release`. Worker image must have Rust, or the
+  agent burns time installing it. Scenario preflight should advertise required
+  toolchains; today it doesn't (only runtime_kind / environment_kind).
+
+[2026-04-17] SDK naming: create_runnable_project but list_projects
+  README examples use `create_runnable_project` and `SmrRunnableProjectRequest`
+  but there is no `list_runnable_projects` — it's `list_projects`. Minor, but
+  the first thing a new user tries after create. Pick one noun.
+
+[2026-04-17] PyPI `managed-research` is catastrophically stale (0.1.0 vs 0.2025.0409)
+  README + quickstart say `uv add managed-research`. That installs v0.1.0 which
+  does NOT export SmrHostKind, SmrRunnableProjectRequest, SmrAgentProfileBindings,
+  LaunchPreflight, ProjectSetupAuthority — the exact symbols the README imports
+  in its first example. Every new user hitting the README cold gets ImportError
+  on line 1. Local source (editable install of this repo) works fine.
+  Fix: ship a wheel from the current tree, or update README to point at the
+  source install until pypi is refreshed.
+
+[2026-04-17] SmrControlClient kwarg is `backend_base`, not `base_url`
+  Passing `base_url=` gives TypeError. README doesn't show the kwarg because
+  the prod example implicitly uses the default (api.usesynth.ai). First thing
+  a local-slot user tries fails without a reason.
+
+[2026-04-17] pool_id accepts any string with no validation on create
+  Required at SDK dataclass level, server accepts ANY non-empty string. I
+  created 6 probe projects named probe-local-default / probe-slot1 / etc. all
+  successfully. Garbage values surface later as preflight
+  `no_runtime_in_required_pool`. Should validate against known pools on create.
+
+[2026-04-17] Project-level agent_profiles auto-becomes actor_model_overrides
+  Setting SmrAgentProfileBindings(orchestrator_profile_id=..., default_worker=...)
+  at project creation time persists as actor_model_overrides. Then preflight
+  with an explicit agent_profile="codex_gpt_5_4_medium" kwarg raises
+  SmrStructuredDenialError: "actor_model_overrides cannot be combined with
+  shared top-level agent_profile/agent_model/agent_kind/agent_model_params."
+  README's example does both, so the example would fail as-written.
+
+[2026-04-17] Local launch helper is in sibling `evals/` repo, not managed-research
+  RESOLVED the wall below by discovering `evals/local_eval_contract.py` exports
+  `load_local_eval_contract`, `local_execution_payload`, and
+  `local_execution_profile_payload` — exactly the helpers needed. They read
+  `synth-dev/temp/<slot>/local-eval-contract.json` and produce the
+  `local_execution` + `execution_profile` payloads for preflight/trigger.
+  PAPERCUT: these should live in `managed-research` (or a thin public helper
+  module) alongside the SmrControlClient. Today an external user must (a)
+  discover the synth-dev contract, (b) vendor code from a sibling repo, or
+  (c) hand-craft a v3 schema payload. README makes no mention of local slot
+  launch at all. Also: `host_kind=LOCAL` (SmrHostKind enum value) is a red
+  herring — slot-backed launches use `host_kind=DOCKER` even for native slots
+  (backend/smr/contracts/local_eval_contract.py HOST_KIND_BY_TARGET maps
+  local-native → docker). The enum name lies.
+
+[2026-04-17] Slot-backed local launches require opaque local_execution payload
+  host_kind=LOCAL against a real slot (pool_id=slot1 with a live registered
+  runtime) is rejected with:
+    "slot-backed local launches require explicit local_execution identity from
+     synth-dev."
+  The backend contract (backend/smr/contracts/local_execution_profile.py) has a
+  v3 schema (LOCAL_EXECUTION_PROFILE_SCHEMA_VERSION = 2026-04-15-...-v3) with
+  fields: schema_version, profile_id, product, host_kind, docker_image,
+  daytona_snapshot, required_runtime_kind, source_binding_kind, required_repo,
+  local_source_kind, capabilities. NO public helper exists in managed-research
+  or synth-dev (searched local_dev, infra, config, local_compose, scripts) to
+  build this. An external SDK user trying to hit their own local slot has no
+  path forward without reading the backend contract and hand-crafting a
+  matching payload. This is the single biggest blocker I hit.
+
+[2026-04-17] 422/structured errors hide detail on SmrApiError
+  Raw curl showed loc/msg/input structured pydantic detail. SDK swallows it —
+  SmrApiError reduced to "POST /smr/projects:runnable failed with 422" with no
+  body/detail accessor. Had to go around the SDK with curl to debug.
+
+[2026-04-17] preflight returns Pydantic model; no easy dump when clear=False
+  `preflight.model_dump()` is missing; `dict(preflight)` raises "not iterable".
+  Had to iterate attributes manually. Minor but annoying when debugging.
+
+[2026-04-17] compute_pool routing silently downgrades model
+  Requested profile_id=codex_gpt_5_4_medium; preflight's compute_pool_payload
+  came back with profile_id=codex_gpt_5_4_mini_medium, model=gpt-5.4-mini. No
+  warning, no surfaced mapping. Users can think they're running a bigger model
+  than they are.
+
+[2026-04-17] No scenario preset for arena-style benchmarks
+  Confirms the earlier "scenario is a magic string" entry. For Dogfight we'd
+  want a preset that pre-declares: required toolchains (rust+python+torch),
+  artifact path (models/submission.onnx), validator command
+  (`make validate MODEL=...`), scoring command, and expected score format. None
+  of this exists; every benchmark integrator re-derives it from prose.

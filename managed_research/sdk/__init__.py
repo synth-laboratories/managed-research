@@ -74,6 +74,29 @@ from managed_research.models.canonical_usage import (
     SmrRunCostTotals,
     SmrRunUsage,
 )
+from managed_research.models.local_execution_profile import (
+    LEGACY_LOCAL_EXECUTION_PROFILE_SCHEMA_VERSION,
+    LOCAL_EVAL_CONTRACT_ENV_VARS,
+    LOCAL_EVAL_CONTRACT_SCHEMA_VERSION,
+    LOCAL_EXECUTION_PROFILE_SCHEMA_VERSION,
+    LOCAL_LAUNCH_TARGET_HOST_KIND,
+    LOCAL_SOURCE_KIND_EXTERNAL_REPO,
+    LOCAL_SOURCE_KIND_SLOT_GIT_MIRROR,
+    SOURCE_BINDING_KIND_LOCAL_PRODUCT_SOURCE,
+    SOURCE_BINDING_KIND_NONE,
+    SOURCE_BINDING_KIND_TOOL_REPO,
+    LocalEvalContract,
+    LocalExecutionProfile,
+    LocalProductSourceMirror,
+    LocalPublicationReadiness,
+    build_local_launch_payload,
+    default_local_eval_contract_path,
+    load_local_eval_contract,
+    load_local_execution_profile,
+    load_local_execution_profiles,
+    local_execution_payload,
+    local_execution_profile_payload,
+)
 from managed_research.models.types import (
     LaunchPreflight,
     LaunchPreflightBlocker,
@@ -91,8 +114,8 @@ from managed_research.models.types import (
     SmrRunnableProjectRequest,
 )
 from managed_research.sdk.approvals import ApprovalsAPI
-from managed_research.sdk.artifacts import ArtifactsAPI
 from managed_research.sdk.credentials import CredentialsAPI
+from managed_research.sdk.datasets import DatasetsAPI
 from managed_research.sdk.client import (
     ACTIVE_RUN_STATES,
     DEFAULT_TIMEOUT_SECONDS,
@@ -103,11 +126,19 @@ from managed_research.sdk.client import (
     SmrControlClient,
     first_id,
 )
+from managed_research.sdk.exports import ExportsAPI
 from managed_research.sdk.files import FilesAPI
+from managed_research.sdk.github import GithubAPI
 from managed_research.sdk.integrations import IntegrationsAPI
 from managed_research.sdk.logs import LogsAPI
+from managed_research.sdk.models import ModelsAPI
+from managed_research.sdk.outputs import OutputsAPI
+from managed_research.sdk.project import ManagedResearchProjectClient
 from managed_research.sdk.progress import ProgressAPI
 from managed_research.sdk.projects import ProjectsAPI
+from managed_research.sdk.prs import PrsAPI
+from managed_research.sdk.readiness import ReadinessAPI
+from managed_research.sdk.repos import ReposAPI
 from managed_research.sdk.repositories import RepositoriesAPI
 from managed_research.sdk.runs import RunHandle, RunsAPI
 from managed_research.sdk.setup import SetupAPI
@@ -117,10 +148,12 @@ from managed_research.sdk.workspace_inputs import WorkspaceInputsAPI
 __all__ = [
     "ACTIVE_RUN_STATES",
     "ApprovalsAPI",
-    "ArtifactsAPI",
     "CredentialsAPI",
+    "DatasetsAPI",
     "DEFAULT_TIMEOUT_SECONDS",
+    "ExportsAPI",
     "FilesAPI",
+    "GithubAPI",
     "IntegrationsAPI",
     "OPENAI_TRANSPORT_MODE_AUTO",
     "OPENAI_TRANSPORT_MODE_BACKEND_BFF",
@@ -129,7 +162,29 @@ __all__ = [
     "BillingEntitlementProfile",
     "BillingEntitlementSnapshot",
     "LogsAPI",
+    "LocalEvalContract",
+    "LocalExecutionProfile",
+    "LocalProductSourceMirror",
+    "LocalPublicationReadiness",
+    "LEGACY_LOCAL_EXECUTION_PROFILE_SCHEMA_VERSION",
+    "LOCAL_EVAL_CONTRACT_ENV_VARS",
+    "LOCAL_EVAL_CONTRACT_SCHEMA_VERSION",
+    "LOCAL_EXECUTION_PROFILE_SCHEMA_VERSION",
+    "LOCAL_LAUNCH_TARGET_HOST_KIND",
+    "LOCAL_SOURCE_KIND_EXTERNAL_REPO",
+    "LOCAL_SOURCE_KIND_SLOT_GIT_MIRROR",
+    "SOURCE_BINDING_KIND_LOCAL_PRODUCT_SOURCE",
+    "SOURCE_BINDING_KIND_NONE",
+    "SOURCE_BINDING_KIND_TOOL_REPO",
+    "build_local_launch_payload",
+    "default_local_eval_contract_path",
+    "load_local_eval_contract",
+    "load_local_execution_profile",
+    "load_local_execution_profiles",
+    "local_execution_payload",
+    "local_execution_profile_payload",
     "ManagedResearchClient",
+    "ManagedResearchProjectClient",
     "ManagedResearchRun",
     "ManagedResearchRunLivePhase",
     "ManagedResearchRunState",
@@ -140,12 +195,17 @@ __all__ = [
     "ActorSnapshot",
     "CandidatePublicationOutcome",
     "CandidatePublicationView",
+    "ModelsAPI",
+    "OutputsAPI",
     "ProgressAPI",
     "ProjectReadiness",
     "ProjectSetupAuthority",
     "ProjectSetupAuthorityReason",
     "ProjectSetupAuthorityStatus",
     "ProjectsAPI",
+    "PrsAPI",
+    "ReadinessAPI",
+    "ReposAPI",
     "RepositoriesAPI",
     "RunHandle",
     "RunsAPI",

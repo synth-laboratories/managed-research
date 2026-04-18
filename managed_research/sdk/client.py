@@ -73,18 +73,28 @@ from managed_research.models.types import (
 )
 from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
 from managed_research.sdk.approvals import ApprovalsAPI
-from managed_research.sdk.artifacts import ArtifactsAPI
 from managed_research.sdk.credentials import CredentialsAPI
+from managed_research.sdk.datasets import DatasetsAPI
+from managed_research.sdk.exports import ExportsAPI
 from managed_research.sdk.files import FilesAPI
+from managed_research.sdk.github import GithubAPI
 from managed_research.sdk.integrations import IntegrationsAPI
 from managed_research.sdk.logs import LogsAPI
+from managed_research.sdk.models import ModelsAPI
+from managed_research.sdk.outputs import OutputsAPI
+from managed_research.sdk.project import ManagedResearchProjectClient
 from managed_research.sdk.progress import ProgressAPI
 from managed_research.sdk.projects import ProjectsAPI
+from managed_research.sdk.prs import PrsAPI
+from managed_research.sdk.readiness import ReadinessAPI
+from managed_research.sdk.repos import ReposAPI
 from managed_research.sdk.repositories import RepositoriesAPI
 from managed_research.sdk.runs import RunsAPI
 from managed_research.sdk.setup import SetupAPI
 from managed_research.sdk.usage import UsageAPI
 from managed_research.sdk.workspace_inputs import WorkspaceInputsAPI
+from managed_research.sdk.trained_models import TrainedModelsAPI
+from managed_research.sdk.cost import RunCostAPI
 from managed_research.transport.http import SmrHttpTransport, _raise_for_error_response
 from managed_research.transport.pagination import build_query_params
 
@@ -508,8 +518,15 @@ class SmrControlClient:
     _progress_api: ProgressAPI | None = field(init=False, default=None, repr=False)
     _setup_api: SetupAPI | None = field(init=False, default=None, repr=False)
     _approvals_api: ApprovalsAPI | None = field(init=False, default=None, repr=False)
-    _artifacts_api: ArtifactsAPI | None = field(init=False, default=None, repr=False)
     _files_api: FilesAPI | None = field(init=False, default=None, repr=False)
+    _github_api: GithubAPI | None = field(init=False, default=None, repr=False)
+    _exports_api: ExportsAPI | None = field(init=False, default=None, repr=False)
+    _outputs_api: OutputsAPI | None = field(init=False, default=None, repr=False)
+    _prs_api: PrsAPI | None = field(init=False, default=None, repr=False)
+    _readiness_api: ReadinessAPI | None = field(init=False, default=None, repr=False)
+    _repos_api: ReposAPI | None = field(init=False, default=None, repr=False)
+    _datasets_api: DatasetsAPI | None = field(init=False, default=None, repr=False)
+    _models_api: ModelsAPI | None = field(init=False, default=None, repr=False)
     _repositories_api: RepositoriesAPI | None = field(
         init=False, default=None, repr=False
     )
@@ -519,6 +536,10 @@ class SmrControlClient:
     _logs_api: LogsAPI | None = field(init=False, default=None, repr=False)
     _integrations_api: IntegrationsAPI | None = field(init=False, default=None, repr=False)
     _usage_api: UsageAPI | None = field(init=False, default=None, repr=False)
+    _trained_models_api: TrainedModelsAPI | None = field(
+        init=False, default=None, repr=False
+    )
+    _run_cost_api: RunCostAPI | None = field(init=False, default=None, repr=False)
 
     def __post_init__(self) -> None:
         resolved_api_key = _resolve_api_key(self.api_key)
@@ -672,16 +693,58 @@ class SmrControlClient:
         return self._approvals_api
 
     @property
-    def artifacts(self) -> ArtifactsAPI:
-        if self._artifacts_api is None:
-            self._artifacts_api = ArtifactsAPI(self)
-        return self._artifacts_api
-
-    @property
     def files(self) -> FilesAPI:
         if self._files_api is None:
             self._files_api = FilesAPI(self)
         return self._files_api
+
+    @property
+    def github(self) -> GithubAPI:
+        if self._github_api is None:
+            self._github_api = GithubAPI(self)
+        return self._github_api
+
+    @property
+    def exports(self) -> ExportsAPI:
+        if self._exports_api is None:
+            self._exports_api = ExportsAPI(self)
+        return self._exports_api
+
+    @property
+    def outputs(self) -> OutputsAPI:
+        if self._outputs_api is None:
+            self._outputs_api = OutputsAPI(self)
+        return self._outputs_api
+
+    @property
+    def prs(self) -> PrsAPI:
+        if self._prs_api is None:
+            self._prs_api = PrsAPI(self)
+        return self._prs_api
+
+    @property
+    def readiness(self) -> ReadinessAPI:
+        if self._readiness_api is None:
+            self._readiness_api = ReadinessAPI(self)
+        return self._readiness_api
+
+    @property
+    def repos(self) -> ReposAPI:
+        if self._repos_api is None:
+            self._repos_api = ReposAPI(self)
+        return self._repos_api
+
+    @property
+    def datasets(self) -> DatasetsAPI:
+        if self._datasets_api is None:
+            self._datasets_api = DatasetsAPI(self)
+        return self._datasets_api
+
+    @property
+    def models(self) -> ModelsAPI:
+        if self._models_api is None:
+            self._models_api = ModelsAPI(self)
+        return self._models_api
 
     @property
     def repositories(self) -> RepositoriesAPI:
@@ -707,11 +770,29 @@ class SmrControlClient:
             self._integrations_api = IntegrationsAPI(self)
         return self._integrations_api
 
+    def project(self, project_id: str) -> ManagedResearchProjectClient:
+        return ManagedResearchProjectClient(
+            self,
+            _require_non_empty_string(project_id, field_name="project_id"),
+        )
+
     @property
     def usage(self) -> UsageAPI:
         if self._usage_api is None:
             self._usage_api = UsageAPI(self)
         return self._usage_api
+
+    @property
+    def trained_models(self) -> TrainedModelsAPI:
+        if self._trained_models_api is None:
+            self._trained_models_api = TrainedModelsAPI(self)
+        return self._trained_models_api
+
+    @property
+    def run_cost(self) -> RunCostAPI:
+        if self._run_cost_api is None:
+            self._run_cost_api = RunCostAPI(self)
+        return self._run_cost_api
 
     def get_billing_entitlements(self) -> BillingEntitlementSnapshot:
         return self.usage.get_billing_entitlements()
@@ -924,6 +1005,12 @@ class SmrControlClient:
     def get_project_status_snapshot(self, project_id: str) -> dict[str, Any]:
         return self.get_project_status(project_id)
 
+    def get_project_readiness(self, project_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("GET", f"/smr/projects/{project_id}/readiness"),
+            label="get_project_readiness",
+        )
+
     def get_project_entitlement(self, project_id: str) -> dict[str, Any]:
         return _coerce_dict(
             self._request_json(
@@ -1106,6 +1193,44 @@ class SmrControlClient:
             label="get_project_file",
         )
 
+    def get_project_file_content(self, project_id: str, file_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_content(
+                "GET",
+                f"/smr/projects/{project_id}/files/{file_id}/content",
+            ),
+            label="get_project_file_content",
+        )
+
+    def list_project_datasets(self, project_id: str) -> list[dict[str, Any]]:
+        return _coerce_dict_list(
+            self._request_json("GET", f"/smr/projects/{project_id}/datasets"),
+            label="list_project_datasets",
+        )
+
+    def upload_project_dataset(
+        self,
+        project_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/datasets",
+                json_body=dict(payload),
+            ),
+            label="upload_project_dataset",
+        )
+
+    def download_project_dataset(self, project_id: str, dataset_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_content(
+                "GET",
+                f"/smr/projects/{project_id}/datasets/{dataset_id}/download",
+            ),
+            label="download_project_dataset",
+        )
+
     def get_file_content(self, file_id: str) -> dict[str, Any]:
         return _coerce_dict(
             self._request_content("GET", f"/smr/files/{file_id}/content"),
@@ -1135,7 +1260,7 @@ class SmrControlClient:
             label="upload_run_files",
         )
 
-    def list_run_output_files(
+    def _list_run_output_files(
         self,
         run_id: str,
         *,
@@ -1151,7 +1276,7 @@ class SmrControlClient:
             label="list_run_output_files",
         )
 
-    def list_project_run_artifacts(
+    def _list_project_run_artifacts(
         self,
         project_id: str,
         run_id: str,
@@ -1173,17 +1298,17 @@ class SmrControlClient:
             label="list_project_run_artifacts",
         )
 
-    def get_run_output_file_content(
+    def _get_run_output_file_content(
         self,
         run_id: str,
-        artifact_id: str,
+        output_file_id: str,
         *,
         disposition: str = "inline",
     ) -> dict[str, Any]:
         return _coerce_dict(
             self._request_content(
                 "GET",
-                f"/smr/runs/{run_id}/outputs/{artifact_id}/content",
+                f"/smr/runs/{run_id}/outputs/{output_file_id}/content",
                 params=build_query_params(disposition=disposition),
             ),
             label="get_run_output_file_content",
@@ -1196,6 +1321,144 @@ class SmrControlClient:
                 f"/smr/projects/{project_id}/external-repositories",
             ),
             label="list_project_external_repositories",
+        )
+
+    def list_project_repo_bindings(self, project_id: str) -> list[dict[str, Any]]:
+        return _coerce_dict_list(
+            self._request_json("GET", f"/smr/projects/{project_id}/repos"),
+            label="list_project_repo_bindings",
+        )
+
+    def attach_project_repo(
+        self,
+        project_id: str,
+        *,
+        repo: str,
+        pr_write_enabled: bool = False,
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/repos",
+                json_body={
+                    "repo": _require_non_empty_string(repo, field_name="repo"),
+                    "pr_write_enabled": bool(pr_write_enabled),
+                },
+            ),
+            label="attach_project_repo",
+        )
+
+    def detach_project_repo(self, project_id: str, *, repo: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "DELETE",
+                f"/smr/projects/{project_id}/repos",
+                json_body={"repo": _require_non_empty_string(repo, field_name="repo")},
+            ),
+            label="detach_project_repo",
+        )
+
+    def list_project_outputs(self, project_id: str) -> list[dict[str, Any]]:
+        return _coerce_dict_list(
+            self._request_json("GET", f"/smr/projects/{project_id}/outputs"),
+            label="list_project_outputs",
+        )
+
+    def list_project_prs(self, project_id: str) -> list[dict[str, Any]]:
+        return _coerce_dict_list(
+            self._request_json("GET", f"/smr/projects/{project_id}/prs"),
+            label="list_project_prs",
+        )
+
+    def get_project_pr(self, project_id: str, pr_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("GET", f"/smr/projects/{project_id}/prs/{pr_id}"),
+            label="get_project_pr",
+        )
+
+    def list_project_models(self, project_id: str) -> list[dict[str, Any]]:
+        return _coerce_dict_list(
+            self._request_json("GET", f"/smr/projects/{project_id}/models"),
+            label="list_project_models",
+        )
+
+    def get_project_model(self, project_id: str, model_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("GET", f"/smr/projects/{project_id}/models/{model_id}"),
+            label="get_project_model",
+        )
+
+    def download_project_model(self, project_id: str, model_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_content(
+                "GET",
+                f"/smr/projects/{project_id}/models/{model_id}/download",
+            ),
+            label="download_project_model",
+        )
+
+    def list_export_targets(self) -> list[dict[str, Any]]:
+        return _coerce_dict_list(
+            self._request_json("GET", "/smr/exports/targets"),
+            label="list_export_targets",
+        )
+
+    def create_export_target(
+        self,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("POST", "/smr/exports/targets", json_body=dict(payload)),
+            label="create_export_target",
+        )
+
+    def patch_export_target(
+        self,
+        target_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "PATCH",
+                f"/smr/exports/targets/{target_id}",
+                json_body=dict(payload),
+            ),
+            label="patch_export_target",
+        )
+
+    def delete_export_target(self, target_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("DELETE", f"/smr/exports/targets/{target_id}"),
+            label="delete_export_target",
+        )
+
+    def get_project_export_binding(self, project_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("GET", f"/smr/projects/{project_id}/exports/binding"),
+            label="get_project_export_binding",
+        )
+
+    def put_project_export_binding(
+        self,
+        project_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "PUT",
+                f"/smr/projects/{project_id}/exports/binding",
+                json_body=dict(payload),
+            ),
+            label="put_project_export_binding",
+        )
+
+    def export_project_model(self, project_id: str, model_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/models/{model_id}/export",
+            ),
+            label="export_project_model",
         )
 
     def create_project_external_repository(
@@ -1509,6 +1772,47 @@ class SmrControlClient:
                 },
             ),
             label="register_local_github_repo_credential",
+        )
+
+    def get_github_status(self) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("GET", "/smr/github/status"),
+            label="get_github_status",
+        )
+
+    def start_github_oauth(
+        self,
+        *,
+        redirect_uri: str | None = None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {}
+        if redirect_uri is not None:
+            payload["redirect_uri"] = redirect_uri
+        return _coerce_dict(
+            self._request_json("POST", "/smr/github/oauth/start", json=payload),
+            label="start_github_oauth",
+        )
+
+    def list_github_repos(
+        self,
+        *,
+        page: int | None = None,
+        per_page: int | None = None,
+    ) -> list[dict[str, Any]]:
+        payload = _coerce_dict(
+            self._request_json(
+                "GET",
+                "/smr/github/repos",
+                params=build_query_params(page=page, per_page=per_page),
+            ),
+            label="list_github_repos",
+        )
+        return _coerce_dict_list(payload.get("repos") or [], label="list_github_repos.repos")
+
+    def disconnect_github(self) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("POST", "/smr/github/disconnect"),
+            label="disconnect_github",
         )
 
     def get_local_publication_readiness(
@@ -2320,7 +2624,7 @@ class SmrControlClient:
         )
         return SmrRunBranchResponse.from_wire(payload)
 
-    def list_runtime_messages(
+    def _list_runtime_messages(
         self,
         run_id: str,
         *,
@@ -2428,7 +2732,11 @@ class SmrControlClient:
             label="enqueue_runtime_message",
         )
 
-    def list_run_log_archives(self, project_id: str, run_id: str) -> list[dict[str, Any]]:
+    def _list_run_log_archives(
+        self,
+        project_id: str,
+        run_id: str,
+    ) -> list[dict[str, Any]]:
         return _coerce_dict_list(
             self._request_json("GET", f"/smr/projects/{project_id}/runs/{run_id}/logs/archives"),
             label="list_run_log_archives",
