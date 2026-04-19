@@ -157,7 +157,7 @@ def test_project_notes_routes_match_backend_surface(monkeypatch) -> None:
     assert captured == [
         ("GET", "/smr/projects/proj_123/notes", None),
         ("PUT", "/smr/projects/proj_123/notes", {"notes": "fresh notes"}),
-        ("POST", "/smr/projects/proj_123/notes/append", {"notes": "delta"}),
+        ("POST", "/smr/projects/proj_123/notes/append", {"text": "delta"}),
     ]
     client.close()
 
@@ -428,7 +428,7 @@ def test_run_start_blockers_uses_trigger_compatible_payload(monkeypatch) -> None
 
     assert response["clear_to_trigger"] is False
     assert captured["method"] == "POST"
-    assert captured["path"] == "/smr/projects/proj_123/run-start-blockers"
+    assert captured["path"] == "/smr/projects/proj_123/launch-preflight"
     assert captured["json_body"] == {
         "host_kind": "daytona",
         "work_mode": "directed_effort",

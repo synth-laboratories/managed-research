@@ -959,7 +959,7 @@ class SmrControlClient:
             self._request_json(
                 "POST",
                 f"/smr/projects/{project_id}/notes/append",
-                json_body={"notes": str(notes)},
+                json_body={"text": str(notes)},
             ),
             label="append_project_notes",
         )
@@ -1902,6 +1902,15 @@ class SmrControlClient:
             label="get_launch_preflight",
         )
 
+    def get_run_start_blockers(
+        self,
+        project_id: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Backward-compatible alias for launch preflight readiness checks."""
+
+        return self.get_launch_preflight(project_id, **kwargs)
+
     def trigger_run(
         self,
         project_id: str,
@@ -2624,7 +2633,7 @@ class SmrControlClient:
         )
         return SmrRunBranchResponse.from_wire(payload)
 
-    def _list_runtime_messages(
+    def list_runtime_messages(
         self,
         run_id: str,
         *,
@@ -2655,6 +2664,23 @@ class SmrControlClient:
                 params=params or None,
             ),
             label="list_runtime_messages",
+        )
+
+    def _list_runtime_messages(
+        self,
+        run_id: str,
+        *,
+        status: str | None = None,
+        viewer_role: str | None = None,
+        viewer_target: str | Iterable[str] | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self.list_runtime_messages(
+            run_id,
+            status=status,
+            viewer_role=viewer_role,
+            viewer_target=viewer_target,
+            limit=limit,
         )
 
     def list_project_run_runtime_messages(

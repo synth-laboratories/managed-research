@@ -11,12 +11,19 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import StrEnum
 
 from managed_research.models.run_state import (
     ManagedResearchRun,
     _require_mapping,
     _optional_string,
 )
+
+
+class ManagedResearchRunControlEnqueueStatus(StrEnum):
+    ACCEPTED = "accepted"
+    NOOP = "noop"
+    TERMINAL_SYNC = "terminal_sync"
 
 
 def _optional_datetime(payload: Mapping[str, object], key: str) -> datetime | None:
@@ -47,6 +54,7 @@ class ManagedResearchRunControlAck:
     run: ManagedResearchRun
     control_intent_id: str | None
     control_intent_ack_at: datetime | None
+    enqueue_status: ManagedResearchRunControlEnqueueStatus | None = None
     raw: dict[str, object] = field(default_factory=dict)
 
     @classmethod
@@ -56,8 +64,16 @@ class ManagedResearchRunControlAck:
             run=ManagedResearchRun.from_wire(mapping),
             control_intent_id=_optional_string(mapping, "control_intent_id"),
             control_intent_ack_at=_optional_datetime(mapping, "control_intent_ack_at"),
+            enqueue_status=(
+                ManagedResearchRunControlEnqueueStatus(value)
+                if (value := _optional_string(mapping, "enqueue_status")) is not None
+                else None
+            ),
             raw=dict(mapping),
         )
 
 
-__all__ = ["ManagedResearchRunControlAck"]
+__all__ = [
+    "ManagedResearchRunControlAck",
+    "ManagedResearchRunControlEnqueueStatus",
+]

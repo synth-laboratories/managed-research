@@ -10,6 +10,7 @@ from managed_research.models.run_observability import (
 )
 from managed_research.models.run_control import ManagedResearchRunControlAck
 from managed_research.models.run_state import ManagedResearchRun
+from managed_research.models.project import ManagedResearchProject
 from managed_research.models.run_timeline import (
     SmrBranchMode,
     SmrLogicalTimeline,
@@ -85,6 +86,16 @@ class RunHandle:
             self._client.stop_run(self.run_id, project_id=self.project_id)
         )
 
+    def pause(self) -> ManagedResearchRunControlAck:
+        return ManagedResearchRunControlAck.from_wire(
+            self._client.pause_run(self.run_id, project_id=self.project_id)
+        )
+
+    def resume(self) -> ManagedResearchRunControlAck:
+        return ManagedResearchRunControlAck.from_wire(
+            self._client.resume_run(self.run_id, project_id=self.project_id)
+        )
+
 
 class RunsAPI(_ClientNamespace):
     def trigger(self, project_id: str, **kwargs: Any) -> dict[str, Any]:
@@ -96,8 +107,10 @@ class RunsAPI(_ClientNamespace):
     def list_active(self, project_id: str) -> list[dict[str, Any]]:
         return self._client.list_active_runs(project_id)
 
-    def get(self, run_id: str, *, project_id: str | None = None) -> dict[str, Any]:
-        return self._client.get_run(run_id, project_id=project_id)
+    def get(self, run_id: str, *, project_id: str | None = None) -> ManagedResearchRun:
+        return ManagedResearchRun.from_wire(
+            self._client.get_run(run_id, project_id=project_id)
+        )
 
     def get_usage(self, run_id: str) -> SmrRunUsage:
         return self._client.get_run_usage(run_id)
@@ -275,7 +288,7 @@ class RunsAPI(_ClientNamespace):
         viewer_target: str | list[str] | None = None,
         limit: int | None = None,
     ) -> list[dict[str, Any]]:
-        return self._client._list_runtime_messages(
+        return self._client.list_runtime_messages(
             run_id,
             status=status,
             viewer_role=viewer_role,

@@ -372,12 +372,19 @@ class ManagedResearchMcpServer:
         include_archived = optional_bool(args, "include_archived", default=False)
         limit = optional_int(args, "limit") or 100
         with self._client_from_args(args) as client:
-            return client.list_projects(include_archived=include_archived, limit=limit)
+            results = client.projects.list(
+                include_archived=include_archived,
+                limit=limit,
+            )
+            return [
+                asdict(item) if is_dataclass(item) else item for item in results
+            ]
 
     def _tool_get_project(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
-            return client.get_project(project_id)
+            result = client.projects.get(project_id)
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_rename_project(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
@@ -881,7 +888,8 @@ class ManagedResearchMcpServer:
         run_id = require_string(args, "run_id")
         project_id = optional_string(args, "project_id")
         with self._client_from_args(args) as client:
-            return client.get_run(run_id, project_id=project_id)
+            result = client.runs.get(run_id, project_id=project_id)
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_get_run_primary_parent(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
@@ -892,19 +900,22 @@ class ManagedResearchMcpServer:
         run_id = require_string(args, "run_id")
         project_id = optional_string(args, "project_id")
         with self._client_from_args(args) as client:
-            return client.stop_run(run_id, project_id=project_id)
+            result = client.runs.stop(run_id, project_id=project_id)
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_pause_run(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
         project_id = optional_string(args, "project_id")
         with self._client_from_args(args) as client:
-            return client.pause_run(run_id, project_id=project_id)
+            result = client.runs.pause(run_id, project_id=project_id)
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_resume_run(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
         project_id = optional_string(args, "project_id")
         with self._client_from_args(args) as client:
-            return client.resume_run(run_id, project_id=project_id)
+            result = client.runs.resume(run_id, project_id=project_id)
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_get_run_logical_timeline(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")

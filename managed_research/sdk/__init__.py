@@ -51,6 +51,11 @@ from managed_research.models.run_state import (
     ManagedResearchRunState,
     ManagedResearchRunTerminalOutcome,
 )
+from managed_research.models.project import ManagedResearchProject
+from managed_research.models.run_control import (
+    ManagedResearchRunControlAck,
+    ManagedResearchRunControlEnqueueStatus,
+)
 from managed_research.models.run_timeline import (
     SmrBranchMode,
     SmrLogicalTimeline,
@@ -185,7 +190,10 @@ __all__ = [
     "local_execution_profile_payload",
     "ManagedResearchClient",
     "ManagedResearchProjectClient",
+    "ManagedResearchProject",
     "ManagedResearchRun",
+    "ManagedResearchRunControlAck",
+    "ManagedResearchRunControlEnqueueStatus",
     "ManagedResearchRunLivePhase",
     "ManagedResearchRunState",
     "ManagedResearchRunTerminalOutcome",
