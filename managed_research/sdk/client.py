@@ -40,6 +40,11 @@ from managed_research.models.run_timeline import (
     SmrRunBranchRequest,
     SmrRunBranchResponse,
 )
+from managed_research.models.runtime_intent import (
+    RuntimeIntent,
+    RuntimeIntentReceipt,
+    RuntimeIntentView,
+)
 from managed_research.models.smr_actor_models import (
     SmrActorModelAssignment,
     normalize_actor_model_assignments,
@@ -2731,6 +2736,87 @@ class SmrControlClient:
                 params=params or None,
             ),
             label="list_project_run_runtime_messages",
+        )
+
+    def submit_runtime_intent(
+        self,
+        run_id: str,
+        intent: RuntimeIntent | Mapping[str, Any] | dict[str, Any],
+        *,
+        project_id: str | None = None,
+        mode: str = "queue",
+        body: str | None = None,
+        causation_id: str | None = None,
+    ) -> RuntimeIntentReceipt:
+        if isinstance(intent, RuntimeIntent):
+            intent_payload = intent.to_wire()
+        elif isinstance(intent, Mapping):
+            intent_payload = dict(intent)
+        else:
+            raise ValueError("intent must be a RuntimeIntent or mapping")
+        json_body: dict[str, Any] = {
+            "intent": intent_payload,
+            "mode": str(mode or "queue").strip().lower(),
+        }
+        if body and body.strip():
+            json_body["body"] = body.strip()
+        if causation_id and causation_id.strip():
+            json_body["causation_id"] = causation_id.strip()
+        path = (
+            f"/smr/projects/{project_id}/runs/{run_id}/runtime/intents"
+            if project_id
+            else f"/smr/runs/{run_id}/runtime/intents"
+        )
+        return RuntimeIntentReceipt.from_wire(
+            _coerce_dict(
+                self._request_json("POST", path, json_body=json_body),
+                label="submit_runtime_intent",
+            )
+        )
+
+    def list_runtime_intents(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+        status: str | None = None,
+        limit: int | None = None,
+    ) -> list[RuntimeIntentView]:
+        params: dict[str, Any] = {}
+        if status and status.strip():
+            params["status"] = status.strip()
+        if limit is not None:
+            params["limit"] = int(limit)
+        path = (
+            f"/smr/projects/{project_id}/runs/{run_id}/runtime/intents"
+            if project_id
+            else f"/smr/runs/{run_id}/runtime/intents"
+        )
+        return [
+            RuntimeIntentView.from_wire(item)
+            for item in _coerce_dict_list(
+                self._request_json("GET", path, params=params or None),
+                label="list_runtime_intents",
+            )
+        ]
+
+    def get_runtime_intent(
+        self,
+        run_id: str,
+        runtime_intent_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> RuntimeIntentView:
+        path = (
+            f"/smr/projects/{project_id}/runs/{run_id}/runtime/intents/{runtime_intent_id}"
+            if project_id
+            else f"/smr/runs/{run_id}/runtime/intents/{runtime_intent_id}"
+        )
+        return RuntimeIntentView.from_wire(
+            _coerce_dict(
+                self._request_json("GET", path),
+                label="get_runtime_intent",
+            )
         )
 
     def enqueue_runtime_message(

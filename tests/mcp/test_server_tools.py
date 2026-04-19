@@ -1,6 +1,10 @@
 import pytest
 from managed_research.errors import SmrFundingLaneInvariantError, SmrLimitExceededError
 from managed_research.mcp.server import ManagedResearchMcpServer
+from managed_research.models.runtime_intent import (
+    RuntimeIntentReceipt,
+    RuntimeIntentView,
+)
 
 
 def test_rewritten_mcp_server_exposes_canonical_launch_and_workspace_tools() -> None:
@@ -42,6 +46,7 @@ def test_rewritten_mcp_server_exposes_canonical_launch_and_workspace_tools() -> 
         "smr_list_run_log_archives",
         "smr_list_run_questions",
         "smr_restore_run_checkpoint",
+        "smr_runtime_intents",
         "smr_set_provider_key",
         "smr_trigger_run",
         "smr_upload_workspace_files",
@@ -597,12 +602,167 @@ def test_get_run_start_blockers_delegates_to_client(monkeypatch) -> None:
     assert kwargs["host_kind"] == "daytona"
     assert kwargs["work_mode"] == "directed_effort"
     assert kwargs["agent_model_params"] == {"reasoning_effort": "high"}
-    assert kwargs["initial_runtime_messages"] == [
-        {"body": "Check staging first.", "mode": "queue"}
-    ]
+    assert kwargs["initial_runtime_messages"] == [{"body": "Check staging first.", "mode": "queue"}]
     assert kwargs["sandbox_override"] == {"image": "synth/smr:latest"}
     run_policy = kwargs["run_policy"]
     assert getattr(getattr(run_policy, "limits", None), "total_cost_cents", None) == 1800
+
+
+def test_runtime_intents_tool_delegates_to_runs_namespace(monkeypatch) -> None:
+    server = ManagedResearchMcpServer()
+    captured: list[tuple[str, dict[str, object]]] = []
+
+    class _FakeRuns:
+        def submit_intent(self, run_id: str, intent, **kwargs):
+            captured.append(
+                (
+                    "submit",
+                    {"run_id": run_id, "intent": intent, **kwargs},
+                )
+            )
+            return RuntimeIntentReceipt.from_wire(
+                {
+                    "runtime_intent_id": "message:run_123:smr_runtime_control:6",
+                    "runtime_intent_status": "queued",
+                    "runtime_intent_ack_at": "2026-04-19T17:00:00Z",
+                    "run_id": run_id,
+                    "intent_kind": "answer_question",
+                    "mode": kwargs.get("mode") or "queue",
+                }
+            )
+
+        def intents(self, run_id: str, **kwargs):
+            captured.append(("list", {"run_id": run_id, **kwargs}))
+            return [
+                RuntimeIntentView.from_wire(
+                    {
+                        "runtime_intent_id": "message:run_123:smr_runtime_control:6",
+                        "runtime_intent_status": "applied",
+                        "runtime_intent_ack_at": "2026-04-19T17:00:00Z",
+                        "run_id": run_id,
+                        "intent_kind": "answer_question",
+                        "mode": "queue",
+                        "message_id": "message:run_123:smr_runtime_control:6",
+                        "seq": 6,
+                        "action": "smr.intent.answer_question",
+                        "topic": "smr.intent",
+                    }
+                )
+            ]
+
+        def intent(self, run_id: str, runtime_intent_id: str, **kwargs):
+            captured.append(
+                (
+                    "get",
+                    {
+                        "run_id": run_id,
+                        "runtime_intent_id": runtime_intent_id,
+                        **kwargs,
+                    },
+                )
+            )
+            return RuntimeIntentView.from_wire(
+                {
+                    "runtime_intent_id": runtime_intent_id,
+                    "runtime_intent_status": "applied",
+                    "runtime_intent_ack_at": "2026-04-19T17:00:00Z",
+                    "run_id": run_id,
+                    "intent_kind": "answer_question",
+                    "mode": "queue",
+                }
+            )
+
+    class _FakeClient:
+        runs = _FakeRuns()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            del exc_type
+            del exc
+            del tb
+
+    monkeypatch.setattr(server, "_client_from_args", lambda args: _FakeClient())
+
+    submitted = server._tool_runtime_intents(
+        {
+            "operation": "submit",
+            "project_id": "proj_123",
+            "run_id": "run_123",
+            "intent": {
+                "kind": "answer_question",
+                "payload": {
+                    "question_id": "question-1",
+                    "user_id": "user-1",
+                    "response_text": "Proceed.",
+                    "requested_by_role": "human",
+                },
+            },
+            "mode": "queue",
+            "body": "Proceed.",
+            "causation_id": "message:run_123:question:1",
+        }
+    )
+    listed = server._tool_runtime_intents(
+        {
+            "operation": "list",
+            "project_id": "proj_123",
+            "run_id": "run_123",
+            "status": "applied",
+            "limit": 5,
+        }
+    )
+    fetched = server._tool_runtime_intents(
+        {
+            "operation": "get",
+            "project_id": "proj_123",
+            "run_id": "run_123",
+            "runtime_intent_id": "message:run_123:smr_runtime_control:6",
+        }
+    )
+
+    assert submitted["runtime_intent_status"] == "queued"
+    assert listed[0]["runtime_intent_status"] == "applied"
+    assert fetched["runtime_intent_id"] == "message:run_123:smr_runtime_control:6"
+    assert captured == [
+        (
+            "submit",
+            {
+                "run_id": "run_123",
+                "intent": {
+                    "kind": "answer_question",
+                    "payload": {
+                        "question_id": "question-1",
+                        "user_id": "user-1",
+                        "response_text": "Proceed.",
+                        "requested_by_role": "human",
+                    },
+                },
+                "project_id": "proj_123",
+                "mode": "queue",
+                "body": "Proceed.",
+                "causation_id": "message:run_123:question:1",
+            },
+        ),
+        (
+            "list",
+            {
+                "run_id": "run_123",
+                "project_id": "proj_123",
+                "status": "applied",
+                "limit": 5,
+            },
+        ),
+        (
+            "get",
+            {
+                "run_id": "run_123",
+                "runtime_intent_id": "message:run_123:smr_runtime_control:6",
+                "project_id": "proj_123",
+            },
+        ),
+    ]
 
 
 def test_trigger_run_delegates_initial_runtime_messages_to_client(monkeypatch) -> None:
