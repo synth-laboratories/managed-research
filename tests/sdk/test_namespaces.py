@@ -1,8 +1,17 @@
+import json
+
+import pytest
 from managed_research import (
     ManagedResearchProject,
     ManagedResearchRun,
     ManagedResearchRunControlEnqueueStatus,
+    ManagedResearchRunControlError,
+    SmrApiError,
     SmrControlClient,
+)
+from managed_research.models.run_control import (
+    ManagedResearchRunControlAck,
+    RunLifecycleControlErrorCode,
 )
 from managed_research.sdk import (
     CredentialsAPI,
@@ -199,3 +208,234 @@ def test_runs_namespace_uses_public_runtime_message_listing(monkeypatch) -> None
 
     assert messages == [{"run_id": "run_123", "status": "queued"}]
     client.close()
+
+
+def test_run_control_ack_roundtrips_noop_status() -> None:
+    ack = ManagedResearchRunControlAck.from_wire(
+        {
+            "run_id": "run_123",
+            "project_id": "proj_123",
+            "state": "paused",
+            "control_intent_id": "message:run_123:smr_runtime_control:2",
+            "control_intent_ack_at": "2026-04-15T12:00:00Z",
+            "enqueue_status": "noop",
+        }
+    )
+
+    assert ack.enqueue_status is ManagedResearchRunControlEnqueueStatus.NOOP
+    assert ack.control_intent_id == "message:run_123:smr_runtime_control:2"
+    assert ack.control_intent_ack_at is not None
+
+
+def test_run_control_ack_roundtrips_terminal_sync_with_null_intent() -> None:
+    ack = ManagedResearchRunControlAck.from_wire(
+        {
+            "run_id": "run_123",
+            "project_id": "proj_123",
+            "state": "stopped",
+            "control_intent_id": None,
+            "control_intent_ack_at": None,
+            "enqueue_status": "terminal_sync",
+        }
+    )
+
+    assert ack.enqueue_status is ManagedResearchRunControlEnqueueStatus.TERMINAL_SYNC
+    assert ack.control_intent_id is None
+    assert ack.control_intent_ack_at is None
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        RunLifecycleControlErrorCode.ALREADY_IN_STATE,
+        RunLifecycleControlErrorCode.TERMINAL_RUN,
+        RunLifecycleControlErrorCode.RUNTIME_NOT_LIVE,
+        RunLifecycleControlErrorCode.RUN_NOT_FOUND,
+    ],
+)
+def test_stop_run_maps_409_to_typed_control_error(monkeypatch, code) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    detail = {
+        "error_code": code.value,
+        "message": f"rejected: {code.value}",
+        "retryable": code is RunLifecycleControlErrorCode.RUNTIME_NOT_LIVE,
+        "current_state": "running",
+        "run_id": "run_123",
+    }
+    body = json.dumps({"detail": detail})
+
+    def _raise(*_args, **_kwargs):
+        raise SmrApiError(
+            f"POST failed with 409: {detail['message']}",
+            status_code=409,
+            response_text=body,
+        )
+
+    monkeypatch.setattr(client, "_request_json", _raise)
+
+    with pytest.raises(ManagedResearchRunControlError) as exc_info:
+        client.stop_run("run_123", project_id="proj_123")
+
+    err = exc_info.value
+    assert err.error_code is code
+    assert err.retryable is (code is RunLifecycleControlErrorCode.RUNTIME_NOT_LIVE)
+    assert err.current_state == "running"
+    assert err.run_id == "run_123"
+    assert err.status_code == 409
+    assert err.detail == detail
+
+    client.close()
+
+
+def test_pause_run_maps_409_to_typed_control_error(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    detail = {
+        "error_code": "already_in_state",
+        "message": "already paused",
+        "retryable": False,
+        "current_state": "paused",
+        "run_id": "run_abc",
+    }
+
+    monkeypatch.setattr(
+        client,
+        "_request_json",
+        lambda *a, **k: (_ for _ in ()).throw(
+            SmrApiError(
+                "409",
+                status_code=409,
+                response_text=json.dumps({"detail": detail}),
+            )
+        ),
+    )
+
+    with pytest.raises(ManagedResearchRunControlError) as exc_info:
+        client.pause_run("run_abc", project_id="proj_123")
+
+    assert exc_info.value.error_code is RunLifecycleControlErrorCode.ALREADY_IN_STATE
+    client.close()
+
+
+def test_resume_run_maps_409_to_typed_control_error(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    detail = {
+        "error_code": "terminal_run",
+        "message": "run is terminal",
+        "retryable": False,
+        "current_state": "completed",
+        "run_id": "run_xyz",
+    }
+
+    monkeypatch.setattr(
+        client,
+        "_request_json",
+        lambda *a, **k: (_ for _ in ()).throw(
+            SmrApiError(
+                "409",
+                status_code=409,
+                response_text=json.dumps({"detail": detail}),
+            )
+        ),
+    )
+
+    with pytest.raises(ManagedResearchRunControlError) as exc_info:
+        client.resume_run("run_xyz")
+
+    assert exc_info.value.error_code is RunLifecycleControlErrorCode.TERMINAL_RUN
+    client.close()
+
+
+def test_run_control_409_with_malformed_body_raises_value_error(monkeypatch) -> None:
+    """Contract drift (HTTP 409 without documented detail shape) must not be
+    collapsed into a generic ``SmrApiError``; surface it as ``ValueError`` so
+    callers can distinguish contract violations from recognised rejections.
+    """
+
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+
+    monkeypatch.setattr(
+        client,
+        "_request_json",
+        lambda *a, **k: (_ for _ in ()).throw(
+            SmrApiError(
+                "409",
+                status_code=409,
+                # Missing `detail` mapping entirely — contract drift.
+                response_text=json.dumps({"error": "something went wrong"}),
+            )
+        ),
+    )
+
+    with pytest.raises(ValueError) as exc_info:
+        client.stop_run("run_123")
+
+    # Informative: the message must mention the contract keys we expected.
+    assert "detail" in str(exc_info.value)
+    client.close()
+
+
+def test_run_control_409_with_unknown_error_code_raises_value_error(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    detail = {
+        "error_code": "some_unexpected_code",
+        "message": "drift",
+        "retryable": False,
+        "current_state": "running",
+        "run_id": "run_123",
+    }
+    monkeypatch.setattr(
+        client,
+        "_request_json",
+        lambda *a, **k: (_ for _ in ()).throw(
+            SmrApiError(
+                "409",
+                status_code=409,
+                response_text=json.dumps({"detail": detail}),
+            )
+        ),
+    )
+
+    with pytest.raises(ValueError):
+        client.pause_run("run_123")
+
+    client.close()
+
+
+def test_mcp_tool_pause_run_serializes_enqueue_status_as_string(monkeypatch) -> None:
+    """MCP responses go through ``json.dumps``; the ack's enum field must
+    serialise to its string value, not an enum repr.
+    """
+
+    from managed_research.mcp.server import ManagedResearchMcpServer
+
+    server = ManagedResearchMcpServer()
+
+    class _FakeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_exc):
+            return False
+
+        class _Runs:
+            def pause(self, run_id: str, *, project_id: str | None = None):
+                return ManagedResearchRunControlAck.from_wire(
+                    {
+                        "run_id": run_id,
+                        "project_id": project_id,
+                        "state": "paused",
+                        "control_intent_id": "message:run_x:smr_runtime_control:1",
+                        "control_intent_ack_at": "2026-04-15T12:00:00Z",
+                        "enqueue_status": "accepted",
+                    }
+                )
+
+        runs = _Runs()
+
+    monkeypatch.setattr(server, "_client_from_args", lambda args: _FakeClient())
+
+    result = server._tool_pause_run({"run_id": "run_x", "project_id": "proj_1"})
+    # Round-trip through JSON the way ``_write_message`` does.
+    encoded = json.loads(json.dumps(result, default=str))
+    assert encoded["enqueue_status"] == "accepted"
+    assert isinstance(encoded["enqueue_status"], str)

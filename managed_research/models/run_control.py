@@ -13,10 +13,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 
+from managed_research.errors import SmrApiError
 from managed_research.models.run_state import (
     ManagedResearchRun,
-    _require_mapping,
     _optional_string,
+    _require_mapping,
 )
 
 
@@ -24,6 +25,103 @@ class ManagedResearchRunControlEnqueueStatus(StrEnum):
     ACCEPTED = "accepted"
     NOOP = "noop"
     TERMINAL_SYNC = "terminal_sync"
+
+
+class RunLifecycleControlErrorCode(StrEnum):
+    ALREADY_IN_STATE = "already_in_state"
+    TERMINAL_RUN = "terminal_run"
+    RUNTIME_NOT_LIVE = "runtime_not_live"
+    RUN_NOT_FOUND = "run_not_found"
+
+
+class ManagedResearchRunControlError(SmrApiError):
+    """Raised when the backend rejects a pause/resume/stop with HTTP 409.
+
+    The backend returns ``detail`` as a mapping with keys
+    ``error_code``, ``message``, ``retryable``, ``current_state`` and
+    ``run_id``. We surface each as a typed attribute so callers can
+    discriminate auth vs. config vs. transient failure modes without
+    string-sniffing.
+    """
+
+    def __init__(
+        self,
+        *,
+        error_code: RunLifecycleControlErrorCode,
+        message: str,
+        retryable: bool,
+        current_state: str,
+        run_id: str,
+        status_code: int | None = 409,
+        response_text: str | None = None,
+        detail: Mapping[str, object] | None = None,
+    ) -> None:
+        super().__init__(
+            message,
+            status_code=status_code,
+            response_text=response_text,
+        )
+        self.error_code = error_code
+        self.retryable = retryable
+        self.current_state = current_state
+        self.run_id = run_id
+        self.detail: dict[str, object] = dict(detail) if detail else {}
+
+    @classmethod
+    def from_response(
+        cls,
+        *,
+        payload: object,
+        status_code: int | None,
+        response_text: str | None,
+    ) -> ManagedResearchRunControlError:
+        """Build the typed error from a 409 JSON body.
+
+        Raises ``ValueError`` if the body does not match the documented
+        contract. This is intentional: a 409 from these endpoints that
+        lacks the expected structure is a contract drift, not a generic
+        API failure, and collapsing it into a plain ``SmrApiError``
+        would mask that.
+        """
+
+        if not isinstance(payload, Mapping):
+            raise ValueError("run control 409 body must be a JSON object with a 'detail' mapping")
+        detail = payload.get("detail")
+        if not isinstance(detail, Mapping):
+            raise ValueError(
+                "run control 409 body missing mapping 'detail' with error_code/message/retryable/current_state/run_id"
+            )
+        code_raw = detail.get("error_code")
+        if not isinstance(code_raw, str) or not code_raw.strip():
+            raise ValueError("run control 409 detail.error_code must be a non-empty string")
+        try:
+            error_code = RunLifecycleControlErrorCode(code_raw.strip())
+        except ValueError as exc:
+            raise ValueError(
+                f"run control 409 detail.error_code {code_raw!r} is not a known RunLifecycleControlErrorCode"
+            ) from exc
+        message = detail.get("message")
+        if not isinstance(message, str) or not message.strip():
+            raise ValueError("run control 409 detail.message must be a non-empty string")
+        retryable = detail.get("retryable")
+        if not isinstance(retryable, bool):
+            raise ValueError("run control 409 detail.retryable must be a bool")
+        current_state = detail.get("current_state")
+        if not isinstance(current_state, str) or not current_state.strip():
+            raise ValueError("run control 409 detail.current_state must be a non-empty string")
+        run_id = detail.get("run_id")
+        if not isinstance(run_id, str) or not run_id.strip():
+            raise ValueError("run control 409 detail.run_id must be a non-empty string")
+        return cls(
+            error_code=error_code,
+            message=message,
+            retryable=retryable,
+            current_state=current_state,
+            run_id=run_id,
+            status_code=status_code,
+            response_text=response_text,
+            detail=detail,
+        )
 
 
 def _optional_datetime(payload: Mapping[str, object], key: str) -> datetime | None:
@@ -76,4 +174,6 @@ class ManagedResearchRunControlAck:
 __all__ = [
     "ManagedResearchRunControlAck",
     "ManagedResearchRunControlEnqueueStatus",
+    "ManagedResearchRunControlError",
+    "RunLifecycleControlErrorCode",
 ]

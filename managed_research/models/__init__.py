@@ -1,72 +1,5 @@
 """Public typed models for the rewritten SDK surface."""
 
-from managed_research.models.smr_actor_models import (
-    SmrActorModelAssignment,
-    SmrActorSubtype,
-    SmrActorType,
-    SmrOrchestratorSubtype,
-    SmrReviewerSubtype,
-    SmrWorkerSubtype,
-)
-from managed_research.models.smr_agent_kinds import SmrAgentKind
-from managed_research.models.smr_agent_models import SmrAgentModel
-from managed_research.models.smr_credential_providers import SmrCredentialProvider
-from managed_research.models.smr_environment_kinds import SmrEnvironmentKind
-from managed_research.models.smr_funding_sources import SmrFundingSource
-from managed_research.models.smr_host_kinds import SmrHostKind
-from managed_research.models.smr_inference_providers import SmrInferenceProvider
-from managed_research.models.smr_resource_kinds import SmrResourceKind
-from managed_research.models.smr_resource_providers import SmrResourceProvider
-from managed_research.models.smr_runtime_kinds import SmrRuntimeKind
-from managed_research.models.smr_run_policy import (
-    SmrRunPolicy,
-    SmrRunPolicyAccess,
-    SmrRunPolicyLimits,
-)
-from managed_research.models.smr_tool_providers import SmrToolProvider
-from managed_research.models.smr_work_modes import SmrWorkMode
-from managed_research.models.run_observability import (
-    ActorCollectionSnapshot,
-    ActorSnapshot,
-    CandidatePublicationOutcome,
-    CandidatePublicationView,
-    RunAnomaly,
-    RunAnomalyKind,
-    RunLifecycleDispatch,
-    RunLifecycleFailure,
-    RunLifecycleLocalExecution,
-    RunLifecycleView,
-    RunObservationCursor,
-    RunObservabilitySnapshot,
-    RuntimeDeliveryView,
-    RuntimeEventView,
-    RuntimeMessageView,
-    RuntimeObservability,
-    TaskCollectionSnapshot,
-    TaskSnapshot,
-)
-from managed_research.models.project import ManagedResearchProject
-from managed_research.models.run_control import ManagedResearchRunControlAck
-from managed_research.models.run_control import ManagedResearchRunControlEnqueueStatus
-from managed_research.models.run_state import (
-    ManagedResearchRun,
-    ManagedResearchRunLivePhase,
-    ManagedResearchRunState,
-    ManagedResearchRunTerminalOutcome,
-)
-from managed_research.models.run_timeline import (
-    SmrBranchMode,
-    SmrLogicalTimeline,
-    SmrLogicalTimelineNode,
-    SmrRunBranchRequest,
-    SmrRunBranchResponse,
-)
-from managed_research.models.run_diagnostics import (
-    SmrActorUsageSummary,
-    SmrRunActorUsage,
-    SmrRunTraceItem,
-    SmrRunTraces,
-)
 from managed_research.models.canonical_usage import (
     BillingEntitlementAsset,
     BillingEntitlementProfile,
@@ -100,10 +33,81 @@ from managed_research.models.local_execution_profile import (
     local_execution_payload,
     local_execution_profile_payload,
 )
+from managed_research.models.project import ManagedResearchProject
+from managed_research.models.run_control import (
+    ManagedResearchRunControlAck,
+    ManagedResearchRunControlEnqueueStatus,
+    ManagedResearchRunControlError,
+    RunLifecycleControlErrorCode,
+)
+from managed_research.models.run_diagnostics import (
+    SmrActorUsageSummary,
+    SmrRunActorUsage,
+    SmrRunTraceItem,
+    SmrRunTraces,
+)
+from managed_research.models.run_observability import (
+    ActorCollectionSnapshot,
+    ActorSnapshot,
+    CandidatePublicationOutcome,
+    CandidatePublicationView,
+    RunAnomaly,
+    RunAnomalyKind,
+    RunLifecycleDispatch,
+    RunLifecycleFailure,
+    RunLifecycleLocalExecution,
+    RunLifecycleView,
+    RunObservabilitySnapshot,
+    RunObservationCursor,
+    RuntimeDeliveryView,
+    RuntimeEventView,
+    RuntimeMessageView,
+    RuntimeObservability,
+    TaskCollectionSnapshot,
+    TaskSnapshot,
+)
+from managed_research.models.run_state import (
+    ManagedResearchRun,
+    ManagedResearchRunLivePhase,
+    ManagedResearchRunState,
+    ManagedResearchRunTerminalOutcome,
+)
+from managed_research.models.run_timeline import (
+    SmrBranchMode,
+    SmrLogicalTimeline,
+    SmrLogicalTimelineNode,
+    SmrRunBranchRequest,
+    SmrRunBranchResponse,
+)
+from managed_research.models.smr_actor_models import (
+    SmrActorModelAssignment,
+    SmrActorSubtype,
+    SmrActorType,
+    SmrOrchestratorSubtype,
+    SmrReviewerSubtype,
+    SmrWorkerSubtype,
+)
+from managed_research.models.smr_agent_kinds import SmrAgentKind
+from managed_research.models.smr_agent_models import SmrAgentModel
+from managed_research.models.smr_credential_providers import SmrCredentialProvider
+from managed_research.models.smr_environment_kinds import SmrEnvironmentKind
+from managed_research.models.smr_funding_sources import SmrFundingSource
+from managed_research.models.smr_host_kinds import SmrHostKind
+from managed_research.models.smr_inference_providers import SmrInferenceProvider
+from managed_research.models.smr_resource_kinds import SmrResourceKind
+from managed_research.models.smr_resource_providers import SmrResourceProvider
+from managed_research.models.smr_run_policy import (
+    SmrRunPolicy,
+    SmrRunPolicyAccess,
+    SmrRunPolicyLimits,
+)
+from managed_research.models.smr_runtime_kinds import SmrRuntimeKind
+from managed_research.models.smr_tool_providers import SmrToolProvider
+from managed_research.models.smr_work_modes import SmrWorkMode
 from managed_research.models.types import (
     CredentialRef,
-    ExternalRepository,
     ExperimentProgress,
+    ExternalRepository,
     InlineExternalRepositoryBinding,
     KickoffContract,
     KickoffContractFile,
@@ -117,10 +121,10 @@ from managed_research.models.types import (
     ProviderKeyStatus,
     RecommendedAction,
     ResourceUploadResult,
-    RunProgress,
     RunCredentialBinding,
     RunFileMount,
     RunOutputFile,
+    RunProgress,
     RunRepositoryMount,
     RunResourceBindings,
     SemanticProgressSnapshot,
@@ -212,6 +216,8 @@ __all__ = [
     "ManagedResearchProject",
     "ManagedResearchRunControlAck",
     "ManagedResearchRunControlEnqueueStatus",
+    "ManagedResearchRunControlError",
+    "RunLifecycleControlErrorCode",
     "ManagedResearchRunLivePhase",
     "ManagedResearchRunState",
     "ManagedResearchRunTerminalOutcome",

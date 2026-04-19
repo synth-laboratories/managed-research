@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import json as _json
 import mimetypes
 import os
 from collections.abc import Iterable, Mapping
@@ -24,19 +25,20 @@ from managed_research.models.local_execution_profile import (
     LocalExecutionProfile,
     LocalPublicationReadiness,
 )
+from managed_research.models.run_control import ManagedResearchRunControlError
+from managed_research.models.run_diagnostics import (
+    SmrRunActorUsage,
+    SmrRunTraces,
+)
 from managed_research.models.run_observability import (
-    RunObservationCursor,
     RunObservabilitySnapshot,
+    RunObservationCursor,
 )
 from managed_research.models.run_timeline import (
     SmrBranchMode,
     SmrLogicalTimeline,
     SmrRunBranchRequest,
     SmrRunBranchResponse,
-)
-from managed_research.models.run_diagnostics import (
-    SmrRunActorUsage,
-    SmrRunTraces,
 )
 from managed_research.models.smr_actor_models import (
     SmrActorModelAssignment,
@@ -49,30 +51,20 @@ from managed_research.models.smr_credential_providers import (
     SmrCredentialProvider,
     coerce_smr_credential_provider,
 )
-from managed_research.models.smr_environment_kinds import (
-    SmrEnvironmentKind,
-    coerce_smr_environment_kind,
-)
 from managed_research.models.smr_funding_sources import (
     SmrFundingSource,
     coerce_smr_funding_source,
 )
 from managed_research.models.smr_host_kinds import SmrHostKind, coerce_smr_host_kind
-from managed_research.models.smr_runtime_kinds import (
-    SmrRuntimeKind,
-    coerce_smr_runtime_kind,
-)
 from managed_research.models.smr_run_policy import SmrRunPolicy, coerce_smr_run_policy
+from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
 from managed_research.models.types import (
     KickoffContract,
     RunResourceBindings,
-    SmrAgentProfileBindings,
-    SmrLaunchPreflight,
-    SmrProjectSetup,
     SmrRunnableProjectRequest,
 )
-from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
 from managed_research.sdk.approvals import ApprovalsAPI
+from managed_research.sdk.cost import RunCostAPI
 from managed_research.sdk.credentials import CredentialsAPI
 from managed_research.sdk.datasets import DatasetsAPI
 from managed_research.sdk.exports import ExportsAPI
@@ -82,8 +74,8 @@ from managed_research.sdk.integrations import IntegrationsAPI
 from managed_research.sdk.logs import LogsAPI
 from managed_research.sdk.models import ModelsAPI
 from managed_research.sdk.outputs import OutputsAPI
-from managed_research.sdk.project import ManagedResearchProjectClient
 from managed_research.sdk.progress import ProgressAPI
+from managed_research.sdk.project import ManagedResearchProjectClient
 from managed_research.sdk.projects import ProjectsAPI
 from managed_research.sdk.prs import PrsAPI
 from managed_research.sdk.readiness import ReadinessAPI
@@ -91,10 +83,9 @@ from managed_research.sdk.repos import ReposAPI
 from managed_research.sdk.repositories import RepositoriesAPI
 from managed_research.sdk.runs import RunsAPI
 from managed_research.sdk.setup import SetupAPI
+from managed_research.sdk.trained_models import TrainedModelsAPI
 from managed_research.sdk.usage import UsageAPI
 from managed_research.sdk.workspace_inputs import WorkspaceInputsAPI
-from managed_research.sdk.trained_models import TrainedModelsAPI
-from managed_research.sdk.cost import RunCostAPI
 from managed_research.transport.http import SmrHttpTransport, _raise_for_error_response
 from managed_research.transport.pagination import build_query_params
 
@@ -319,9 +310,7 @@ def _build_project_run_payload(
     agent_model: SmrAgentModel | None = None,
     agent_kind: SmrAgentKind | None = None,
     agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
-    actor_model_overrides: Iterable[
-        SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]
-    ]
+    actor_model_overrides: Iterable[SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]]
     | None = None,
     initial_runtime_messages: Iterable[Mapping[str, Any] | dict[str, Any]] | None = None,
     workflow: Mapping[str, Any] | dict[str, Any] | None = None,
@@ -527,18 +516,12 @@ class SmrControlClient:
     _repos_api: ReposAPI | None = field(init=False, default=None, repr=False)
     _datasets_api: DatasetsAPI | None = field(init=False, default=None, repr=False)
     _models_api: ModelsAPI | None = field(init=False, default=None, repr=False)
-    _repositories_api: RepositoriesAPI | None = field(
-        init=False, default=None, repr=False
-    )
-    _credentials_api: CredentialsAPI | None = field(
-        init=False, default=None, repr=False
-    )
+    _repositories_api: RepositoriesAPI | None = field(init=False, default=None, repr=False)
+    _credentials_api: CredentialsAPI | None = field(init=False, default=None, repr=False)
     _logs_api: LogsAPI | None = field(init=False, default=None, repr=False)
     _integrations_api: IntegrationsAPI | None = field(init=False, default=None, repr=False)
     _usage_api: UsageAPI | None = field(init=False, default=None, repr=False)
-    _trained_models_api: TrainedModelsAPI | None = field(
-        init=False, default=None, repr=False
-    )
+    _trained_models_api: TrainedModelsAPI | None = field(init=False, default=None, repr=False)
     _run_cost_api: RunCostAPI | None = field(init=False, default=None, repr=False)
 
     def __post_init__(self) -> None:
@@ -644,9 +627,7 @@ class SmrControlClient:
             openai_transport_mode=_resolve_openai_transport_mode(
                 transport_mode or self.openai_transport_mode
             ),
-            openai_organization=_optional_str(
-                openai_organization or self.openai_organization
-            ),
+            openai_organization=_optional_str(openai_organization or self.openai_organization),
             openai_project=_optional_str(openai_project or self.openai_project),
             openai_request_id=_optional_str(request_id or self.openai_request_id),
         ).openai_agents_sdk
@@ -814,7 +795,7 @@ class SmrControlClient:
         params: dict[str, Any] | None = None,
         json_body: dict[str, Any] | None = None,
         allow_not_found: bool = False,
-        ) -> Any:
+    ) -> Any:
         return self._transport.request_json(
             method,
             path,
@@ -1837,9 +1818,7 @@ class SmrControlClient:
         try:
             return LocalPublicationReadiness.from_wire(payload)
         except ValueError as exc:
-            raise SmrApiError(
-                f"Invalid local publication readiness payload: {exc}"
-            ) from exc
+            raise SmrApiError(f"Invalid local publication readiness payload: {exc}") from exc
 
     def get_launch_preflight(
         self,
@@ -2264,9 +2243,7 @@ class SmrControlClient:
             label="create_directed_effort_outcome",
         )
 
-    def get_directed_effort_outcome(
-        self, project_id: str, objective_id: str
-    ) -> dict[str, Any]:
+    def get_directed_effort_outcome(self, project_id: str, objective_id: str) -> dict[str, Any]:
         return _coerce_dict(
             self._request_json(
                 "GET",
@@ -2305,45 +2282,86 @@ class SmrControlClient:
             label="transition_directed_effort_outcome",
         )
 
+    def _run_lifecycle_control(
+        self,
+        *,
+        method: str,
+        path: str,
+        label: str,
+    ) -> dict[str, Any]:
+        """POST a lifecycle control and translate 409 bodies to typed errors.
+
+        The backend contract for pause/resume/stop returns HTTP 409 with a
+        ``detail`` mapping of
+        ``{error_code, message, retryable, current_state, run_id}`` when
+        the transition is rejected. We surface that as
+        :class:`ManagedResearchRunControlError` so callers can discriminate
+        auth / config / transient failure modes without re-parsing strings.
+        Any other error status is left to the transport's existing mapping.
+        """
+
+        try:
+            return _coerce_dict(
+                self._request_json(method, path),
+                label=label,
+            )
+        except SmrApiError as exc:
+            if exc.status_code != 409:
+                raise
+            response_text = exc.response_text
+            if response_text is None or not response_text.strip():
+                raise ValueError(
+                    f"{label}: HTTP 409 but response body was empty; "
+                    "expected detail mapping with error_code/message/retryable/current_state/run_id"
+                ) from exc
+            try:
+                payload = _json.loads(response_text)
+            except ValueError as parse_exc:
+                raise ValueError(
+                    f"{label}: HTTP 409 body was not valid JSON: {response_text!r}"
+                ) from parse_exc
+            raise ManagedResearchRunControlError.from_response(
+                payload=payload,
+                status_code=exc.status_code,
+                response_text=response_text,
+            ) from exc
+
     def stop_run(self, run_id: str, *, project_id: str | None = None) -> dict[str, Any]:
         if project_id:
-            return _coerce_dict(
-                self._request_json(
-                    "POST",
-                    f"/smr/projects/{project_id}/runs/{run_id}/stop",
-                ),
+            return self._run_lifecycle_control(
+                method="POST",
+                path=f"/smr/projects/{project_id}/runs/{run_id}/stop",
                 label="stop_project_run",
             )
-        return _coerce_dict(
-            self._request_json("POST", f"/smr/runs/{run_id}/stop"),
+        return self._run_lifecycle_control(
+            method="POST",
+            path=f"/smr/runs/{run_id}/stop",
             label="stop_run",
         )
 
     def pause_run(self, run_id: str, *, project_id: str | None = None) -> dict[str, Any]:
         if project_id:
-            return _coerce_dict(
-                self._request_json(
-                    "POST",
-                    f"/smr/projects/{project_id}/runs/{run_id}/pause",
-                ),
+            return self._run_lifecycle_control(
+                method="POST",
+                path=f"/smr/projects/{project_id}/runs/{run_id}/pause",
                 label="pause_project_run",
             )
-        return _coerce_dict(
-            self._request_json("POST", f"/smr/runs/{run_id}/pause"),
+        return self._run_lifecycle_control(
+            method="POST",
+            path=f"/smr/runs/{run_id}/pause",
             label="pause_run",
         )
 
     def resume_run(self, run_id: str, *, project_id: str | None = None) -> dict[str, Any]:
         if project_id:
-            return _coerce_dict(
-                self._request_json(
-                    "POST",
-                    f"/smr/projects/{project_id}/runs/{run_id}/resume",
-                ),
+            return self._run_lifecycle_control(
+                method="POST",
+                path=f"/smr/projects/{project_id}/runs/{run_id}/resume",
                 label="resume_project_run",
             )
-        return _coerce_dict(
-            self._request_json("POST", f"/smr/runs/{run_id}/resume"),
+        return self._run_lifecycle_control(
+            method="POST",
+            path=f"/smr/runs/{run_id}/resume",
             label="resume_run",
         )
 
@@ -2379,7 +2397,9 @@ class SmrControlClient:
         response_text: str,
         project_id: str | None = None,
     ) -> dict[str, Any]:
-        payload = {"response_text": _require_non_empty_string(response_text, field_name="response_text")}
+        payload = {
+            "response_text": _require_non_empty_string(response_text, field_name="response_text")
+        }
         if project_id:
             scoped = self._request_json(
                 "POST",
@@ -2652,9 +2672,7 @@ class SmrControlClient:
         if isinstance(viewer_target, str) and viewer_target.strip():
             params["viewer_target"] = [viewer_target.strip()]
         elif viewer_target is not None:
-            cleaned_targets = [
-                str(item).strip() for item in viewer_target if str(item).strip()
-            ]
+            cleaned_targets = [str(item).strip() for item in viewer_target if str(item).strip()]
             if cleaned_targets:
                 params["viewer_target"] = cleaned_targets
         return _coerce_dict_list(
@@ -2703,9 +2721,7 @@ class SmrControlClient:
         if isinstance(viewer_target, str) and viewer_target.strip():
             params["viewer_target"] = [viewer_target.strip()]
         elif viewer_target is not None:
-            cleaned_targets = [
-                str(item).strip() for item in viewer_target if str(item).strip()
-            ]
+            cleaned_targets = [str(item).strip() for item in viewer_target if str(item).strip()]
             if cleaned_targets:
                 params["viewer_target"] = cleaned_targets
         return _coerce_dict_list(
