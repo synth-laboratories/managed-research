@@ -482,6 +482,131 @@ class RunOutputFile:
 
 
 @dataclass(frozen=True)
+class RunArtifact:
+    artifact_id: str
+    project_id: str | None = None
+    run_id: str | None = None
+    artifact_type: str | None = None
+    title: str | None = None
+    uri: str | None = None
+    digest: str | None = None
+    path: str | None = None
+    content_type: str | None = None
+    size_bytes: int | None = None
+    content_url: str | None = None
+    download_url: str | None = None
+    created_at: str | None = None
+    metadata: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> RunArtifact:
+        mapping = _require_mapping(payload, label="run artifact")
+        size_value = mapping.get("size_bytes")
+        size_bytes = size_value if isinstance(size_value, int) and not isinstance(size_value, bool) else None
+        return cls(
+            artifact_id=_require_string(
+                mapping, "artifact_id", label="run artifact.artifact_id"
+            ),
+            project_id=_optional_string(mapping, "project_id"),
+            run_id=_optional_string(mapping, "run_id"),
+            artifact_type=_optional_string(mapping, "artifact_type"),
+            title=_optional_string(mapping, "title"),
+            uri=_optional_string(mapping, "uri"),
+            digest=_optional_string(mapping, "digest"),
+            path=_optional_string(mapping, "path"),
+            content_type=_optional_string(mapping, "content_type"),
+            size_bytes=size_bytes,
+            content_url=_optional_string(mapping, "content_url"),
+            download_url=_optional_string(mapping, "download_url"),
+            created_at=_optional_string(mapping, "created_at"),
+            metadata=_optional_object_dict(mapping.get("metadata")),
+        )
+
+
+@dataclass(frozen=True)
+class RunArtifactManifest:
+    schema_version: str
+    project_id: str
+    run_id: str
+    generated_at: str | None = None
+    artifact_count: int = 0
+    artifacts: list[RunArtifact] = field(default_factory=list)
+    output_files: list[RunArtifact] = field(default_factory=list)
+    result_json: RunArtifact | None = None
+    result_outputs: list[RunArtifact] = field(default_factory=list)
+    reports: list[RunArtifact] = field(default_factory=list)
+    pull_requests: list[RunArtifact] = field(default_factory=list)
+    workspace_archive: dict[str, object] = field(default_factory=dict)
+    models: list[dict[str, object]] = field(default_factory=list)
+    datasets: list[dict[str, object]] = field(default_factory=list)
+    links: dict[str, object] = field(default_factory=dict)
+    raw: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> RunArtifactManifest:
+        mapping = _require_mapping(payload, label="run artifact manifest")
+        result_json_payload = mapping.get("result_json")
+        artifact_count = mapping.get("artifact_count")
+        return cls(
+            schema_version=_require_string(
+                mapping,
+                "schema_version",
+                label="run artifact manifest.schema_version",
+            ),
+            project_id=_require_string(
+                mapping, "project_id", label="run artifact manifest.project_id"
+            ),
+            run_id=_require_string(
+                mapping, "run_id", label="run artifact manifest.run_id"
+            ),
+            generated_at=_optional_string(mapping, "generated_at"),
+            artifact_count=(
+                artifact_count
+                if isinstance(artifact_count, int) and not isinstance(artifact_count, bool)
+                else 0
+            ),
+            artifacts=[
+                RunArtifact.from_wire(item)
+                for item in _optional_array(mapping, "artifacts")
+            ],
+            output_files=[
+                RunArtifact.from_wire(item)
+                for item in _optional_array(mapping, "output_files")
+            ],
+            result_json=(
+                RunArtifact.from_wire(result_json_payload)
+                if isinstance(result_json_payload, Mapping)
+                else None
+            ),
+            result_outputs=[
+                RunArtifact.from_wire(item)
+                for item in _optional_array(mapping, "result_outputs")
+            ],
+            reports=[
+                RunArtifact.from_wire(item)
+                for item in _optional_array(mapping, "reports")
+            ],
+            pull_requests=[
+                RunArtifact.from_wire(item)
+                for item in _optional_array(mapping, "pull_requests")
+            ],
+            workspace_archive=_optional_object_dict(mapping.get("workspace_archive")),
+            models=[
+                _object_dict(item)
+                for item in _optional_array(mapping, "models")
+                if isinstance(item, Mapping)
+            ],
+            datasets=[
+                _object_dict(item)
+                for item in _optional_array(mapping, "datasets")
+                if isinstance(item, Mapping)
+            ],
+            links=_optional_object_dict(mapping.get("links")),
+            raw=dict(mapping),
+        )
+
+
+@dataclass(frozen=True)
 class ResourceUploadResult:
     project_id: str
     run_id: str | None = None
@@ -1432,6 +1557,8 @@ __all__ = [
     "ProviderKeyStatus",
     "RecommendedAction",
     "ResourceUploadResult",
+    "RunArtifact",
+    "RunArtifactManifest",
     "RunProgress",
     "RunCredentialBinding",
     "RunFileMount",

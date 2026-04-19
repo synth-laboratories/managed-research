@@ -25,6 +25,7 @@ from managed_research.models.runtime_intent import (
     RuntimeIntentReceipt,
     RuntimeIntentView,
 )
+from managed_research.models.types import RunArtifact, RunArtifactManifest
 from managed_research.sdk._base import _ClientNamespace
 
 
@@ -184,6 +185,60 @@ class RunHandle:
             title=title,
             source_node_id=source_node_id,
         )
+
+    def artifact_manifest(self) -> RunArtifactManifest:
+        return self._client.get_run_artifact_manifest(
+            self.run_id,
+            project_id=self.project_id,
+        )
+
+    def artifacts(
+        self,
+        *,
+        artifact_type: str | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> list[RunArtifact]:
+        return self._client.list_run_artifacts(
+            self.run_id,
+            project_id=self.project_id,
+            artifact_type=artifact_type,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def output_file(self, name: str) -> RunArtifact | None:
+        wanted = str(name or "").strip().lower()
+        if not wanted:
+            raise ValueError("name is required")
+        for artifact in self.artifact_manifest().output_files:
+            candidates = {
+                artifact.artifact_id,
+                artifact.artifact_type,
+                artifact.title,
+                artifact.path,
+            }
+            if artifact.path:
+                candidates.add(artifact.path.rsplit("/", 1)[-1])
+            if any(
+                str(candidate or "").strip().lower() == wanted
+                for candidate in candidates
+            ):
+                return artifact
+        return None
+
+    def download(self, path: str) -> dict[str, Any]:
+        return self._client.download_run_workspace_archive(
+            self.project_id,
+            self.run_id,
+            path,
+        )
+
+    def models(self) -> list[dict[str, Any]]:
+        return self._client.list_run_models(self.run_id, project_id=self.project_id)
+
+    def datasets(self) -> list[dict[str, Any]]:
+        return self._client.list_run_datasets(self.run_id, project_id=self.project_id)
 
     def stop(self) -> ManagedResearchRunControlAck:
         return ManagedResearchRunControlAck.from_wire(
@@ -376,6 +431,84 @@ class RunsAPI(_ClientNamespace):
         self, run_id: str, *, project_id: str | None = None
     ) -> list[dict[str, Any]]:
         return self._client.list_run_checkpoints(run_id, project_id=project_id)
+
+    def artifact_manifest(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> RunArtifactManifest:
+        return self._client.get_run_artifact_manifest(run_id, project_id=project_id)
+
+    def artifacts(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+        artifact_type: str | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> list[RunArtifact]:
+        return self._client.list_run_artifacts(
+            run_id,
+            project_id=project_id,
+            artifact_type=artifact_type,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def output_file(
+        self,
+        run_id: str,
+        name: str,
+        *,
+        project_id: str | None = None,
+    ) -> RunArtifact | None:
+        wanted = str(name or "").strip().lower()
+        if not wanted:
+            raise ValueError("name is required")
+        for artifact in self.artifact_manifest(
+            run_id,
+            project_id=project_id,
+        ).output_files:
+            candidates = {
+                artifact.artifact_id,
+                artifact.artifact_type,
+                artifact.title,
+                artifact.path,
+            }
+            if artifact.path:
+                candidates.add(artifact.path.rsplit("/", 1)[-1])
+            if any(
+                str(candidate or "").strip().lower() == wanted
+                for candidate in candidates
+            ):
+                return artifact
+        return None
+
+    def download(
+        self,
+        project_id: str,
+        run_id: str,
+        path: str,
+    ) -> dict[str, Any]:
+        return self._client.download_run_workspace_archive(project_id, run_id, path)
+
+    def models(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_run_models(run_id, project_id=project_id)
+
+    def datasets(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_run_datasets(run_id, project_id=project_id)
 
     def restore_checkpoint(
         self, run_id: str, *, project_id: str | None = None, **kwargs: Any

@@ -562,10 +562,24 @@ class ManagedResearchMcpServer:
 
     def _tool_download_workspace_archive(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
+        run_id = optional_string(args, "run_id")
         output_path = require_string(args, "output_path")
         timeout_raw = optional_int(args, "timeout_seconds")
         timeout_seconds = float(timeout_raw) if timeout_raw is not None else None
         with self._client_from_args(args) as client:
+            if run_id:
+                if timeout_seconds is not None:
+                    return client.download_run_workspace_archive(
+                        project_id,
+                        run_id,
+                        output_path,
+                        timeout_seconds=timeout_seconds,
+                    )
+                return client.download_run_workspace_archive(
+                    project_id,
+                    run_id,
+                    output_path,
+                )
             if timeout_seconds is not None:
                 return client.download_workspace_archive(
                     project_id,
@@ -728,6 +742,66 @@ class ManagedResearchMcpServer:
                 output_file_id,
                 disposition=disposition,
             )
+
+    def _tool_list_run_artifacts(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        artifact_type = optional_string(args, "artifact_type")
+        limit = optional_int(args, "limit")
+        cursor = optional_string(args, "cursor")
+        with self._client_from_args(args) as client:
+            return [
+                asdict(item)
+                for item in client.runs.artifacts(
+                    run_id,
+                    project_id=project_id,
+                    artifact_type=artifact_type,
+                    limit=limit,
+                    cursor=cursor,
+                )
+            ]
+
+    def _tool_get_run_artifact_manifest(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return asdict(
+                client.runs.artifact_manifest(run_id, project_id=project_id)
+            )
+
+    def _tool_get_artifact(self, args: JSONDict) -> Any:
+        artifact_id = require_string(args, "artifact_id")
+        with self._client_from_args(args) as client:
+            return asdict(client.get_artifact(artifact_id))
+
+    def _tool_get_artifact_content(self, args: JSONDict) -> Any:
+        artifact_id = require_string(args, "artifact_id")
+        disposition = optional_string(args, "disposition") or "inline"
+        with self._client_from_args(args) as client:
+            return client.get_artifact_content(artifact_id, disposition=disposition)
+
+    def _tool_download_artifact(self, args: JSONDict) -> Any:
+        artifact_id = require_string(args, "artifact_id")
+        output_path = require_string(args, "output_path")
+        disposition = optional_string(args, "disposition") or "attachment"
+        with self._client_from_args(args) as client:
+            return client.download_artifact(
+                artifact_id,
+                output_path,
+                disposition=disposition,
+            )
+
+    def _tool_list_run_models(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.runs.models(run_id, project_id=project_id)
+
+    def _tool_list_run_datasets(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.runs.datasets(run_id, project_id=project_id)
 
     def _tool_list_project_external_repositories(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")

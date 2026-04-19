@@ -94,6 +94,13 @@ _DEFAULT_REQUIRED_SCOPES_BY_TOOL_NAME: dict[str, tuple[str, ...]] = {
     "smr_get_run_usage": READ_SCOPES,
     "smr_get_project_usage": READ_SCOPES,
     "smr_get_project_economics": READ_SCOPES,
+    "smr_list_run_artifacts": READ_SCOPES,
+    "smr_get_run_artifact_manifest": READ_SCOPES,
+    "smr_get_artifact": READ_SCOPES,
+    "smr_get_artifact_content": READ_SCOPES,
+    "smr_download_artifact": READ_SCOPES,
+    "smr_list_run_models": READ_SCOPES,
+    "smr_list_run_datasets": READ_SCOPES,
 }
 
 
