@@ -13,6 +13,12 @@ from managed_research.models.run_control import (
     ManagedResearchRunControlAck,
     RunLifecycleControlErrorCode,
 )
+from managed_research.models.runtime_intent import (
+    RuntimeIntent,
+    RuntimeIntentReceipt,
+    RuntimeIntentStatus,
+    RuntimeIntentView,
+)
 from managed_research.sdk import (
     CredentialsAPI,
     ExportsAPI,
@@ -207,6 +213,130 @@ def test_runs_namespace_uses_public_runtime_message_listing(monkeypatch) -> None
     messages = client.runs.list_runtime_messages("run_123", status="queued")
 
     assert messages == [{"run_id": "run_123", "status": "queued"}]
+    client.close()
+
+
+def test_runs_namespace_submits_typed_runtime_intent(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    calls: list[tuple[str, str, dict[str, object]]] = []
+
+    def _request(method: str, path: str, **kwargs):
+        calls.append((method, path, kwargs))
+        return {
+            "runtime_intent_id": "message:run_123:smr_runtime_control:4",
+            "runtime_intent_status": "queued",
+            "runtime_intent_ack_at": "2026-04-19T17:00:00Z",
+            "run_id": "run_123",
+            "intent_kind": "answer_question",
+            "mode": "queue",
+        }
+
+    monkeypatch.setattr(client, "_request_json", _request)
+
+    receipt = client.runs.submit_intent(
+        "run_123",
+        RuntimeIntent.answer_question(
+            question_id="question-1",
+            user_id="user-1",
+            response_text="Proceed.",
+        ),
+        project_id="proj_123",
+        body="Proceed.",
+        causation_id="message:run_123:question:1",
+    )
+
+    assert isinstance(receipt, RuntimeIntentReceipt)
+    assert receipt.runtime_intent_status is RuntimeIntentStatus.QUEUED
+    assert receipt.runtime_intent_id == "message:run_123:smr_runtime_control:4"
+    assert calls == [
+        (
+            "POST",
+            "/smr/projects/proj_123/runs/run_123/runtime/intents",
+            {
+                "json_body": {
+                    "intent": {
+                        "kind": "answer_question",
+                        "payload": {
+                            "question_id": "question-1",
+                            "user_id": "user-1",
+                            "response_text": "Proceed.",
+                            "requested_by_role": "human",
+                        },
+                    },
+                    "mode": "queue",
+                    "body": "Proceed.",
+                    "causation_id": "message:run_123:question:1",
+                }
+            },
+        )
+    ]
+    client.close()
+
+
+def test_runs_namespace_lists_and_gets_runtime_intents(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    calls: list[tuple[str, str, dict[str, object]]] = []
+    row = {
+        "runtime_intent_id": "message:run_123:smr_runtime_control:5",
+        "runtime_intent_status": "ignored",
+        "runtime_intent_ack_at": "2026-04-19T17:00:00Z",
+        "run_id": "run_123",
+        "intent_kind": "answer_question",
+        "mode": "queue",
+        "message_id": "message:run_123:smr_runtime_control:5",
+        "seq": 5,
+        "action": "smr.intent.answer_question",
+        "topic": "smr.intent",
+        "causation_id": "message:run_123:question:1",
+        "sender": "user:alice",
+        "target": "role:system",
+        "body": "Proceed.",
+        "payload": {"question_id": "question-1"},
+        "requested_by": "user:alice",
+        "requested_by_role": "human",
+        "resolved_at": "2026-04-19T17:01:00Z",
+        "error_code": "run_terminal",
+        "error_detail": "Run became terminal.",
+        "retryable": False,
+        "applied_mode": "noop",
+    }
+
+    def _request(method: str, path: str, **kwargs):
+        calls.append((method, path, kwargs))
+        if method == "GET" and path.endswith("/runtime/intents"):
+            return [row]
+        return row
+
+    monkeypatch.setattr(client, "_request_json", _request)
+
+    rows = client.runs.intents(
+        "run_123",
+        project_id="proj_123",
+        status="ignored",
+        limit=10,
+    )
+    one = client.runs.intent(
+        "run_123",
+        "message:run_123:smr_runtime_control:5",
+        project_id="proj_123",
+    )
+
+    assert isinstance(rows[0], RuntimeIntentView)
+    assert rows[0].runtime_intent_status is RuntimeIntentStatus.IGNORED
+    assert rows[0].causation_id == "message:run_123:question:1"
+    assert one.runtime_intent_id == "message:run_123:smr_runtime_control:5"
+    assert calls == [
+        (
+            "GET",
+            "/smr/projects/proj_123/runs/run_123/runtime/intents",
+            {"params": {"status": "ignored", "limit": 10}},
+        ),
+        (
+            "GET",
+            "/smr/projects/proj_123/runs/run_123/runtime/intents/message:run_123:smr_runtime_control:5",
+            {},
+        ),
+    ]
     client.close()
 
 

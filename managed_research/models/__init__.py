@@ -79,6 +79,14 @@ from managed_research.models.run_timeline import (
     SmrRunBranchRequest,
     SmrRunBranchResponse,
 )
+from managed_research.models.runtime_intent import (
+    RuntimeIntent,
+    RuntimeIntentKind,
+    RuntimeIntentReceipt,
+    RuntimeIntentStatus,
+    RuntimeIntentView,
+    RuntimeMessageMode,
+)
 from managed_research.models.smr_actor_models import (
     SmrActorModelAssignment,
     SmrActorSubtype,
@@ -177,8 +185,14 @@ __all__ = [
     "RunRepositoryMount",
     "RunResourceBindings",
     "RuntimeDeliveryView",
+    "RuntimeIntent",
+    "RuntimeIntentKind",
+    "RuntimeIntentReceipt",
+    "RuntimeIntentStatus",
+    "RuntimeIntentView",
     "RuntimeEventView",
     "RuntimeMessageView",
+    "RuntimeMessageMode",
     "RuntimeObservability",
     "SemanticProgressSnapshot",
     "SmrBranchMode",

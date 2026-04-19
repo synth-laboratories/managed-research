@@ -4,22 +4,26 @@ from __future__ import annotations
 
 from typing import Any
 
-from managed_research.models.run_observability import (
-    RunObservationCursor,
-    RunObservabilitySnapshot,
-)
+from managed_research.models.canonical_usage import SmrRunUsage
 from managed_research.models.run_control import ManagedResearchRunControlAck
+from managed_research.models.run_diagnostics import (
+    SmrRunActorUsage,
+    SmrRunTraces,
+)
+from managed_research.models.run_observability import (
+    RunObservabilitySnapshot,
+    RunObservationCursor,
+)
 from managed_research.models.run_state import ManagedResearchRun
-from managed_research.models.project import ManagedResearchProject
 from managed_research.models.run_timeline import (
     SmrBranchMode,
     SmrLogicalTimeline,
     SmrRunBranchResponse,
 )
-from managed_research.models.canonical_usage import SmrRunUsage
-from managed_research.models.run_diagnostics import (
-    SmrRunActorUsage,
-    SmrRunTraces,
+from managed_research.models.runtime_intent import (
+    RuntimeIntent,
+    RuntimeIntentReceipt,
+    RuntimeIntentView,
 )
 from managed_research.sdk._base import _ClientNamespace
 
@@ -72,6 +76,43 @@ class RunHandle:
             limit=limit,
         )
 
+    def submit_intent(
+        self,
+        intent: RuntimeIntent | dict[str, Any],
+        *,
+        mode: str = "queue",
+        body: str | None = None,
+        causation_id: str | None = None,
+    ) -> RuntimeIntentReceipt:
+        return self._client.submit_runtime_intent(
+            self.run_id,
+            intent,
+            project_id=self.project_id,
+            mode=mode,
+            body=body,
+            causation_id=causation_id,
+        )
+
+    def intents(
+        self,
+        *,
+        status: str | None = None,
+        limit: int | None = None,
+    ) -> list[RuntimeIntentView]:
+        return self._client.list_runtime_intents(
+            self.run_id,
+            project_id=self.project_id,
+            status=status,
+            limit=limit,
+        )
+
+    def intent(self, runtime_intent_id: str) -> RuntimeIntentView:
+        return self._client.get_runtime_intent(
+            self.run_id,
+            runtime_intent_id,
+            project_id=self.project_id,
+        )
+
     def timeline(self) -> SmrLogicalTimeline:
         return self._client.get_run_logical_timeline(self.project_id, self.run_id)
 
@@ -101,16 +142,16 @@ class RunsAPI(_ClientNamespace):
     def trigger(self, project_id: str, **kwargs: Any) -> dict[str, Any]:
         return self._client.trigger_run(project_id, **kwargs)
 
-    def list(self, project_id: str, *, active_only: bool = False, **kwargs: Any) -> list[dict[str, Any]]:
+    def list(
+        self, project_id: str, *, active_only: bool = False, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         return self._client.list_runs(project_id, active_only=active_only, **kwargs)
 
     def list_active(self, project_id: str) -> list[dict[str, Any]]:
         return self._client.list_active_runs(project_id)
 
     def get(self, run_id: str, *, project_id: str | None = None) -> ManagedResearchRun:
-        return ManagedResearchRun.from_wire(
-            self._client.get_run(run_id, project_id=project_id)
-        )
+        return ManagedResearchRun.from_wire(self._client.get_run(run_id, project_id=project_id))
 
     def get_usage(self, run_id: str) -> SmrRunUsage:
         return self._client.get_run_usage(run_id)
@@ -181,28 +222,71 @@ class RunsAPI(_ClientNamespace):
     ) -> list[dict[str, Any]]:
         return self._client.list_run_primary_parent_milestones(run_id, limit=limit)
 
-    def stop(
-        self, run_id: str, *, project_id: str | None = None
-    ) -> ManagedResearchRunControlAck:
+    def stop(self, run_id: str, *, project_id: str | None = None) -> ManagedResearchRunControlAck:
         return ManagedResearchRunControlAck.from_wire(
             self._client.stop_run(run_id, project_id=project_id)
         )
 
-    def pause(
-        self, run_id: str, *, project_id: str | None = None
-    ) -> ManagedResearchRunControlAck:
+    def pause(self, run_id: str, *, project_id: str | None = None) -> ManagedResearchRunControlAck:
         return ManagedResearchRunControlAck.from_wire(
             self._client.pause_run(run_id, project_id=project_id)
         )
 
-    def resume(
-        self, run_id: str, *, project_id: str | None = None
-    ) -> ManagedResearchRunControlAck:
+    def resume(self, run_id: str, *, project_id: str | None = None) -> ManagedResearchRunControlAck:
         return ManagedResearchRunControlAck.from_wire(
             self._client.resume_run(run_id, project_id=project_id)
         )
 
-    def list_questions(self, run_id: str, *, project_id: str | None = None, **kwargs: Any) -> list[dict[str, Any]]:
+    def submit_intent(
+        self,
+        run_id: str,
+        intent: RuntimeIntent | dict[str, Any],
+        *,
+        project_id: str | None = None,
+        mode: str = "queue",
+        body: str | None = None,
+        causation_id: str | None = None,
+    ) -> RuntimeIntentReceipt:
+        return self._client.submit_runtime_intent(
+            run_id,
+            intent,
+            project_id=project_id,
+            mode=mode,
+            body=body,
+            causation_id=causation_id,
+        )
+
+    def intents(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+        status: str | None = None,
+        limit: int | None = None,
+    ) -> list[RuntimeIntentView]:
+        return self._client.list_runtime_intents(
+            run_id,
+            project_id=project_id,
+            status=status,
+            limit=limit,
+        )
+
+    def intent(
+        self,
+        run_id: str,
+        runtime_intent_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> RuntimeIntentView:
+        return self._client.get_runtime_intent(
+            run_id,
+            runtime_intent_id,
+            project_id=project_id,
+        )
+
+    def list_questions(
+        self, run_id: str, *, project_id: str | None = None, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         return self._client.list_run_questions(run_id, project_id=project_id, **kwargs)
 
     def respond_to_question(
@@ -220,13 +304,19 @@ class RunsAPI(_ClientNamespace):
             response_text=response_text,
         )
 
-    def create_checkpoint(self, run_id: str, *, project_id: str | None = None, **kwargs: Any) -> dict[str, Any]:
+    def create_checkpoint(
+        self, run_id: str, *, project_id: str | None = None, **kwargs: Any
+    ) -> dict[str, Any]:
         return self._client.create_run_checkpoint(run_id, project_id=project_id, **kwargs)
 
-    def list_checkpoints(self, run_id: str, *, project_id: str | None = None) -> list[dict[str, Any]]:
+    def list_checkpoints(
+        self, run_id: str, *, project_id: str | None = None
+    ) -> list[dict[str, Any]]:
         return self._client.list_run_checkpoints(run_id, project_id=project_id)
 
-    def restore_checkpoint(self, run_id: str, *, project_id: str | None = None, **kwargs: Any) -> dict[str, Any]:
+    def restore_checkpoint(
+        self, run_id: str, *, project_id: str | None = None, **kwargs: Any
+    ) -> dict[str, Any]:
         return self._client.restore_run_checkpoint(run_id, project_id=project_id, **kwargs)
 
     def get_logical_timeline(self, project_id: str, run_id: str) -> SmrLogicalTimeline:

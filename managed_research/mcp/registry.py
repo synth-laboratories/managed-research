@@ -77,6 +77,7 @@ _DEFAULT_REQUIRED_SCOPES_BY_TOOL_NAME: dict[str, tuple[str, ...]] = {
     "smr_stop_run": WRITE_SCOPES,
     "smr_branch_run_from_checkpoint": WRITE_SCOPES,
     "smr_runtime_message_queue": READ_SCOPES,
+    "smr_runtime_intents": WRITE_SCOPES,
     "smr_list_active_runs": READ_SCOPES,
     "smr_list_run_questions": READ_SCOPES,
     "smr_respond_to_run_question": WRITE_SCOPES,

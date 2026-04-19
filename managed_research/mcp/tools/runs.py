@@ -6,6 +6,11 @@ from typing import Any
 
 from managed_research.mcp.registry import ToolDefinition, tool_schema
 from managed_research.mcp.tools.smr_policy_schemas import run_policy_input_schema
+from managed_research.models.runtime_intent import (
+    RuntimeIntentKind,
+    RuntimeIntentStatus,
+    RuntimeMessageMode,
+)
 from managed_research.models.smr_actor_models import (
     SMR_ACTOR_SUBTYPE_VALUES,
     SMR_ACTOR_TYPE_VALUES,
@@ -404,6 +409,70 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                 required=["operation", "run_id"],
             ),
             handler=server._tool_runtime_message_queue,
+        ),
+        ToolDefinition(
+            name="smr_runtime_intents",
+            description=(
+                "Submit, list, or get typed runtime intents for operator steering. "
+                "Use this for approvals, questions, task/run state changes, spend records, "
+                "task plans, and milestone writes when you want durable ack/resolution state."
+            ),
+            input_schema=tool_schema(
+                {
+                    "operation": {
+                        "type": "string",
+                        "enum": ["submit", "list", "get"],
+                        "description": "Submit a new intent, list intents, or fetch one intent.",
+                    },
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
+                    "runtime_intent_id": {
+                        "type": "string",
+                        "description": "Required for operation=get.",
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [item.value for item in RuntimeIntentStatus],
+                        "description": "Optional status filter for operation=list.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000,
+                        "description": "Maximum intents to return for operation=list.",
+                    },
+                    "intent": {
+                        "type": "object",
+                        "description": "Required for operation=submit. Shape: {kind, payload}.",
+                        "properties": {
+                            "kind": {
+                                "type": "string",
+                                "enum": [item.value for item in RuntimeIntentKind],
+                            },
+                            "payload": {"type": "object"},
+                        },
+                        "required": ["kind", "payload"],
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": [item.value for item in RuntimeMessageMode],
+                        "description": "Intent delivery mode for operation=submit.",
+                    },
+                    "body": {
+                        "type": "string",
+                        "description": "Optional operator-facing body for operation=submit.",
+                    },
+                    "causation_id": {
+                        "type": "string",
+                        "description": "Optional source message id for operation=submit.",
+                    },
+                },
+                required=["operation", "run_id"],
+            ),
+            handler=server._tool_runtime_intents,
         ),
         ToolDefinition(
             name="smr_list_active_runs",
