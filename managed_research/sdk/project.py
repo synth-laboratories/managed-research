@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import mimetypes
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -36,6 +37,51 @@ class _BoundProjectReposAPI:
 
     def detach(self, *, github_repo: str) -> dict[str, Any]:
         return self._client.detach_project_repo(self.project_id, repo=github_repo)
+
+
+@dataclass
+class _BoundProjectExternalRepositoriesAPI:
+    _client: Any
+    project_id: str
+
+    def list(self) -> list[dict[str, Any]]:
+        return self._client.list_project_external_repositories(self.project_id)
+
+    def create(
+        self,
+        *,
+        name: str,
+        url: str,
+        default_branch: str | None = None,
+        role: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._client.create_project_external_repository(
+            self.project_id,
+            name=name,
+            url=url,
+            default_branch=default_branch,
+            role=role,
+            metadata=metadata,
+        )
+
+    def patch(
+        self,
+        repository_id: str,
+        *,
+        url: str | None = None,
+        default_branch: str | None = None,
+        role: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._client.patch_project_external_repository(
+            self.project_id,
+            repository_id,
+            url=url,
+            default_branch=default_branch,
+            role=role,
+            metadata=metadata,
+        )
 
 
 @dataclass
@@ -128,6 +174,87 @@ class _BoundProjectDatasetsAPI:
 
 
 @dataclass
+class _BoundProjectContextAPI:
+    _client: Any
+    project_id: str
+
+    def get_notes(self) -> dict[str, Any]:
+        return self._client.get_project_notes(self.project_id)
+
+    def set_notes(self, notes: str) -> dict[str, Any]:
+        return self._client.set_project_notes(self.project_id, notes)
+
+    def append_notes(self, notes: str) -> dict[str, Any]:
+        return self._client.append_project_notes(self.project_id, notes)
+
+    def get_project_knowledge(self) -> dict[str, Any]:
+        return self._client.get_project_knowledge(self.project_id)
+
+    def set_project_knowledge(self, content: str) -> dict[str, Any]:
+        return self._client.set_project_knowledge(self.project_id, content)
+
+    def get_org_knowledge(self) -> dict[str, Any]:
+        return self._client.get_org_knowledge()
+
+    def set_org_knowledge(self, content: str) -> dict[str, Any]:
+        return self._client.set_org_knowledge(content)
+
+
+@dataclass
+class _BoundProjectCredentialsAPI:
+    _client: Any
+    project_id: str
+
+    def list(
+        self,
+        *,
+        kind: str | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_project_credential_refs(
+            self.project_id,
+            kind=kind,
+        )
+
+    def create(
+        self,
+        *,
+        kind: str,
+        label: str,
+        provider: str | None = None,
+        funding_source: str | None = None,
+        credential_name: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._client.create_project_credential_ref(
+            self.project_id,
+            kind=kind,
+            label=label,
+            provider=provider,
+            funding_source=funding_source,
+            credential_name=credential_name,
+            metadata=metadata,
+        )
+
+    def patch(
+        self,
+        credential_ref_id: str,
+        *,
+        provider: str | None = None,
+        funding_source: str | None = None,
+        credential_name: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._client.patch_project_credential_ref(
+            self.project_id,
+            credential_ref_id,
+            provider=provider,
+            funding_source=funding_source,
+            credential_name=credential_name,
+            metadata=metadata,
+        )
+
+
+@dataclass
 class _BoundProjectOutputsAPI:
     _client: Any
     project_id: str
@@ -183,8 +310,23 @@ class ManagedResearchProjectClient:
     _client: Any
     project_id: str
     _repos_api: _BoundProjectReposAPI | None = field(init=False, default=None, repr=False)
+    _external_repositories_api: _BoundProjectExternalRepositoriesAPI | None = field(
+        init=False,
+        default=None,
+        repr=False,
+    )
     _files_api: _BoundProjectFilesAPI | None = field(init=False, default=None, repr=False)
     _datasets_api: _BoundProjectDatasetsAPI | None = field(
+        init=False,
+        default=None,
+        repr=False,
+    )
+    _context_api: _BoundProjectContextAPI | None = field(
+        init=False,
+        default=None,
+        repr=False,
+    )
+    _credentials_api: _BoundProjectCredentialsAPI | None = field(
         init=False,
         default=None,
         repr=False,
@@ -208,6 +350,15 @@ class ManagedResearchProjectClient:
         return self._repos_api
 
     @property
+    def external_repositories(self) -> _BoundProjectExternalRepositoriesAPI:
+        if self._external_repositories_api is None:
+            self._external_repositories_api = _BoundProjectExternalRepositoriesAPI(
+                self._client,
+                self.project_id,
+            )
+        return self._external_repositories_api
+
+    @property
     def files(self) -> _BoundProjectFilesAPI:
         if self._files_api is None:
             self._files_api = _BoundProjectFilesAPI(self._client, self.project_id)
@@ -218,6 +369,21 @@ class ManagedResearchProjectClient:
         if self._datasets_api is None:
             self._datasets_api = _BoundProjectDatasetsAPI(self._client, self.project_id)
         return self._datasets_api
+
+    @property
+    def context(self) -> _BoundProjectContextAPI:
+        if self._context_api is None:
+            self._context_api = _BoundProjectContextAPI(self._client, self.project_id)
+        return self._context_api
+
+    @property
+    def credentials(self) -> _BoundProjectCredentialsAPI:
+        if self._credentials_api is None:
+            self._credentials_api = _BoundProjectCredentialsAPI(
+                self._client,
+                self.project_id,
+            )
+        return self._credentials_api
 
     @property
     def outputs(self) -> _BoundProjectOutputsAPI:

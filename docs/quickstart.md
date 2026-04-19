@@ -169,6 +169,8 @@ Kickoff migration note:
   `append_project_notes`
 - curated knowledge is managed through `set_org_knowledge`,
   `get_org_knowledge`, `set_project_knowledge`, and `get_project_knowledge`
+- project context can also include uploaded files/directories, datasets,
+  linked GitHub repos, external context repos, and credential refs
 
 Use the hosted MCP endpoint:
 
@@ -190,11 +192,13 @@ For MCP clients, the equivalent flow is readiness-first as well:
 2. `smr_create_runnable_project` or `smr_list_projects`
 3. `smr_setup_github_start_oauth`
 4. `smr_work_repos_attach` or `smr_work_files_upload`
-5. optionally `smr_set_project_notes`
-6. optionally `smr_set_project_knowledge`
-7. `smr_prepare_project_setup`
-8. `smr_get_capacity_lane_preview`
-9. `smr_get_launch_preflight`
-10. `smr_trigger_run`
-11. `smr_results_prs_list`, `smr_results_models_list`, and `smr_results_outputs_list`
-12. `smr_get_workspace_download_url`, `smr_download_workspace_archive`, or `smr_get_project_git`
+5. optionally `smr_work_datasets_upload`, `smr_create_project_external_repository`,
+   or `smr_create_project_credential_ref`
+6. optionally `smr_set_project_notes`
+7. optionally `smr_set_project_knowledge`
+8. `smr_prepare_project_setup`
+9. `smr_get_capacity_lane_preview`
+10. `smr_get_launch_preflight`
+11. `smr_trigger_run`
+12. `smr_results_prs_list`, `smr_results_models_list`, and `smr_results_outputs_list`
+13. `smr_get_workspace_download_url`, `smr_download_workspace_archive`, or `smr_get_project_git`

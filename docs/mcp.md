@@ -52,6 +52,9 @@ The maintained remigration surface includes:
 - `smr_unarchive_project`
 - `smr_get_workspace_inputs`
 - `smr_upload_workspace_files`
+- `smr_work_datasets_list`
+- `smr_work_datasets_upload`
+- `smr_work_datasets_download`
 - `smr_list_project_files`
 - `smr_create_project_files`
 - `smr_list_run_file_mounts`
@@ -59,9 +62,11 @@ The maintained remigration surface includes:
 - `smr_list_run_output_files`
 - `smr_list_project_external_repositories`
 - `smr_create_project_external_repository`
+- `smr_patch_project_external_repository`
 - `smr_list_run_repository_mounts`
 - `smr_list_project_credential_refs`
 - `smr_create_project_credential_ref`
+- `smr_patch_project_credential_ref`
 - `smr_list_run_credential_bindings`
 - `smr_get_project_setup`
 - `smr_prepare_project_setup`
@@ -147,16 +152,18 @@ Use this order for launch-time UX:
 
 1. `smr_health_check`
 2. `smr_create_runnable_project` or `smr_list_projects`
-3. `smr_attach_source_repo` or `smr_upload_workspace_files`
-4. optionally `smr_set_project_notes`
-5. optionally `smr_set_project_knowledge`
-6. `smr_prepare_project_setup`
-7. `smr_get_capacity_lane_preview`
-8. `smr_get_launch_preflight`
-9. `smr_trigger_run`
-10. `smr_get_run` plus noun reads such as `smr_list_run_questions`,
+3. `smr_attach_source_repo` or `smr_work_repos_attach`
+4. add context with `smr_upload_workspace_files`, `smr_work_datasets_upload`,
+   `smr_create_project_external_repository`, or `smr_create_project_credential_ref`
+5. optionally `smr_set_project_notes`
+6. optionally `smr_set_project_knowledge`
+7. `smr_prepare_project_setup`
+8. `smr_get_capacity_lane_preview`
+9. `smr_get_launch_preflight`
+10. `smr_trigger_run`
+11. `smr_get_run` plus noun reads such as `smr_list_run_questions`,
     `smr_open_ended_questions`, `smr_directed_effort_outcomes`, and milestone or experiment reads
-11. `smr_get_workspace_download_url`, `smr_download_workspace_archive`, or `smr_get_project_git`
+12. `smr_get_workspace_download_url`, `smr_download_workspace_archive`, or `smr_get_project_git`
 
 `smr_get_limits` and `smr_get_project_entitlement` are useful hints, but setup
 authority and launch preflight remain authoritative for whether a run can
@@ -178,7 +185,10 @@ Kickoff migration note:
 Phase 3 resource note:
 
 - every project still has one automatic internal Synth-managed writable repo
+- linked GitHub repos are project bindings used for repo access and PR work
 - external repos are optional context resources, not the canonical workspace
+- datasets are first-class project inputs layered over stored files
+- credential refs name existing credentials; they never carry secret values
 - `smr_list_run_output_files` is the early-output surface; workspace archive
   download remains a convenience export rather than the only way to retrieve
   results
