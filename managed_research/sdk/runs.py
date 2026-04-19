@@ -116,10 +116,73 @@ class RunHandle:
     def timeline(self) -> SmrLogicalTimeline:
         return self._client.get_run_logical_timeline(self.project_id, self.run_id)
 
+    def traces(self) -> SmrRunTraces:
+        return self._client.get_project_run_traces(self.project_id, self.run_id)
+
+    def actor_usage(self) -> SmrRunActorUsage:
+        return self._client.get_project_run_actor_usage(self.project_id, self.run_id)
+
     def checkpoints(self) -> list[dict[str, Any]]:
         return self._client.list_run_checkpoints(
             self.run_id,
             project_id=self.project_id,
+        )
+
+    def create_checkpoint(
+        self,
+        *,
+        checkpoint_id: str | None = None,
+        reason: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.create_run_checkpoint(
+            self.run_id,
+            project_id=self.project_id,
+            checkpoint_id=checkpoint_id,
+            reason=reason,
+        )
+
+    def restore_checkpoint(
+        self,
+        *,
+        checkpoint_id: str | None = None,
+        checkpoint_record_id: str | None = None,
+        checkpoint_uri: str | None = None,
+        reason: str | None = None,
+        mode: str = "in_place",
+    ) -> dict[str, Any]:
+        return self._client.restore_run_checkpoint(
+            self.run_id,
+            project_id=self.project_id,
+            checkpoint_id=checkpoint_id,
+            checkpoint_record_id=checkpoint_record_id,
+            checkpoint_uri=checkpoint_uri,
+            reason=reason,
+            mode=mode,
+        )
+
+    def branch_from_checkpoint(
+        self,
+        *,
+        checkpoint_id: str | None = None,
+        checkpoint_record_id: str | None = None,
+        checkpoint_uri: str | None = None,
+        mode: SmrBranchMode | str = SmrBranchMode.EXACT,
+        message: str | None = None,
+        reason: str | None = None,
+        title: str | None = None,
+        source_node_id: str | None = None,
+    ) -> SmrRunBranchResponse:
+        return self._client.branch_run_from_checkpoint(
+            self.run_id,
+            project_id=self.project_id,
+            checkpoint_id=checkpoint_id,
+            checkpoint_record_id=checkpoint_record_id,
+            checkpoint_uri=checkpoint_uri,
+            mode=mode,
+            message=message,
+            reason=reason,
+            title=title,
+            source_node_id=source_node_id,
         )
 
     def stop(self) -> ManagedResearchRunControlAck:

@@ -1125,13 +1125,19 @@ class ManagedResearchMcpServer:
         run_id = require_string(args, "run_id")
         project_id = optional_string(args, "project_id")
         checkpoint_id = optional_string(args, "checkpoint_id")
+        checkpoint_record_id = optional_string(args, "checkpoint_record_id")
+        checkpoint_uri = optional_string(args, "checkpoint_uri")
         reason = optional_string(args, "reason")
+        mode = optional_string(args, "mode") or "in_place"
         with self._client_from_args(args) as client:
             return client.restore_run_checkpoint(
                 run_id,
                 project_id=project_id,
                 checkpoint_id=checkpoint_id,
+                checkpoint_record_id=checkpoint_record_id,
+                checkpoint_uri=checkpoint_uri,
                 reason=reason,
+                mode=mode,
             )
 
     def _tool_list_run_log_archives(self, args: JSONDict) -> Any:

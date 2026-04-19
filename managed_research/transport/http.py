@@ -9,6 +9,7 @@ import httpx
 
 from managed_research.errors import (
     SmrApiError,
+    SmrCheckpointQuotaExceededError,
     SmrFundingLaneInvariantError,
     SmrInsufficientCreditsError,
     SmrLimitExceededError,
@@ -34,7 +35,9 @@ def _error_message(response: httpx.Response) -> str:
             err = detail.get("error")
             if isinstance(err, str) and err.strip():
                 return err.strip()
-    return f"{response.request.method} {response.request.url.path} failed with {response.status_code}"
+    return (
+        f"{response.request.method} {response.request.url.path} failed with {response.status_code}"
+    )
 
 
 def _raise_for_error_response(response: httpx.Response) -> None:
@@ -82,6 +85,13 @@ def _raise_for_error_response(response: httpx.Response) -> None:
                     )
                 if stripped == "smr_managed_inference_unavailable":
                     raise SmrManagedInferenceUnavailableError(
+                        message,
+                        status_code=status_code,
+                        response_text=response_text,
+                        detail=detail,
+                    )
+                if stripped == "checkpoint_storage_quota_exceeded":
+                    raise SmrCheckpointQuotaExceededError(
                         message,
                         status_code=status_code,
                         response_text=response_text,
