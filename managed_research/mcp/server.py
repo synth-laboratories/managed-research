@@ -56,17 +56,25 @@ DEFAULT_PROTOCOL_VERSION = SUPPORTED_PROTOCOL_VERSIONS[0]
 SERVER_NAME = "managed-research"
 
 
-def _mcp_structured_trigger_error_payload(exc: BaseException) -> dict[str, Any] | None:
-    """If *exc* carries a FastAPI-style ``detail`` dict with ``error_code``, shape an MCP result."""
+def _mcp_structured_trigger_error_payload(exc: SmrApiError) -> dict[str, Any]:
+    """Shape every ``SmrApiError`` as a structured MCP trigger-error payload.
+
+    Guarantees one output path: if the backend supplied a typed
+    ``detail.error_code`` it becomes the ``error`` field; otherwise we
+    tag the payload ``smr_api_error`` so callers can still branch
+    programmatically without parsing the exception text.
+    """
     detail = getattr(exc, "detail", None)
-    if not isinstance(detail, dict):
-        return None
-    code = detail.get("error_code")
-    if not isinstance(code, str) or not code.strip():
-        return None
+    detail_dict: dict[str, Any] = dict(detail) if isinstance(detail, dict) else {}
+    code_raw = detail_dict.get("error_code")
+    code = (
+        code_raw.strip()
+        if isinstance(code_raw, str) and code_raw.strip()
+        else "smr_api_error"
+    )
     out: dict[str, Any] = {
-        "error": code.strip(),
-        "detail": detail,
+        "error": code,
+        "detail": detail_dict,
         "message": str(exc),
     }
     status = getattr(exc, "status_code", None)
@@ -841,10 +849,7 @@ class ManagedResearchMcpServer:
                     **request.client_kwargs(),
                 )
         except SmrApiError as exc:
-            payload = _mcp_structured_trigger_error_payload(exc)
-            if payload is not None:
-                return payload
-            raise
+            return _mcp_structured_trigger_error_payload(exc)
 
     def _tool_get_run_start_blockers(self, args: JSONDict) -> Any:
         request = RunLaunchRequest.from_payload(args)

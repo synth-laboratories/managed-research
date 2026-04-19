@@ -45,6 +45,7 @@ from managed_research.models.run_observability import (
     TaskCollectionSnapshot,
     TaskSnapshot,
 )
+from managed_research.models.run_control import ManagedResearchRunControlAck
 from managed_research.models.run_state import (
     ManagedResearchRun,
     ManagedResearchRunLivePhase,
@@ -206,6 +207,7 @@ __all__ = [
     "default_local_eval_contract_path",
     "load_local_eval_contract",
     "ManagedResearchRun",
+    "ManagedResearchRunControlAck",
     "ManagedResearchRunLivePhase",
     "ManagedResearchRunState",
     "ManagedResearchRunTerminalOutcome",

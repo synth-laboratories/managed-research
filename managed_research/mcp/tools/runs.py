@@ -239,7 +239,11 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
         ),
         ToolDefinition(
             name="smr_stop_run",
-            description="Stop a queued or running run.",
+            description=(
+                "Stop a queued or running run. Response includes "
+                "`control_intent_id` and `control_intent_ack_at` so a replay "
+                "of the same control correlates with the original intent."
+            ),
             input_schema=tool_schema(
                 {
                     "run_id": {"type": "string", "description": "Run id."},
@@ -254,7 +258,11 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
         ),
         ToolDefinition(
             name="smr_pause_run",
-            description="Pause a live run without stopping it.",
+            description=(
+                "Pause a live run without stopping it. Response includes "
+                "`control_intent_id` and `control_intent_ack_at` for "
+                "idempotent replay correlation."
+            ),
             input_schema=tool_schema(
                 {
                     "run_id": {"type": "string", "description": "Run id."},
@@ -269,7 +277,10 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
         ),
         ToolDefinition(
             name="smr_resume_run",
-            description="Resume a paused run.",
+            description=(
+                "Resume a paused run. Response includes `control_intent_id` "
+                "and `control_intent_ack_at` for idempotent replay correlation."
+            ),
             input_schema=tool_schema(
                 {
                     "run_id": {"type": "string", "description": "Run id."},

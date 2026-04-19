@@ -8,6 +8,7 @@ from managed_research.models.run_observability import (
     RunObservationCursor,
     RunObservabilitySnapshot,
 )
+from managed_research.models.run_control import ManagedResearchRunControlAck
 from managed_research.models.run_state import ManagedResearchRun
 from managed_research.models.run_timeline import (
     SmrBranchMode,
@@ -79,8 +80,10 @@ class RunHandle:
             project_id=self.project_id,
         )
 
-    def stop(self) -> dict[str, Any]:
-        return self._client.stop_run(self.run_id, project_id=self.project_id)
+    def stop(self) -> ManagedResearchRunControlAck:
+        return ManagedResearchRunControlAck.from_wire(
+            self._client.stop_run(self.run_id, project_id=self.project_id)
+        )
 
 
 class RunsAPI(_ClientNamespace):
@@ -165,14 +168,26 @@ class RunsAPI(_ClientNamespace):
     ) -> list[dict[str, Any]]:
         return self._client.list_run_primary_parent_milestones(run_id, limit=limit)
 
-    def stop(self, run_id: str, *, project_id: str | None = None) -> dict[str, Any]:
-        return self._client.stop_run(run_id, project_id=project_id)
+    def stop(
+        self, run_id: str, *, project_id: str | None = None
+    ) -> ManagedResearchRunControlAck:
+        return ManagedResearchRunControlAck.from_wire(
+            self._client.stop_run(run_id, project_id=project_id)
+        )
 
-    def pause(self, run_id: str, *, project_id: str | None = None) -> dict[str, Any]:
-        return self._client.pause_run(run_id, project_id=project_id)
+    def pause(
+        self, run_id: str, *, project_id: str | None = None
+    ) -> ManagedResearchRunControlAck:
+        return ManagedResearchRunControlAck.from_wire(
+            self._client.pause_run(run_id, project_id=project_id)
+        )
 
-    def resume(self, run_id: str, *, project_id: str | None = None) -> dict[str, Any]:
-        return self._client.resume_run(run_id, project_id=project_id)
+    def resume(
+        self, run_id: str, *, project_id: str | None = None
+    ) -> ManagedResearchRunControlAck:
+        return ManagedResearchRunControlAck.from_wire(
+            self._client.resume_run(run_id, project_id=project_id)
+        )
 
     def list_questions(self, run_id: str, *, project_id: str | None = None, **kwargs: Any) -> list[dict[str, Any]]:
         return self._client.list_run_questions(run_id, project_id=project_id, **kwargs)
