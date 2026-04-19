@@ -179,7 +179,8 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             name="smr_get_run_logical_timeline",
             description=(
                 "Read the operator-facing logical timeline for a run. "
-                "Use this for checkpoint, branch, and queue chronology instead of the low-level runtime timeline."
+                "Use this for actors, checkpoints, branch provenance, and queue "
+                "chronology instead of the low-level runtime timeline."
             ),
             input_schema=tool_schema(
                 {
@@ -456,7 +457,10 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
         ),
         ToolDefinition(
             name="smr_list_run_checkpoints",
-            description="List checkpoints for a run.",
+            description=(
+                "List checkpoints for a run, including restorable/branchable flags "
+                "and any recoverable checkpoint quota failure details."
+            ),
             input_schema=tool_schema(
                 {
                     "run_id": {"type": "string", "description": "Run id."},
@@ -471,7 +475,11 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
         ),
         ToolDefinition(
             name="smr_restore_run_checkpoint",
-            description="Restore a run to a checkpoint. Use smr_branch_run_from_checkpoint for child-run branching.",
+            description=(
+                "Restore a run to a restorable checkpoint. "
+                "Use smr_branch_run_from_checkpoint for child-run branching; "
+                "checkpoint quota failures return a structured error with operator_action."
+            ),
             input_schema=tool_schema(
                 {
                     "run_id": {"type": "string", "description": "Run id."},
@@ -483,7 +491,22 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "type": "string",
                         "description": "Optional checkpoint id override.",
                     },
+                    "checkpoint_record_id": {
+                        "type": "string",
+                        "description": "Optional checkpoint record id reference.",
+                    },
+                    "checkpoint_uri": {
+                        "type": "string",
+                        "description": "Optional checkpoint URI reference.",
+                    },
                     "reason": {"type": "string", "description": "Optional restore reason."},
+                    "mode": {
+                        "type": "string",
+                        "enum": ["in_place", "branch"],
+                        "description": (
+                            "Restore mode. Prefer in_place; branch is a compatibility alias."
+                        ),
+                    },
                 },
                 required=["run_id"],
             ),

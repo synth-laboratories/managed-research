@@ -2541,9 +2541,18 @@ class SmrControlClient:
         *,
         project_id: str | None = None,
         checkpoint_id: str | None = None,
+        checkpoint_record_id: str | None = None,
+        checkpoint_uri: str | None = None,
         reason: str | None = None,
+        mode: str = "in_place",
     ) -> dict[str, Any]:
-        payload = build_query_params(checkpoint_id=checkpoint_id, reason=reason)
+        payload = build_query_params(
+            checkpoint_id=checkpoint_id,
+            checkpoint_record_id=checkpoint_record_id,
+            checkpoint_uri=checkpoint_uri,
+            reason=reason,
+            mode=mode,
+        )
         if project_id:
             return _coerce_dict(
                 self._request_json(

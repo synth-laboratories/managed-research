@@ -2,6 +2,7 @@
 
 from managed_research.errors import (
     SmrApiError,
+    SmrCheckpointQuotaExceededError,
     SmrFundingLaneInvariantError,
     SmrInsufficientCreditsError,
     SmrLimitExceededError,
@@ -264,6 +265,7 @@ __all__ = [
     "SmrRunTraceItem",
     "SmrRunTraces",
     "SmrApiError",
+    "SmrCheckpointQuotaExceededError",
     "SmrFundingLaneInvariantError",
     "SmrInsufficientCreditsError",
     "SmrLimitExceededError",

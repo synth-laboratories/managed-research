@@ -4,22 +4,21 @@ from __future__ import annotations
 
 from typing import Any
 
-from managed_research.models.run_observability import (
-    RunObservationCursor,
-    RunObservabilitySnapshot,
-)
+from managed_research.models.canonical_usage import SmrRunUsage
 from managed_research.models.run_control import ManagedResearchRunControlAck
+from managed_research.models.run_diagnostics import (
+    SmrRunActorUsage,
+    SmrRunTraces,
+)
+from managed_research.models.run_observability import (
+    RunObservabilitySnapshot,
+    RunObservationCursor,
+)
 from managed_research.models.run_state import ManagedResearchRun
-from managed_research.models.project import ManagedResearchProject
 from managed_research.models.run_timeline import (
     SmrBranchMode,
     SmrLogicalTimeline,
     SmrRunBranchResponse,
-)
-from managed_research.models.canonical_usage import SmrRunUsage
-from managed_research.models.run_diagnostics import (
-    SmrRunActorUsage,
-    SmrRunTraces,
 )
 from managed_research.sdk._base import _ClientNamespace
 
@@ -75,10 +74,73 @@ class RunHandle:
     def timeline(self) -> SmrLogicalTimeline:
         return self._client.get_run_logical_timeline(self.project_id, self.run_id)
 
+    def traces(self) -> SmrRunTraces:
+        return self._client.get_project_run_traces(self.project_id, self.run_id)
+
+    def actor_usage(self) -> SmrRunActorUsage:
+        return self._client.get_project_run_actor_usage(self.project_id, self.run_id)
+
     def checkpoints(self) -> list[dict[str, Any]]:
         return self._client.list_run_checkpoints(
             self.run_id,
             project_id=self.project_id,
+        )
+
+    def create_checkpoint(
+        self,
+        *,
+        checkpoint_id: str | None = None,
+        reason: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.create_run_checkpoint(
+            self.run_id,
+            project_id=self.project_id,
+            checkpoint_id=checkpoint_id,
+            reason=reason,
+        )
+
+    def restore_checkpoint(
+        self,
+        *,
+        checkpoint_id: str | None = None,
+        checkpoint_record_id: str | None = None,
+        checkpoint_uri: str | None = None,
+        reason: str | None = None,
+        mode: str = "in_place",
+    ) -> dict[str, Any]:
+        return self._client.restore_run_checkpoint(
+            self.run_id,
+            project_id=self.project_id,
+            checkpoint_id=checkpoint_id,
+            checkpoint_record_id=checkpoint_record_id,
+            checkpoint_uri=checkpoint_uri,
+            reason=reason,
+            mode=mode,
+        )
+
+    def branch_from_checkpoint(
+        self,
+        *,
+        checkpoint_id: str | None = None,
+        checkpoint_record_id: str | None = None,
+        checkpoint_uri: str | None = None,
+        mode: SmrBranchMode | str = SmrBranchMode.EXACT,
+        message: str | None = None,
+        reason: str | None = None,
+        title: str | None = None,
+        source_node_id: str | None = None,
+    ) -> SmrRunBranchResponse:
+        return self._client.branch_run_from_checkpoint(
+            self.run_id,
+            project_id=self.project_id,
+            checkpoint_id=checkpoint_id,
+            checkpoint_record_id=checkpoint_record_id,
+            checkpoint_uri=checkpoint_uri,
+            mode=mode,
+            message=message,
+            reason=reason,
+            title=title,
+            source_node_id=source_node_id,
         )
 
     def stop(self) -> ManagedResearchRunControlAck:
@@ -101,16 +163,16 @@ class RunsAPI(_ClientNamespace):
     def trigger(self, project_id: str, **kwargs: Any) -> dict[str, Any]:
         return self._client.trigger_run(project_id, **kwargs)
 
-    def list(self, project_id: str, *, active_only: bool = False, **kwargs: Any) -> list[dict[str, Any]]:
+    def list(
+        self, project_id: str, *, active_only: bool = False, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         return self._client.list_runs(project_id, active_only=active_only, **kwargs)
 
     def list_active(self, project_id: str) -> list[dict[str, Any]]:
         return self._client.list_active_runs(project_id)
 
     def get(self, run_id: str, *, project_id: str | None = None) -> ManagedResearchRun:
-        return ManagedResearchRun.from_wire(
-            self._client.get_run(run_id, project_id=project_id)
-        )
+        return ManagedResearchRun.from_wire(self._client.get_run(run_id, project_id=project_id))
 
     def get_usage(self, run_id: str) -> SmrRunUsage:
         return self._client.get_run_usage(run_id)
@@ -181,28 +243,24 @@ class RunsAPI(_ClientNamespace):
     ) -> list[dict[str, Any]]:
         return self._client.list_run_primary_parent_milestones(run_id, limit=limit)
 
-    def stop(
-        self, run_id: str, *, project_id: str | None = None
-    ) -> ManagedResearchRunControlAck:
+    def stop(self, run_id: str, *, project_id: str | None = None) -> ManagedResearchRunControlAck:
         return ManagedResearchRunControlAck.from_wire(
             self._client.stop_run(run_id, project_id=project_id)
         )
 
-    def pause(
-        self, run_id: str, *, project_id: str | None = None
-    ) -> ManagedResearchRunControlAck:
+    def pause(self, run_id: str, *, project_id: str | None = None) -> ManagedResearchRunControlAck:
         return ManagedResearchRunControlAck.from_wire(
             self._client.pause_run(run_id, project_id=project_id)
         )
 
-    def resume(
-        self, run_id: str, *, project_id: str | None = None
-    ) -> ManagedResearchRunControlAck:
+    def resume(self, run_id: str, *, project_id: str | None = None) -> ManagedResearchRunControlAck:
         return ManagedResearchRunControlAck.from_wire(
             self._client.resume_run(run_id, project_id=project_id)
         )
 
-    def list_questions(self, run_id: str, *, project_id: str | None = None, **kwargs: Any) -> list[dict[str, Any]]:
+    def list_questions(
+        self, run_id: str, *, project_id: str | None = None, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         return self._client.list_run_questions(run_id, project_id=project_id, **kwargs)
 
     def respond_to_question(
@@ -220,13 +278,19 @@ class RunsAPI(_ClientNamespace):
             response_text=response_text,
         )
 
-    def create_checkpoint(self, run_id: str, *, project_id: str | None = None, **kwargs: Any) -> dict[str, Any]:
+    def create_checkpoint(
+        self, run_id: str, *, project_id: str | None = None, **kwargs: Any
+    ) -> dict[str, Any]:
         return self._client.create_run_checkpoint(run_id, project_id=project_id, **kwargs)
 
-    def list_checkpoints(self, run_id: str, *, project_id: str | None = None) -> list[dict[str, Any]]:
+    def list_checkpoints(
+        self, run_id: str, *, project_id: str | None = None
+    ) -> list[dict[str, Any]]:
         return self._client.list_run_checkpoints(run_id, project_id=project_id)
 
-    def restore_checkpoint(self, run_id: str, *, project_id: str | None = None, **kwargs: Any) -> dict[str, Any]:
+    def restore_checkpoint(
+        self, run_id: str, *, project_id: str | None = None, **kwargs: Any
+    ) -> dict[str, Any]:
         return self._client.restore_run_checkpoint(run_id, project_id=project_id, **kwargs)
 
     def get_logical_timeline(self, project_id: str, run_id: str) -> SmrLogicalTimeline:

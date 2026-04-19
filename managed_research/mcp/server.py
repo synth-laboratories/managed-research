@@ -19,8 +19,8 @@ from managed_research.mcp.registry import (
 from managed_research.mcp.request_models import (
     ProjectMutationRequest,
     ProviderKeyRequest,
-    RunnableProjectCreateRequest,
     RunLaunchRequest,
+    RunnableProjectCreateRequest,
     WorkspaceFileUploadRequest,
     optional_bool,
     optional_int,
@@ -45,9 +45,9 @@ from managed_research.mcp.tools.readiness import build_readiness_tools
 from managed_research.mcp.tools.repos import build_repo_tools
 from managed_research.mcp.tools.resources import build_resource_tools
 from managed_research.mcp.tools.runs import build_run_tools
+from managed_research.mcp.tools.trained_models import build_trained_model_tools
 from managed_research.mcp.tools.usage import build_usage_tools
 from managed_research.mcp.tools.workspace_inputs import build_workspace_input_tools
-from managed_research.mcp.tools.trained_models import build_trained_model_tools
 from managed_research.sdk.client import SmrControlClient
 from managed_research.version import __version__
 
@@ -67,11 +67,7 @@ def _mcp_structured_trigger_error_payload(exc: SmrApiError) -> dict[str, Any]:
     detail = getattr(exc, "detail", None)
     detail_dict: dict[str, Any] = dict(detail) if isinstance(detail, dict) else {}
     code_raw = detail_dict.get("error_code")
-    code = (
-        code_raw.strip()
-        if isinstance(code_raw, str) and code_raw.strip()
-        else "smr_api_error"
-    )
+    code = code_raw.strip() if isinstance(code_raw, str) and code_raw.strip() else "smr_api_error"
     out: dict[str, Any] = {
         "error": code,
         "detail": detail_dict,
@@ -149,9 +145,7 @@ class ManagedResearchMcpServer:
 
     def _client_from_args(self, args: JSONDict) -> SmrControlClient:
         resolved_api_key = optional_string(args, "api_key") or self._default_api_key
-        resolved_backend_base = (
-            optional_string(args, "backend_base") or self._default_backend_base
-        )
+        resolved_backend_base = optional_string(args, "backend_base") or self._default_backend_base
         return SmrControlClient(
             api_key=resolved_api_key,
             backend_base=resolved_backend_base,
@@ -376,9 +370,7 @@ class ManagedResearchMcpServer:
                 include_archived=include_archived,
                 limit=limit,
             )
-            return [
-                asdict(item) if is_dataclass(item) else item for item in results
-            ]
+            return [asdict(item) if is_dataclass(item) else item for item in results]
 
     def _tool_get_project(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
@@ -973,9 +965,7 @@ class ManagedResearchMcpServer:
                     viewer_target = raw_viewer_target.strip()
                 elif isinstance(raw_viewer_target, list):
                     cleaned_targets = [
-                        str(item).strip()
-                        for item in raw_viewer_target
-                        if str(item).strip()
+                        str(item).strip() for item in raw_viewer_target if str(item).strip()
                     ]
                     viewer_target = cleaned_targets or None
                 return client.runs.list_runtime_messages(
@@ -1096,13 +1086,19 @@ class ManagedResearchMcpServer:
         run_id = require_string(args, "run_id")
         project_id = optional_string(args, "project_id")
         checkpoint_id = optional_string(args, "checkpoint_id")
+        checkpoint_record_id = optional_string(args, "checkpoint_record_id")
+        checkpoint_uri = optional_string(args, "checkpoint_uri")
         reason = optional_string(args, "reason")
+        mode = optional_string(args, "mode") or "in_place"
         with self._client_from_args(args) as client:
             return client.restore_run_checkpoint(
                 run_id,
                 project_id=project_id,
                 checkpoint_id=checkpoint_id,
+                checkpoint_record_id=checkpoint_record_id,
+                checkpoint_uri=checkpoint_uri,
                 reason=reason,
+                mode=mode,
             )
 
     def _tool_list_run_log_archives(self, args: JSONDict) -> Any:
@@ -1140,9 +1136,7 @@ class ManagedResearchMcpServer:
             if operation == "patch":
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for patch")
-                return client.patch_open_ended_question(
-                    project_id, objective_id, payload or {}
-                )
+                return client.patch_open_ended_question(project_id, objective_id, payload or {})
             if operation == "transition":
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for transition")
@@ -1172,9 +1166,7 @@ class ManagedResearchMcpServer:
             if operation == "patch":
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for patch")
-                return client.patch_directed_effort_outcome(
-                    project_id, objective_id, payload or {}
-                )
+                return client.patch_directed_effort_outcome(project_id, objective_id, payload or {})
             if operation == "transition":
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for transition")

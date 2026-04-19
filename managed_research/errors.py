@@ -95,6 +95,21 @@ class SmrManagedInferenceUnavailableError(SmrApiError):
         self.detail = dict(detail) if detail else {}
 
 
+class SmrCheckpointQuotaExceededError(SmrApiError):
+    """Raised when checkpoint storage quota prevents restore or branch recovery."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        status_code: int | None = None,
+        response_text: str | None = None,
+        detail: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message, status_code=status_code, response_text=response_text)
+        self.detail = dict(detail) if detail else {}
+
+
 class SmrStructuredDenialError(SmrApiError):
     """Raised for other JSON error bodies that include a string ``error_code`` (forward-compatible)."""
 
@@ -112,6 +127,7 @@ class SmrStructuredDenialError(SmrApiError):
 
 __all__ = [
     "SmrApiError",
+    "SmrCheckpointQuotaExceededError",
     "SmrFundingLaneInvariantError",
     "SmrInsufficientCreditsError",
     "SmrLimitExceededError",
