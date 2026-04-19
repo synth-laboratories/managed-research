@@ -64,8 +64,12 @@ High-leverage public flows:
 - `client.projects.create_directed_effort_outcome(...)` / `list_directed_effort_outcomes(...)`
 - `client.runs.get_primary_parent(run_id)` / `list_primary_parent_milestones(run_id)`
 - `client.files.list_project(...)` / `create_project(...)` / `list_outputs(...)`
+- `client.datasets.list(project_id)` / `upload(project_id, path=...)`
 - `client.repositories.list_project(...)` / `create_project(...)`
 - `client.credentials.list_project(...)` / `create_project(...)`
+- `client.project(project_id).context` for bound notes and knowledge helpers
+- `client.project(project_id).external_repositories` for bound context-repo helpers
+- `client.project(project_id).credentials` for bound credential-ref helpers
 - `get_workspace_download_url(project_id)`
 - `download_workspace_archive(project_id, output_path)`
 - `get_project_git(project_id)`
@@ -103,18 +107,23 @@ those same canonical read surfaces. Use:
 
 ## Phase 3 Resources
 
-Phase 3 adds first-class file, repository, and credential surfaces without
-changing the internal Synth-managed project repo invariant.
+Phase 3 adds first-class file, dataset, repository, and credential surfaces
+without changing the internal Synth-managed project repo invariant.
 
 - `client.files` manages durable uploaded files, run file mounts, and early
   run output retrieval
+- `client.datasets` manages training and evaluation datasets layered over
+  project stored files
 - `client.runs.list_runtime_messages(run_id)` reads the operator-visible
   runtime stream, including kickoff/control messages by default
 - `client.logs.list_run_archives(project_id, run_id)` is the canonical log
   archive reader
 - `client.repositories` manages optional external repositories; these are
   additive context repos and do not replace the internal project repo
+- `client.project(project_id).repos` manages linked GitHub repo bindings
 - `client.credentials` manages project-scoped credential refs and run bindings
+- `client.project(project_id).context` manages notes, project knowledge, and
+  org knowledge from a bound project handle
 
 Trigger-time runs may now also carry `resource_bindings=...` to choose which
 project repos and credential refs a run should use, plus one-off inline
@@ -158,16 +167,16 @@ project = client.create_runnable_project(
     )
 )
 project_id = project["project_id"]
+project_client = client.project(project_id)
 client.attach_source_repo(
     project_id,
     "https://github.com/synth-laboratories/nanohorizon.git",
     default_branch="main",
 )
-client.set_project_knowledge(
-    project_id,
+project_client.context.set_project_knowledge(
     "Known benchmark constraints, prior failures, and durable findings for this project.",
 )
-client.get_project_knowledge(project_id)
+project_client.context.get_project_knowledge()
 kickoff = [
     {
         "body": "Inspect the repo, improve the benchmark-facing workflow, and leave behind evidence that explains what changed.",
@@ -256,32 +265,26 @@ Phase 3 resource example:
 ```python
 from managed_research import RunResourceBindings, InlineExternalRepositoryBinding
 
-client.files.create_project(
-    project_id,
-    [
-        {
-            "path": "inputs/task.md",
-            "content": "# Task\nUse the staged files and produce a report.",
-            "visibility": "model",
-        },
-        {
-            "path": "verifier/RUBRIC.json",
-            "content": "{\"pass\": true}",
-            "visibility": "verifier",
-        },
-    ],
+project_client = client.project(project_id)
+
+project_client.files.upload(
+    "inputs/task.md",
+    name="inputs/task.md",
+    metadata={"purpose": "kickoff context"},
+)
+project_client.datasets.upload(
+    "datasets/eval.jsonl",
+    format="jsonl",
 )
 
-primary_repo = client.repositories.create_project(
-    project_id,
+context_repo = project_client.external_repositories.create(
     name="nanohorizon",
     url="https://github.com/synth-laboratories/nanohorizon.git",
     default_branch="main",
-    role="primary",
+    role="dependency",
 )
 
-github_ref = client.credentials.create_project(
-    project_id,
+github_ref = project_client.credentials.create(
     kind="github",
     label="project_github",
     credential_name="smr-github-oauth-project-credential",
@@ -292,8 +295,8 @@ client.trigger_run(
     host_kind=SmrHostKind.DAYTONA,
     work_mode=SmrWorkMode.DIRECTED_EFFORT,
     resource_bindings=RunResourceBindings(
-        external_repository_ids=[primary_repo.repository_id],
-        credential_ref_ids=[github_ref.credential_ref_id],
+        external_repository_ids=[context_repo["repository_id"]],
+        credential_ref_ids=[github_ref["credential_ref_id"]],
         external_repositories=[
             InlineExternalRepositoryBinding(
                 name="reference-docs",
