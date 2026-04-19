@@ -65,6 +65,8 @@ from managed_research.models.smr_run_policy import SmrRunPolicy, coerce_smr_run_
 from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
 from managed_research.models.types import (
     KickoffContract,
+    RunArtifact,
+    RunArtifactManifest,
     RunResourceBindings,
     SmrRunnableProjectRequest,
 )
@@ -816,7 +818,12 @@ class SmrControlClient:
         *,
         params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        response = self._transport.client.request(method, path, params=params)
+        response = self._transport.client.request(
+            method,
+            path,
+            params=params,
+            follow_redirects=True,
+        )
         if response.is_error:
             _raise_for_error_response(response)
         raw_bytes = response.content
@@ -1077,6 +1084,49 @@ class SmrControlClient:
             "bytes_written": path.stat().st_size,
         }
 
+    def download_run_workspace_archive(
+        self,
+        project_id: str,
+        run_id: str,
+        output_path: str | os.PathLike[str],
+        *,
+        timeout_seconds: float = DEFAULT_WORKSPACE_ARCHIVE_DOWNLOAD_TIMEOUT_SECONDS,
+    ) -> dict[str, Any]:
+        """Download the immutable archive resolved for one run."""
+        path = Path(output_path).expanduser().resolve()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        request_path = f"/smr/projects/{project_id}/runs/{run_id}/workspace/archive"
+        try:
+            with (
+                self._transport.client.stream(
+                    "GET",
+                    request_path,
+                    timeout=timeout_seconds,
+                ) as response,
+                path.open("wb") as file_handle,
+            ):
+                if response.is_error:
+                    response.read()
+                    _raise_for_error_response(response)
+                for chunk in response.iter_bytes():
+                    file_handle.write(chunk)
+                commit_sha = response.headers.get("x-workspace-commit")
+                archive_key = response.headers.get("x-workspace-archive-key")
+        except httpx.HTTPError as exc:
+            raise SmrApiError(
+                f"Failed to download run workspace archive: {exc}",
+                status_code=getattr(getattr(exc, "response", None), "status_code", None),
+                response_text=getattr(getattr(exc, "response", None), "text", None),
+            ) from exc
+        return {
+            "output_path": str(path),
+            "project_id": project_id,
+            "run_id": run_id,
+            "commit_sha": commit_sha,
+            "archive_key": archive_key,
+            "bytes_written": path.stat().st_size,
+        }
+
     def attach_source_repo(
         self,
         project_id: str,
@@ -1263,6 +1313,148 @@ class SmrControlClient:
         )
 
     def _list_project_run_artifacts(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        artifact_type: str | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> list[dict[str, Any]]:
+        return [
+            artifact.__dict__
+            for artifact in self.list_run_artifacts(
+                run_id,
+                project_id=project_id,
+                artifact_type=artifact_type,
+                limit=limit,
+                cursor=cursor,
+            )
+        ]
+
+    def list_run_artifacts(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+        artifact_type: str | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> list[RunArtifact]:
+        path = (
+            f"/smr/projects/{project_id}/runs/{run_id}/artifacts"
+            if project_id
+            else f"/smr/runs/{run_id}/artifacts"
+        )
+        payload = _coerce_dict_list(
+            self._request_json(
+                "GET",
+                path,
+                params=build_query_params(
+                    artifact_type=artifact_type,
+                    limit=limit,
+                    cursor=cursor,
+                ),
+            ),
+            label="list_run_artifacts",
+        )
+        return [RunArtifact.from_wire(item) for item in payload]
+
+    def get_run_artifact_manifest(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> RunArtifactManifest:
+        path = (
+            f"/smr/projects/{project_id}/runs/{run_id}/artifacts/manifest"
+            if project_id
+            else f"/smr/runs/{run_id}/artifacts/manifest"
+        )
+        return RunArtifactManifest.from_wire(
+            _coerce_dict(
+                self._request_json("GET", path),
+                label="get_run_artifact_manifest",
+            )
+        )
+
+    def get_artifact(self, artifact_id: str) -> RunArtifact:
+        return RunArtifact.from_wire(
+            _coerce_dict(
+                self._request_json("GET", f"/smr/artifacts/{artifact_id}"),
+                label="get_artifact",
+            )
+        )
+
+    def get_artifact_content(
+        self,
+        artifact_id: str,
+        *,
+        disposition: str = "inline",
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_content(
+                "GET",
+                f"/smr/artifacts/{artifact_id}/content",
+                params=build_query_params(disposition=disposition),
+            ),
+            label="get_artifact_content",
+        )
+
+    def download_artifact(
+        self,
+        artifact_id: str,
+        output_path: str | os.PathLike[str],
+        *,
+        disposition: str = "attachment",
+    ) -> dict[str, Any]:
+        payload = self.get_artifact_content(artifact_id, disposition=disposition)
+        path = Path(output_path).expanduser().resolve()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if payload.get("encoding") == "base64":
+            path.write_bytes(base64.b64decode(str(payload.get("content") or "")))
+        else:
+            path.write_text(str(payload.get("content") or ""), encoding="utf-8")
+        return {
+            "output_path": str(path),
+            "artifact_id": artifact_id,
+            "content_type": payload.get("content_type"),
+            "bytes_written": path.stat().st_size,
+        }
+
+    def list_run_models(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        path = (
+            f"/smr/projects/{project_id}/runs/{run_id}/models"
+            if project_id
+            else f"/smr/runs/{run_id}/models"
+        )
+        return _coerce_dict_list(
+            self._request_json("GET", path),
+            label="list_run_models",
+        )
+
+    def list_run_datasets(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        path = (
+            f"/smr/projects/{project_id}/runs/{run_id}/datasets"
+            if project_id
+            else f"/smr/runs/{run_id}/datasets"
+        )
+        return _coerce_dict_list(
+            self._request_json("GET", path),
+            label="list_run_datasets",
+        )
+
+    def _legacy_list_project_run_artifacts(
         self,
         project_id: str,
         run_id: str,

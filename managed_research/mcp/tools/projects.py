@@ -534,13 +534,17 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
         ToolDefinition(
             name="smr_download_workspace_archive",
             description=(
-                "Download the project workspace tarball to a path on the machine running this MCP server "
-                "(presigned URL under the hood). Parent directories are created. Large repos may take minutes; "
+                "Download the project or run workspace tarball to a path on the machine running this MCP server. "
+                "When run_id is provided, this resolves the run-specific archive. Parent directories are created. Large repos may take minutes; "
                 "raise timeout_seconds if needed (default 600)."
             ),
             input_schema=tool_schema(
                 {
                     "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {
+                        "type": "string",
+                        "description": "Optional run id for immutable run-scoped archive resolution.",
+                    },
                     "output_path": {
                         "type": "string",
                         "description": "Absolute or home-relative path for the .tar.gz file (e.g. ~/smr-workspace.tar.gz).",
