@@ -1,91 +1,56 @@
 # managed-research
 
-Managed Research is Synth's product for applied AI teams that want repeatable,
-inspectable research workflows against real repos. Wave 1 is strongest at
-verification, eval execution, data assembly, and careful context optimization.
-The package exposes the SMR Python SDK and MCP server as the public control
-surface on top of the backend control plane.
+Managed Research is Synth's Python SDK and MCP package for repeatable,
+inspectable repo work.
 
-Current status:
+## Install
 
-- SDK remigration is active in this repo
-- MCP server modules live in `managed_research.mcp`
-- standalone CLI migration is intentionally out of scope
-- Data Factory and old onboarding or starting-data bootstrap APIs are
-  intentionally out of scope
+```bash
+uv add managed-research
+```
 
-## Project Notes vs Curated Knowledge
-
-- `project notes` are durable notebook text for operator memory and local
-  project context
-- `curated knowledge` is the PG-backed durable store for org- or
-  project-scoped findings you want later work to inherit
-
-These are intentionally separate surfaces.
-
-Python import surface:
+## 60-Second Quickstart
 
 ```python
-from managed_research.sdk.client import SmrControlClient
+from managed_research import ManagedResearchClient
+
+client = ManagedResearchClient(api_key="sk_...")
+
+project = client.projects.default()
+run = project.runs.start(
+    "Inspect the repo, improve the benchmark path, and explain the changes.",
+    host_kind="daytona",
+    work_mode="directed_effort",
+    providers=[{"provider": "openrouter"}],
+)
+
+print(run.id)
 ```
 
-OpenAI Agents SDK bridge via `synth-ai`:
+`ManagedResearchClient` is the canonical entrypoint. `SmrControlClient`
+remains available as a compatibility alias for one release.
 
-- install with `uv add synth-ai`
-- use `client.openai_agents_sdk` from `SmrControlClient`
-- set `openai_transport_mode` to `backend_bff`, `direct_hp`, or `auto`
-  (`auto` is backend-first with fallback to direct on `404/405/501`)
+## Main Ideas
 
-Recommended launch flow:
+- Use `client.projects` to create or list projects.
+- Use `client.project(project_id)` for project-scoped nouns like
+  `repositories`, `files`, `outputs`, and `runs`.
+- Use `client.runs.start(...)` when you want the default miscellaneous
+  project flow.
+- Use launch preflight before a manual run when you need to inspect blockers.
+- Use `agent_harness="codex"` or `agent_harness="opencode_sdk"` when you want
+  to pin the harness explicitly.
 
-- create a runnable project
-- inspect or prepare project setup
-- attach source repo or upload workspace files
-- optionally set or append project notebook notes
-- optionally set org or project curated knowledge
-- preview lane with `get_capacity_lane_preview`
-- run launch preflight with `get_launch_preflight`
-- trigger with `trigger_run`
-- inspect the run plus noun reads like questions, OEQs, DEOs, milestones,
-  experiments, and the run primary parent
-- retrieve the project workspace snapshot
+## OpenCode Harness
 
-Kickoff intent is queue-first:
+OpenCode is a first-class harness option with this initial model palette:
 
-- use `initial_runtime_messages` on launch preflight and trigger
-- the legacy `prompt` field is no longer accepted
-- migrate `prompt="..."` to
-  `initial_runtime_messages=[{"body": "...", "mode": "queue"}]`
+- `anthropic/claude-sonnet-4-6`
+- `anthropic/claude-haiku-4-5-20251001`
+- `x-ai/grok-4.1-fast`
 
-Project notebook, curated knowledge, and lifecycle helpers are separate:
+For deeper examples, see:
 
-- `get_project_notes`, `set_project_notes`, `append_project_notes`
-- `get_org_knowledge`, `set_org_knowledge`, `get_project_knowledge`,
-  `set_project_knowledge`
-- `pause_project`, `resume_project`, `archive_project`, `unarchive_project`
-
-For MCP callers, `smr_trigger_run` denials may come back as a successful tool
-result with top-level `error`, `detail`, `message`, and `http_status`. Always
-branch on `result.get("error")`.
-
-The package is structured as a library-first distribution rather than a
-standalone CLI product.
-
-## MCP
-
-Primary path:
-
-```bash
-codex mcp add managed-research --url https://api.usesynth.ai/mcp
-claude mcp add --transport http managed-research https://api.usesynth.ai/mcp
-```
-
-Local stdio fallback:
-
-```bash
-uv tool install managed-research
-managed-research-mcp
-```
-
-The canonical MCP surface is owned by this package and is shared by the local
-stdio server and the hosted backend transport.
+- [`docs/quickstart.md`](./docs/quickstart.md)
+- [`docs/python-sdk.md`](./docs/python-sdk.md)
+- [`docs/mcp.md`](./docs/mcp.md)

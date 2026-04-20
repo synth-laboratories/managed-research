@@ -1,6 +1,5 @@
 pre-commit:
   parallel: false
   commands:
-    smr-openapi:
-      skip: true
-      run: uv run --project ../backend python ../backend/scripts/validate_smr_openapi.py --repo managed-research
+    smr-contract:
+      run: uv run python scripts/validate_contract.py

@@ -6,7 +6,6 @@ from enum import StrEnum
 
 
 class SmrHostKind(StrEnum):
-    LOCAL = "local"
     DOCKER = "docker"
     DAYTONA = "daytona"
 
@@ -29,9 +28,7 @@ def coerce_smr_host_kind(
     try:
         return SmrHostKind(normalized)
     except ValueError as exc:
-        raise ValueError(
-            f"{field_name} must be one of: {', '.join(SMR_HOST_KIND_VALUES)}"
-        ) from exc
+        raise ValueError(f"{field_name} must be one of: {', '.join(SMR_HOST_KIND_VALUES)}") from exc
 
 
 __all__ = ["SMR_HOST_KIND_VALUES", "SmrHostKind", "coerce_smr_host_kind"]

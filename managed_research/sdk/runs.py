@@ -25,6 +25,14 @@ from managed_research.models.runtime_intent import (
     RuntimeIntentReceipt,
     RuntimeIntentView,
 )
+from managed_research.models.smr_host_kinds import SmrHostKind
+from managed_research.models.smr_network_topology import SmrNetworkTopology
+from managed_research.models.smr_providers import (
+    ProviderBinding,
+    ProviderCapability,
+    UsageLimit,
+)
+from managed_research.models.smr_work_modes import SmrWorkMode
 from managed_research.models.types import RunArtifact, RunArtifactManifest
 from managed_research.sdk._base import _ClientNamespace
 
@@ -47,6 +55,42 @@ class RunHandle:
         return ManagedResearchRun.from_wire(
             self._client.get_project_run(self.project_id, self.run_id)
         )
+
+    @property
+    def host_kind(self) -> SmrHostKind | None:
+        return self.get().host_kind
+
+    @property
+    def resolved_host_kind(self) -> SmrHostKind | None:
+        return self.get().resolved_host_kind
+
+    @property
+    def work_mode(self) -> SmrWorkMode | None:
+        return self.get().work_mode
+
+    @property
+    def resolved_work_mode(self) -> SmrWorkMode | None:
+        return self.get().resolved_work_mode
+
+    @property
+    def network_topology(self) -> SmrNetworkTopology | None:
+        return self.get().network_topology
+
+    @property
+    def network_surfaces(self) -> dict[str, object]:
+        return self.get().network_surfaces
+
+    @property
+    def providers(self) -> tuple[ProviderBinding, ...]:
+        return self.get().providers
+
+    @property
+    def capabilities(self) -> frozenset[ProviderCapability]:
+        return self.get().capabilities
+
+    @property
+    def limit(self) -> UsageLimit | None:
+        return self.get().limit
 
     def task_counts(self) -> dict[str, int]:
         return self._client.get_run_observability_snapshot(
@@ -220,10 +264,7 @@ class RunHandle:
             }
             if artifact.path:
                 candidates.add(artifact.path.rsplit("/", 1)[-1])
-            if any(
-                str(candidate or "").strip().lower() == wanted
-                for candidate in candidates
-            ):
+            if any(str(candidate or "").strip().lower() == wanted for candidate in candidates):
                 return artifact
         return None
 
@@ -259,6 +300,27 @@ class RunHandle:
 class RunsAPI(_ClientNamespace):
     def trigger(self, project_id: str, **kwargs: Any) -> dict[str, Any]:
         return self._client.trigger_run(project_id, **kwargs)
+
+    def start(
+        self,
+        objective: str,
+        *,
+        project_id: str | None = None,
+        **kwargs: Any,
+    ) -> RunHandle:
+        objective_text = str(objective or "").strip()
+        if not objective_text:
+            raise ValueError("objective is required")
+        initial_runtime_messages = list(kwargs.pop("initial_runtime_messages", ()) or ())
+        initial_runtime_messages.append({"body": objective_text, "mode": "queue"})
+        payload = dict(kwargs)
+        payload["initial_runtime_messages"] = initial_runtime_messages
+        if project_id is None:
+            wire = self._client.trigger_one_off_run(**payload)
+        else:
+            wire = self._client.trigger_run(project_id, **payload)
+        run = ManagedResearchRun.from_wire(wire)
+        return RunHandle(self._client, run.project_id, run.run_id)
 
     def list(
         self, project_id: str, *, active_only: bool = False, **kwargs: Any
@@ -479,10 +541,7 @@ class RunsAPI(_ClientNamespace):
             }
             if artifact.path:
                 candidates.add(artifact.path.rsplit("/", 1)[-1])
-            if any(
-                str(candidate or "").strip().lower() == wanted
-                for candidate in candidates
-            ):
+            if any(str(candidate or "").strip().lower() == wanted for candidate in candidates):
                 return artifact
         return None
 

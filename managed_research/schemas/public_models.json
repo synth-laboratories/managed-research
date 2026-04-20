@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "id": "gpt-5.3-codex",
+      "display_group": "standard_codex",
+      "launch_lane": "openai_chatgpt",
+      "public": true
+    },
+    {
+      "id": "gpt-5.3-codex-spark",
+      "display_group": "standard_codex",
+      "launch_lane": "openai_chatgpt",
+      "public": true
+    },
+    {
+      "id": "gpt-5.4",
+      "display_group": "standard_codex",
+      "launch_lane": "openai_chatgpt",
+      "public": true
+    },
+    {
+      "id": "gpt-5.4-mini",
+      "display_group": "standard_codex",
+      "launch_lane": "openai_chatgpt",
+      "public": true
+    },
+    {
+      "id": "gpt-5.4-nano",
+      "display_group": "additional_first_launch",
+      "launch_lane": "synth_backend_proxy",
+      "public": true
+    },
+    {
+      "id": "gpt-oss-120b",
+      "display_group": "additional_first_launch",
+      "launch_lane": "synth_backend_proxy",
+      "public": true
+    },
+    {
+      "id": "anthropic/claude-sonnet-4-6",
+      "display_group": "additional_first_launch",
+      "launch_lane": "synth_backend_proxy",
+      "public": true
+    },
+    {
+      "id": "anthropic/claude-haiku-4-5-20251001",
+      "display_group": "additional_first_launch",
+      "launch_lane": "synth_backend_proxy",
+      "public": true
+    },
+    {
+      "id": "x-ai/grok-4.1-fast",
+      "display_group": "additional_first_launch",
+      "launch_lane": "synth_backend_proxy",
+      "public": true
+    }
+  ]
+}

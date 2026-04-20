@@ -203,6 +203,14 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_get_project,
         ),
         ToolDefinition(
+            name="smr_get_default_project",
+            description=(
+                "Fetch the authenticated user's default Miscellaneous managed research project."
+            ),
+            input_schema=tool_schema({}, required=[]),
+            handler=server._tool_get_default_project,
+        ),
+        ToolDefinition(
             name="smr_rename_project",
             description="Rename a managed research project without changing runs, repos, tasks, or artifacts.",
             input_schema=tool_schema(

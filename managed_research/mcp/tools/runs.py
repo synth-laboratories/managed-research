@@ -18,6 +18,7 @@ from managed_research.models.smr_actor_models import (
 from managed_research.models.smr_agent_kinds import SMR_AGENT_KIND_VALUES
 from managed_research.models.smr_agent_models import SMR_AGENT_MODEL_VALUES
 from managed_research.models.smr_host_kinds import SMR_HOST_KIND_VALUES
+from managed_research.models.smr_providers import PROVIDER_VALUES
 from managed_research.models.smr_work_modes import SMR_WORK_MODE_VALUES
 
 
@@ -49,6 +50,45 @@ def _actor_model_assignment_schema(*, field_label: str) -> dict[str, Any]:
     }
 
 
+def _provider_bindings_schema() -> dict[str, Any]:
+    return {
+        "type": "array",
+        "description": (
+            "Run-scoped provider bindings. Use resource_bindings only for external "
+            "repos and credential refs."
+        ),
+        "items": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "type": "string",
+                    "enum": list(PROVIDER_VALUES),
+                    "description": "Public launch provider.",
+                },
+                "config": {
+                    "type": "object",
+                    "description": "Provider-specific non-secret launch config.",
+                },
+                "limit": _usage_limit_schema(),
+            },
+            "required": ["provider"],
+        },
+    }
+
+
+def _usage_limit_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "description": "Optional run-scoped usage limit. Do not include provider secrets.",
+        "properties": {
+            "max_spend_usd": {"type": "number"},
+            "max_wallclock_seconds": {"type": "integer"},
+            "max_gpu_hours": {"type": "number"},
+            "max_tokens": {"type": "integer"},
+        },
+    }
+
+
 def build_run_tools(server: Any) -> list[ToolDefinition]:
     return [
         ToolDefinition(
@@ -64,13 +104,15 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                     "host_kind": {
                         "type": "string",
                         "enum": list(SMR_HOST_KIND_VALUES),
-                        "description": "Execution substrate for this run: local, docker, or daytona.",
+                        "description": "Public execution host kind for this run.",
                     },
                     "work_mode": {
                         "type": "string",
                         "enum": list(SMR_WORK_MODE_VALUES),
                         "description": "Run work mode.",
                     },
+                    "providers": _provider_bindings_schema(),
+                    "limit": _usage_limit_schema(),
                     "worker_pool_id": {
                         "type": "string",
                         "description": "Optional worker pool override.",
@@ -85,13 +127,18 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "enum": list(SMR_AGENT_MODEL_VALUES),
                         "description": "Optional run-level agent model override using a public model id such as gpt-5.4, gpt-5.4-nano, or gpt-oss-120b.",
                     },
-                    "agent_kind": {
+                    "agent_harness": {
                         "type": "string",
                         "enum": list(SMR_AGENT_KIND_VALUES),
                         "description": (
-                            "Optional run-level agent kind override. "
-                            "Public managed-research currently supports only codex."
+                            "Optional run-level agent harness override. "
+                            "Supported values are codex and opencode_sdk."
                         ),
+                    },
+                    "agent_kind": {
+                        "type": "string",
+                        "enum": list(SMR_AGENT_KIND_VALUES),
+                        "description": "Compatibility alias for agent_harness.",
                     },
                     "agent_model_params": {
                         "type": "object",
@@ -147,9 +194,108 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "description": "Deprecated compatibility alias for idempotency_key_run_create.",
                     },
                 },
-                required=["project_id", "host_kind", "work_mode"],
+                required=["project_id", "host_kind", "work_mode", "providers"],
             ),
             handler=server._tool_trigger_run,
+        ),
+        ToolDefinition(
+            name="smr_start_one_off_run",
+            description=(
+                "Trigger a one-off managed research run using the caller's default "
+                "Miscellaneous project."
+            ),
+            input_schema=tool_schema(
+                {
+                    "host_kind": {
+                        "type": "string",
+                        "enum": list(SMR_HOST_KIND_VALUES),
+                        "description": "Public execution host kind for this run.",
+                    },
+                    "work_mode": {
+                        "type": "string",
+                        "enum": list(SMR_WORK_MODE_VALUES),
+                        "description": "Run work mode.",
+                    },
+                    "providers": _provider_bindings_schema(),
+                    "limit": _usage_limit_schema(),
+                    "worker_pool_id": {
+                        "type": "string",
+                        "description": "Optional worker pool override.",
+                    },
+                    "timebox_seconds": {"type": "integer", "description": "Optional run timebox."},
+                    "agent_profile": {
+                        "type": "string",
+                        "description": "Optional agent profile override.",
+                    },
+                    "agent_model": {
+                        "type": "string",
+                        "enum": list(SMR_AGENT_MODEL_VALUES),
+                        "description": "Optional run-level agent model override.",
+                    },
+                    "agent_harness": {
+                        "type": "string",
+                        "enum": list(SMR_AGENT_KIND_VALUES),
+                        "description": "Optional run-level agent harness override.",
+                    },
+                    "agent_kind": {
+                        "type": "string",
+                        "enum": list(SMR_AGENT_KIND_VALUES),
+                        "description": "Compatibility alias for agent_harness.",
+                    },
+                    "agent_model_params": {
+                        "type": "object",
+                        "description": "Optional agent model params override.",
+                    },
+                    "actor_model_overrides": _actor_model_assignment_schema(
+                        field_label="Optional actor-scoped model overrides."
+                    ),
+                    "initial_runtime_messages": {
+                        "type": "array",
+                        "description": "Optional kickoff runtime messages to enqueue durably before the run starts.",
+                        "items": {"type": "object"},
+                    },
+                    "workflow": {"type": "object", "description": "Optional workflow override."},
+                    "sandbox_override": {
+                        "type": "object",
+                        "description": "Optional sandbox override.",
+                    },
+                    "local_execution": {
+                        "type": "object",
+                        "description": "Explicit synth-dev local lane identity for slot-backed launches.",
+                    },
+                    "execution_profile": {
+                        "type": "object",
+                        "description": "Explicit product execution profile for local docker/daytona launches.",
+                    },
+                    "run_policy": run_policy_input_schema(),
+                    "kickoff_contract": {
+                        "type": "object",
+                        "description": "Optional staged-run kickoff contract.",
+                    },
+                    "resource_bindings": {
+                        "type": "object",
+                        "description": "Optional Phase 3 run resource bindings for external repos and credential refs.",
+                    },
+                    "primary_parent_ref": {
+                        "type": "object",
+                        "description": "Optional existing project-scoped parent objective binding.",
+                    },
+                    "primary_parent": {
+                        "type": "object",
+                        "description": "Optional inline run-scoped parent objective creation payload.",
+                    },
+                    "idempotency_key_run_create": {
+                        "type": "string",
+                        "description": "Optional idempotency key for the launch request.",
+                    },
+                    "idempotency_key": {
+                        "type": "string",
+                        "description": "Deprecated compatibility alias for idempotency_key_run_create.",
+                    },
+                },
+                required=["host_kind", "work_mode", "providers"],
+            ),
+            handler=server._tool_start_one_off_run,
         ),
         ToolDefinition(
             name="smr_list_runs",

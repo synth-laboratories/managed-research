@@ -1,13 +1,20 @@
 import json
 
+import managed_research
+import managed_research.models as public_models
+import managed_research.sdk as public_sdk
 import pytest
 from managed_research import (
     ManagedResearchProject,
     ManagedResearchRun,
     ManagedResearchRunControlEnqueueStatus,
     ManagedResearchRunControlError,
+    Provider,
+    ProviderCapability,
     SmrApiError,
     SmrControlClient,
+    SmrHostKind,
+    SmrWorkMode,
 )
 from managed_research.models.run_control import (
     ManagedResearchRunControlAck,
@@ -29,6 +36,17 @@ from managed_research.sdk import (
     UsageAPI,
     WorkspaceInputsAPI,
 )
+
+
+def test_legacy_provider_enums_are_not_public_launch_exports() -> None:
+    for namespace in (managed_research, public_models, public_sdk):
+        assert not hasattr(namespace, "SmrInferenceProvider")
+        assert not hasattr(namespace, "SmrResourceProvider")
+
+    assert hasattr(managed_research, "Provider")
+    assert hasattr(managed_research, "ProviderBinding")
+    assert hasattr(managed_research, "UsageLimit")
+    assert hasattr(managed_research, "ProviderCapability")
 
 
 def test_namespace_properties_are_stable() -> None:
@@ -152,6 +170,13 @@ def test_runs_namespace_get_returns_typed_run(monkeypatch) -> None:
             "state": "paused",
             "live_phase": "waiting",
             "state_authority": "backend_public_run_state_projection.v1",
+            "host_kind": "daytona",
+            "resolved_host_kind": "daytona",
+            "work_mode": "directed_effort",
+            "resolved_work_mode": "directed_effort",
+            "providers": [{"provider": "openrouter"}],
+            "capabilities": ["inference"],
+            "limit": {"max_spend_usd": 5.0},
         },
     )
 
@@ -159,6 +184,14 @@ def test_runs_namespace_get_returns_typed_run(monkeypatch) -> None:
 
     assert isinstance(run, ManagedResearchRun)
     assert run.run_id == "run_123"
+    assert run.host_kind is SmrHostKind.DAYTONA
+    assert run.resolved_host_kind is SmrHostKind.DAYTONA
+    assert run.work_mode is SmrWorkMode.DIRECTED_EFFORT
+    assert run.resolved_work_mode is SmrWorkMode.DIRECTED_EFFORT
+    assert run.providers[0].provider is Provider.OPENROUTER
+    assert run.capabilities == frozenset({ProviderCapability.INFERENCE})
+    assert run.limit is not None
+    assert run.limit.max_spend_usd == 5.0
     client.close()
 
 

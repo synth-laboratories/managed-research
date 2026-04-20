@@ -1,6 +1,7 @@
 """Public Managed Research package."""
 
 from managed_research.errors import (
+    ManagedResearchError,
     SmrApiError,
     SmrCheckpointQuotaExceededError,
     SmrFundingLaneInvariantError,
@@ -10,6 +11,7 @@ from managed_research.errors import (
     SmrProjectMonthlyBudgetExhaustedError,
     SmrStructuredDenialError,
 )
+from managed_research.models.smr_agent_harnesses import SmrAgentHarness
 from managed_research.models import (
     ActorCollectionSnapshot,
     ActorSnapshot,
@@ -35,10 +37,14 @@ from managed_research.models import (
     ManagedResearchRunState,
     ManagedResearchRunTerminalOutcome,
     MilestoneProgress,
+    OpenRouterConfig,
     ProjectReadiness,
     ProjectSetupAuthority,
     ProjectSetupAuthorityReason,
     ProjectSetupAuthorityStatus,
+    Provider,
+    ProviderBinding,
+    ProviderCapability,
     ProviderKeyStatus,
     RecommendedAction,
     ResourceUploadResult,
@@ -79,7 +85,7 @@ from managed_research.models import (
     SmrEnvironmentKind,
     SmrFundingSource,
     SmrHostKind,
-    SmrInferenceProvider,
+    SmrNetworkTopology,
     SmrLaunchPreflight,
     SmrLaunchPreflightBlocker,
     SmrLogicalTimeline,
@@ -92,7 +98,6 @@ from managed_research.models import (
     SmrProjectSetupStatus,
     SmrProjectUsage,
     SmrResourceKind,
-    SmrResourceProvider,
     SmrReviewerSubtype,
     SmrRunActorUsage,
     SmrRunBranchRequest,
@@ -110,8 +115,11 @@ from managed_research.models import (
     SmrWorkerSubtype,
     SmrWorkMode,
     StoredFile,
+    SynthAIConfig,
     TaskCollectionSnapshot,
     TaskSnapshot,
+    TinkerConfig,
+    UsageLimit,
     WorkspaceFileInput,
     WorkspaceInputsState,
     WorkspaceSourceRepo,
@@ -198,6 +206,10 @@ __all__ = [
     "ProjectSetupAuthority",
     "ProjectSetupAuthorityReason",
     "ProjectSetupAuthorityStatus",
+    "OpenRouterConfig",
+    "Provider",
+    "ProviderBinding",
+    "ProviderCapability",
     "ProviderKeyStatus",
     "ProjectsAPI",
     "PrsAPI",
@@ -245,7 +257,6 @@ __all__ = [
     "SmrEnvironmentKind",
     "SmrFundingSource",
     "SmrHostKind",
-    "SmrInferenceProvider",
     "SmrLaunchPreflight",
     "SmrLaunchPreflightBlocker",
     "SmrOrchestratorSubtype",
@@ -255,8 +266,8 @@ __all__ = [
     "SmrProjectSetupReason",
     "SmrProjectSetupStatus",
     "SmrProjectUsage",
+    "SynthAIConfig",
     "SmrResourceKind",
-    "SmrResourceProvider",
     "SmrReviewerSubtype",
     "SmrRunnableProjectRequest",
     "SmrRuntimeKind",
@@ -268,7 +279,9 @@ __all__ = [
     "SmrRunPolicyAccess",
     "SmrRunPolicyLimits",
     "SmrRunUsage",
+    "TinkerConfig",
     "SmrToolProvider",
+    "UsageLimit",
     "SmrWorkMode",
     "SmrWorkerSubtype",
     "SmrLogicalTimeline",
@@ -296,4 +309,35 @@ __all__ = [
     "WorkspaceUploadResult",
     "__version__",
     "first_id",
+]
+
+Project = ManagedResearchProject
+Run = ManagedResearchRun
+AgentHarness = SmrAgentHarness
+AgentModel = SmrAgentModel
+HostKind = SmrHostKind
+NetworkTopology = SmrNetworkTopology
+WorkMode = SmrWorkMode
+
+__all__ = [
+    "ManagedResearchClient",
+    "ManagedResearchError",
+    "Project",
+    "Run",
+    "LaunchPreflight",
+    "ProjectReadiness",
+    "ProjectSetupAuthority",
+    "ProjectsAPI",
+    "RunsAPI",
+    "RunHandle",
+    "Provider",
+    "ProviderBinding",
+    "UsageLimit",
+    "HostKind",
+    "NetworkTopology",
+    "WorkMode",
+    "AgentHarness",
+    "AgentModel",
+    "SmrControlClient",
+    "__version__",
 ]

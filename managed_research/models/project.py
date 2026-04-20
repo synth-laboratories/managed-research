@@ -34,6 +34,8 @@ class ManagedResearchProject:
     project_id: str
     org_id: str
     name: str
+    project_alias: str | None = None
+    project_kind: str | None = None
     timezone: str | None = None
     schedule: dict[str, object] = field(default_factory=dict)
     budgets: dict[str, object] = field(default_factory=dict)
@@ -69,6 +71,8 @@ class ManagedResearchProject:
         source_repo_payload = mapping.get("source_repo")
         return cls(
             project_id=_require_string(mapping, "project_id", label="project.project_id"),
+            project_alias=_optional_string(mapping, "project_alias"),
+            project_kind=_optional_string(mapping, "project_kind"),
             org_id=_require_string(mapping, "org_id", label="project.org_id"),
             name=_require_string(mapping, "name", label="project.name"),
             timezone=_optional_string(mapping, "timezone"),

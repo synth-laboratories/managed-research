@@ -95,15 +95,24 @@ from managed_research.models.smr_actor_models import (
     SmrReviewerSubtype,
     SmrWorkerSubtype,
 )
+from managed_research.models.smr_agent_harnesses import SmrAgentHarness
 from managed_research.models.smr_agent_kinds import SmrAgentKind
 from managed_research.models.smr_agent_models import SmrAgentModel
 from managed_research.models.smr_credential_providers import SmrCredentialProvider
 from managed_research.models.smr_environment_kinds import SmrEnvironmentKind
 from managed_research.models.smr_funding_sources import SmrFundingSource
 from managed_research.models.smr_host_kinds import SmrHostKind
-from managed_research.models.smr_inference_providers import SmrInferenceProvider
+from managed_research.models.smr_network_topology import SmrNetworkTopology
+from managed_research.models.smr_providers import (
+    OpenRouterConfig,
+    Provider,
+    ProviderBinding,
+    ProviderCapability,
+    SynthAIConfig,
+    TinkerConfig,
+    UsageLimit,
+)
 from managed_research.models.smr_resource_kinds import SmrResourceKind
-from managed_research.models.smr_resource_providers import SmrResourceProvider
 from managed_research.models.smr_run_policy import (
     SmrRunPolicy,
     SmrRunPolicyAccess,
@@ -160,6 +169,10 @@ __all__ = [
     "ProjectSetupAuthority",
     "ProjectSetupAuthorityReason",
     "ProjectSetupAuthorityStatus",
+    "OpenRouterConfig",
+    "Provider",
+    "ProviderBinding",
+    "ProviderCapability",
     "ActorCollectionSnapshot",
     "ActorSnapshot",
     "CandidatePublicationOutcome",
@@ -197,6 +210,7 @@ __all__ = [
     "SemanticProgressSnapshot",
     "SmrBranchMode",
     "SmrAgentProfileBindings",
+    "SmrAgentHarness",
     "SmrAgentKind",
     "SmrAgentModel",
     "SmrActorModelAssignment",
@@ -206,7 +220,7 @@ __all__ = [
     "SmrEnvironmentKind",
     "SmrFundingSource",
     "SmrHostKind",
-    "SmrInferenceProvider",
+    "SmrNetworkTopology",
     "LaunchPreflight",
     "LaunchPreflightBlocker",
     "LocalExecutionProfile",
@@ -244,7 +258,6 @@ __all__ = [
     "SmrProjectSetupReason",
     "SmrProjectSetupStatus",
     "SmrResourceKind",
-    "SmrResourceProvider",
     "SmrReviewerSubtype",
     "SmrRunCostTotals",
     "SmrRunActorUsage",
@@ -262,11 +275,14 @@ __all__ = [
     "SmrProjectEconomics",
     "SmrProjectEntitlementOverlay",
     "SmrProjectUsage",
+    "SynthAIConfig",
     "SmrRunTraceItem",
     "SmrRunTraces",
     "SmrRunUsage",
     "SmrWorkMode",
     "SmrWorkerSubtype",
+    "TinkerConfig",
+    "UsageLimit",
     "StoredFile",
     "TaskCollectionSnapshot",
     "TaskSnapshot",

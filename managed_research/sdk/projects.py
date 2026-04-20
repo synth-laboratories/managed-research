@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from managed_research.models.project import ManagedResearchProject
+from managed_research.sdk.project import ManagedResearchProjectClient
 from managed_research.models.types import (
     ProviderKeyStatus,
     SmrLaunchPreflight,
@@ -39,6 +40,11 @@ class ProjectsAPI(_ClientNamespace):
 
     def get(self, project_id: str) -> ManagedResearchProject:
         return ManagedResearchProject.from_wire(self._client.get_project(project_id))
+
+    def default(self) -> ManagedResearchProjectClient:
+        payload = self._client.get_default_project()
+        project = ManagedResearchProject.from_wire(payload)
+        return ManagedResearchProjectClient(self._client, project.project_id)
 
     def patch(self, project_id: str, payload: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         return self._client.patch_project(project_id, payload, **kwargs)

@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from managed_research.models.project import ManagedResearchProject
+
 
 def _guess_content_type(path: Path) -> str:
     guessed, _ = mimetypes.guess_type(path.name)
@@ -283,6 +285,32 @@ class _BoundProjectModelsAPI:
     def list(self) -> list[dict[str, Any]]:
         return self._client.list_project_models(self.project_id)
 
+
+@dataclass
+class _BoundProjectRunsAPI:
+    _client: Any
+    project_id: str
+
+    def start(self, objective: str, **kwargs: Any):
+        return self._client.runs.start(
+            objective,
+            project_id=self.project_id,
+            **kwargs,
+        )
+
+    def trigger(self, **kwargs: Any) -> dict[str, Any]:
+        return self._client.trigger_run(self.project_id, **kwargs)
+
+    def list(self, *, active_only: bool = False, **kwargs: Any) -> list[dict[str, Any]]:
+        return self._client.list_runs(
+            self.project_id,
+            active_only=active_only,
+            **kwargs,
+        )
+
+    def list_active(self) -> list[dict[str, Any]]:
+        return self._client.list_active_runs(self.project_id)
+
     def get(self, model_id: str) -> dict[str, Any]:
         return self._client.get_project_model(self.project_id, model_id)
 
@@ -342,12 +370,21 @@ class ManagedResearchProjectClient:
         default=None,
         repr=False,
     )
+    _runs_api: _BoundProjectRunsAPI | None = field(
+        init=False,
+        default=None,
+        repr=False,
+    )
 
     @property
-    def repos(self) -> _BoundProjectReposAPI:
+    def repositories(self) -> _BoundProjectReposAPI:
         if self._repos_api is None:
             self._repos_api = _BoundProjectReposAPI(self._client, self.project_id)
         return self._repos_api
+
+    @property
+    def repos(self) -> _BoundProjectReposAPI:
+        return self.repositories
 
     @property
     def external_repositories(self) -> _BoundProjectExternalRepositoriesAPI:
@@ -402,6 +439,15 @@ class ManagedResearchProjectClient:
         if self._models_api is None:
             self._models_api = _BoundProjectModelsAPI(self._client, self.project_id)
         return self._models_api
+
+    @property
+    def runs(self) -> _BoundProjectRunsAPI:
+        if self._runs_api is None:
+            self._runs_api = _BoundProjectRunsAPI(self._client, self.project_id)
+        return self._runs_api
+
+    def get(self) -> ManagedResearchProject:
+        return ManagedResearchProject.from_wire(self._client.get_project(self.project_id))
 
     def readiness(self) -> dict[str, Any]:
         return self._client.get_project_readiness(self.project_id)

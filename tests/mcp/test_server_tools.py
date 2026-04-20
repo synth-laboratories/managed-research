@@ -280,7 +280,12 @@ def test_trigger_run_returns_structured_payload_on_limit_exceeded(monkeypatch) -
     monkeypatch.setattr(server, "_client_from_args", lambda args: _FakeClient())
 
     out = server._tool_trigger_run(
-        {"project_id": "proj_1", "host_kind": "daytona", "work_mode": "directed_effort"},
+        {
+            "project_id": "proj_1",
+            "host_kind": "daytona",
+            "work_mode": "directed_effort",
+            "providers": [{"provider": "openrouter"}],
+        },
     )
     assert out == {
         "error": "smr_limit_exceeded",
@@ -317,7 +322,12 @@ def test_trigger_run_returns_structured_payload_on_routing_invariant(monkeypatch
     monkeypatch.setattr(server, "_client_from_args", lambda args: _FakeClient())
 
     out = server._tool_trigger_run(
-        {"project_id": "proj_1", "host_kind": "daytona", "work_mode": "directed_effort"},
+        {
+            "project_id": "proj_1",
+            "host_kind": "daytona",
+            "work_mode": "directed_effort",
+            "providers": [{"provider": "openrouter"}],
+        },
     )
     assert out == {
         "error": "smr_free_tier_routing_violation",
@@ -356,7 +366,12 @@ def test_trigger_run_returns_structured_payload_on_insufficient_credits(monkeypa
     monkeypatch.setattr(server, "_client_from_args", lambda args: _FakeClient())
 
     out = server._tool_trigger_run(
-        {"project_id": "proj_1", "host_kind": "daytona", "work_mode": "directed_effort"},
+        {
+            "project_id": "proj_1",
+            "host_kind": "daytona",
+            "work_mode": "directed_effort",
+            "providers": [{"provider": "openrouter"}],
+        },
     )
     assert out == {
         "error": "smr_insufficient_credits",
@@ -589,6 +604,7 @@ def test_get_run_start_blockers_delegates_to_client(monkeypatch) -> None:
             "project_id": "pid_1",
             "host_kind": "daytona",
             "work_mode": "directed_effort",
+            "providers": [{"provider": "openrouter"}],
             "agent_model_params": {"reasoning_effort": "high"},
             "initial_runtime_messages": [{"body": "Check staging first.", "mode": "queue"}],
             "sandbox_override": {"image": "synth/smr:latest"},
@@ -601,6 +617,7 @@ def test_get_run_start_blockers_delegates_to_client(monkeypatch) -> None:
     assert isinstance(kwargs, dict)
     assert kwargs["host_kind"] == "daytona"
     assert kwargs["work_mode"] == "directed_effort"
+    assert kwargs["providers"] == [{"provider": "openrouter"}]
     assert kwargs["agent_model_params"] == {"reasoning_effort": "high"}
     assert kwargs["initial_runtime_messages"] == [{"body": "Check staging first.", "mode": "queue"}]
     assert kwargs["sandbox_override"] == {"image": "synth/smr:latest"}
@@ -790,6 +807,7 @@ def test_trigger_run_delegates_initial_runtime_messages_to_client(monkeypatch) -
             "project_id": "pid_1",
             "host_kind": "daytona",
             "work_mode": "directed_effort",
+            "providers": [{"provider": "openrouter"}],
             "initial_runtime_messages": [
                 {"body": "Start with the launch blocker.", "mode": "queue"}
             ],
@@ -803,6 +821,7 @@ def test_trigger_run_delegates_initial_runtime_messages_to_client(monkeypatch) -
     assert isinstance(kwargs, dict)
     assert kwargs["host_kind"] == "daytona"
     assert kwargs["work_mode"] == "directed_effort"
+    assert kwargs["providers"] == [{"provider": "openrouter"}]
     assert kwargs["initial_runtime_messages"] == [
         {"body": "Start with the launch blocker.", "mode": "queue"}
     ]

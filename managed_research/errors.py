@@ -125,7 +125,11 @@ class SmrStructuredDenialError(SmrApiError):
         self.detail = dict(detail) if detail else {}
 
 
+ManagedResearchError = SmrApiError
+
+
 __all__ = [
+    "ManagedResearchError",
     "SmrApiError",
     "SmrCheckpointQuotaExceededError",
     "SmrFundingLaneInvariantError",

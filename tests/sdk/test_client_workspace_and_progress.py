@@ -6,22 +6,25 @@ from pathlib import Path
 import pytest
 from managed_research import (
     ProjectSetupAuthority,
-    SmrLaunchPreflight,
+    Provider,
+    ProviderBinding,
     SmrApiError,
     SmrBranchMode,
     SmrControlClient,
     SmrCredentialProvider,
     SmrFundingSource,
-    SmrInferenceProvider,
+    SmrLaunchPreflight,
     SmrLogicalTimeline,
+    SmrRunBranchRequest,
     SmrRunPolicy,
     SmrRunPolicyAccess,
     SmrRunPolicyLimits,
-    SmrRunBranchRequest,
     SmrToolProvider,
+    UsageLimit,
     WorkspaceInputsState,
     WorkspaceUploadResult,
 )
+from managed_research.models.smr_inference_providers import SmrInferenceProvider
 
 
 def test_get_workspace_download_url_calls_backend_route(monkeypatch) -> None:
@@ -323,6 +326,7 @@ def test_setup_and_launch_preflight_routes_match_remigration_surface(monkeypatch
         "proj_123",
         host_kind="daytona",
         work_mode="directed_effort",
+        providers=["openrouter"],
     ) == {"ok": True}
     assert seen == [
         ("GET", "/smr/projects/proj_123/setup"),
@@ -349,6 +353,10 @@ def test_progress_namespace_returns_typed_setup_models(monkeypatch) -> None:
             "clear_to_trigger": True,
             "checked": ["setup", "runtime"],
             "blockers": [],
+            "providers": [{"provider": "openrouter"}],
+            "capabilities": ["inference"],
+            "required_capabilities": ["inference"],
+            "limit": {"max_tokens": 1000},
         }
 
     monkeypatch.setattr(client, "_request_json", fake_request_json)
@@ -358,12 +366,16 @@ def test_progress_namespace_returns_typed_setup_models(monkeypatch) -> None:
         "proj_123",
         host_kind="daytona",
         work_mode="directed_effort",
+        providers=["openrouter"],
     )
 
     assert isinstance(setup, ProjectSetupAuthority)
     assert setup.state == "ready"
     assert isinstance(preflight, SmrLaunchPreflight)
     assert preflight.clear_to_trigger is True
+    assert preflight.providers[0].provider is Provider.OPENROUTER
+    assert preflight.limit is not None
+    assert preflight.limit.max_tokens == 1000
     client.close()
 
 
@@ -404,6 +416,8 @@ def test_run_start_blockers_uses_trigger_compatible_payload(monkeypatch) -> None
         "proj_123",
         host_kind="daytona",
         work_mode="directed_effort",
+        providers=[ProviderBinding(provider=Provider.OPENROUTER)],
+        limit=UsageLimit(max_spend_usd=25.0),
         worker_pool_id="pool_123",
         timebox_seconds=1800,
         agent_profile="ap_worker",
@@ -432,6 +446,8 @@ def test_run_start_blockers_uses_trigger_compatible_payload(monkeypatch) -> None
     assert captured["json_body"] == {
         "host_kind": "daytona",
         "work_mode": "directed_effort",
+        "providers": [{"provider": "openrouter"}],
+        "limit": {"max_spend_usd": 25.0},
         "worker_pool_id": "pool_123",
         "timebox_seconds": 1800,
         "agent_profile": "ap_worker",
@@ -472,6 +488,7 @@ def test_trigger_run_uses_project_trigger_payload(monkeypatch) -> None:
         "proj_123",
         host_kind="daytona",
         work_mode="directed_effort",
+        providers=[{"provider": "tinker", "config": {"base_model": "model-a"}}],
         worker_pool_id="pool_123",
         timebox_seconds=1800,
         agent_profile="ap_worker",
@@ -492,6 +509,7 @@ def test_trigger_run_uses_project_trigger_payload(monkeypatch) -> None:
     assert captured["json_body"] == {
         "host_kind": "daytona",
         "work_mode": "directed_effort",
+        "providers": [{"provider": "tinker", "config": {"base_model": "model-a"}}],
         "worker_pool_id": "pool_123",
         "timebox_seconds": 1800,
         "agent_profile": "ap_worker",
@@ -518,17 +536,23 @@ def test_provider_key_routes_match_backend_surface(monkeypatch) -> None:
 
     monkeypatch.setattr(client, "_request_json", fake_request_json)
 
-    assert client.set_provider_key(
-        "proj_123",
-        provider=SmrCredentialProvider.OPENROUTER,
-        funding_source=SmrFundingSource.CUSTOMER_BYOK,
-        api_key="sk-test-key",
-    )["configured"] is True
-    assert client.get_provider_key_status(
-        "proj_123",
-        provider="openrouter",
-        funding_source="customer_byok",
-    )["ok"] is True
+    assert (
+        client.set_provider_key(
+            "proj_123",
+            provider=SmrCredentialProvider.OPENROUTER,
+            funding_source=SmrFundingSource.CUSTOMER_BYOK,
+            api_key="sk-test-key",
+        )["configured"]
+        is True
+    )
+    assert (
+        client.get_provider_key_status(
+            "proj_123",
+            provider="openrouter",
+            funding_source="customer_byok",
+        )["ok"]
+        is True
+    )
     assert seen == [
         (
             "POST",
@@ -586,6 +610,7 @@ def test_run_policy_coercion_stays_typed_until_serialization(monkeypatch) -> Non
         "proj_123",
         host_kind="daytona",
         work_mode="directed_effort",
+        providers=["openrouter"],
         run_policy=policy,
     )
 

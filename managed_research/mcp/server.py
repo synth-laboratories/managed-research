@@ -17,6 +17,7 @@ from managed_research.mcp.registry import (
     list_tool_payload,
 )
 from managed_research.mcp.request_models import (
+    OneOffRunLaunchRequest,
     ProjectMutationRequest,
     ProviderKeyRequest,
     RunLaunchRequest,
@@ -48,7 +49,7 @@ from managed_research.mcp.tools.runs import build_run_tools
 from managed_research.mcp.tools.trained_models import build_trained_model_tools
 from managed_research.mcp.tools.usage import build_usage_tools
 from managed_research.mcp.tools.workspace_inputs import build_workspace_input_tools
-from managed_research.sdk.client import SmrControlClient
+from managed_research.sdk.client import ManagedResearchClient
 from managed_research.version import __version__
 
 SUPPORTED_PROTOCOL_VERSIONS = ("2025-06-18", "2024-11-05")
@@ -57,13 +58,7 @@ SERVER_NAME = "managed-research"
 
 
 def _mcp_structured_trigger_error_payload(exc: SmrApiError) -> dict[str, Any]:
-    """Shape every ``SmrApiError`` as a structured MCP trigger-error payload.
-
-    Guarantees one output path: if the backend supplied a typed
-    ``detail.error_code`` it becomes the ``error`` field; otherwise we
-    tag the payload ``smr_api_error`` so callers can still branch
-    programmatically without parsing the exception text.
-    """
+    """Shape every ``SmrApiError`` as structured MCP error data."""
     detail = getattr(exc, "detail", None)
     detail_dict: dict[str, Any] = dict(detail) if isinstance(detail, dict) else {}
     code_raw = detail_dict.get("error_code")
@@ -77,6 +72,15 @@ def _mcp_structured_trigger_error_payload(exc: SmrApiError) -> dict[str, Any]:
     if isinstance(status, int):
         out["http_status"] = status
     return out
+
+
+def _raise_mcp_tool_denial(exc: SmrApiError) -> None:
+    payload = _mcp_structured_trigger_error_payload(exc)
+    raise RpcError(
+        -32010,
+        payload.get("message", str(exc)),
+        data=payload,
+    ) from exc
 
 
 class RpcError(Exception):
@@ -116,7 +120,7 @@ def _write_message(stream: Any, payload: JSONDict, *, framing: str) -> None:
 
 
 class ManagedResearchMcpServer:
-    """Minimal MCP server for the rewritten remigration surface."""
+    """Managed Research MCP server for the public noun-first tool surface."""
 
     def __init__(
         self,
@@ -143,10 +147,10 @@ class ManagedResearchMcpServer:
     def call_tool(self, name: str, arguments: JSONDict | None = None) -> Any:
         return call_tool(self._tools, name, arguments)
 
-    def _client_from_args(self, args: JSONDict) -> SmrControlClient:
+    def _client_from_args(self, args: JSONDict) -> ManagedResearchClient:
         resolved_api_key = optional_string(args, "api_key") or self._default_api_key
         resolved_backend_base = optional_string(args, "backend_base") or self._default_backend_base
-        return SmrControlClient(
+        return ManagedResearchClient(
             api_key=resolved_api_key,
             backend_base=resolved_backend_base,
         )
@@ -377,6 +381,10 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             result = client.projects.get(project_id)
             return asdict(result) if is_dataclass(result) else result
+
+    def _tool_get_default_project(self, args: JSONDict) -> Any:
+        with self._client_from_args(args) as client:
+            return client.get_default_project()
 
     def _tool_rename_project(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
@@ -922,7 +930,15 @@ class ManagedResearchMcpServer:
                     **request.client_kwargs(),
                 )
         except SmrApiError as exc:
-            return _mcp_structured_trigger_error_payload(exc)
+            _raise_mcp_tool_denial(exc)
+
+    def _tool_start_one_off_run(self, args: JSONDict) -> Any:
+        request = OneOffRunLaunchRequest.from_payload(args)
+        try:
+            with self._client_from_args(args) as client:
+                return client.trigger_one_off_run(**request.client_kwargs())
+        except SmrApiError as exc:
+            _raise_mcp_tool_denial(exc)
 
     def _tool_get_run_start_blockers(self, args: JSONDict) -> Any:
         request = RunLaunchRequest.from_payload(args)

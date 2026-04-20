@@ -1,4 +1,4 @@
-"""Schema and enum sync helpers for the rewritten package surface."""
+"""Schema and enum sync helpers for the managed-research package surface."""
 
 from __future__ import annotations
 
@@ -53,7 +53,7 @@ _STATIC_ENUM_SPECS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
         "smr_agent_kinds.py",
         "SmrAgentKind",
         "agent_kind",
-        ("codex",),
+        ("codex", "opencode_sdk"),
     ),
     (
         "smr_funding_sources.py",

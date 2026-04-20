@@ -93,15 +93,24 @@ from managed_research.models.smr_actor_models import (
     SmrReviewerSubtype,
     SmrWorkerSubtype,
 )
+from managed_research.models.smr_agent_harnesses import SmrAgentHarness
 from managed_research.models.smr_agent_kinds import SmrAgentKind
 from managed_research.models.smr_agent_models import SmrAgentModel
 from managed_research.models.smr_credential_providers import SmrCredentialProvider
 from managed_research.models.smr_environment_kinds import SmrEnvironmentKind
 from managed_research.models.smr_funding_sources import SmrFundingSource
 from managed_research.models.smr_host_kinds import SmrHostKind
-from managed_research.models.smr_inference_providers import SmrInferenceProvider
+from managed_research.models.smr_network_topology import SmrNetworkTopology
+from managed_research.models.smr_providers import (
+    OpenRouterConfig,
+    Provider,
+    ProviderBinding,
+    ProviderCapability,
+    SynthAIConfig,
+    TinkerConfig,
+    UsageLimit,
+)
 from managed_research.models.smr_resource_kinds import SmrResourceKind
-from managed_research.models.smr_resource_providers import SmrResourceProvider
 from managed_research.models.smr_run_policy import (
     SmrRunPolicy,
     SmrRunPolicyAccess,
@@ -218,6 +227,10 @@ __all__ = [
     "ProjectSetupAuthority",
     "ProjectSetupAuthorityReason",
     "ProjectSetupAuthorityStatus",
+    "OpenRouterConfig",
+    "Provider",
+    "ProviderBinding",
+    "ProviderCapability",
     "ProjectsAPI",
     "PrsAPI",
     "ReadinessAPI",
@@ -238,7 +251,6 @@ __all__ = [
     "SmrEnvironmentKind",
     "SmrFundingSource",
     "SmrHostKind",
-    "SmrInferenceProvider",
     "SmrLaunchPreflight",
     "SmrLaunchPreflightBlocker",
     "SmrOrchestratorSubtype",
@@ -249,7 +261,6 @@ __all__ = [
     "SmrProjectSetupStatus",
     "SmrProjectUsage",
     "SmrResourceKind",
-    "SmrResourceProvider",
     "SmrReviewerSubtype",
     "SmrRunnableProjectRequest",
     "SmrRuntimeKind",
@@ -259,6 +270,7 @@ __all__ = [
     "SmrRunPolicyAccess",
     "SmrRunPolicyLimits",
     "SmrRunUsage",
+    "SynthAIConfig",
     "RunLifecycleDispatch",
     "RunLifecycleFailure",
     "RunLifecycleLocalExecution",
@@ -277,6 +289,8 @@ __all__ = [
     "RuntimeObservability",
     "SmrBranchMode",
     "SmrToolProvider",
+    "TinkerConfig",
+    "UsageLimit",
     "SmrWorkMode",
     "SmrWorkerSubtype",
     "SmrControlClient",
@@ -292,5 +306,26 @@ __all__ = [
     "TaskSnapshot",
     "UsageAPI",
     "WorkspaceInputsAPI",
+    "first_id",
+]
+
+__all__ = [
+    "ManagedResearchClient",
+    "ManagedResearchProjectClient",
+    "ProjectsAPI",
+    "RunsAPI",
+    "RunHandle",
+    "LaunchPreflight",
+    "ProjectReadiness",
+    "ProjectSetupAuthority",
+    "Provider",
+    "ProviderBinding",
+    "UsageLimit",
+    "SmrHostKind",
+    "SmrNetworkTopology",
+    "SmrWorkMode",
+    "SmrAgentHarness",
+    "SmrAgentModel",
+    "SmrControlClient",
     "first_id",
 ]

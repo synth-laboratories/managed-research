@@ -14,6 +14,17 @@ from managed_research.models.smr_environment_kinds import (
     SmrEnvironmentKind,
     coerce_smr_environment_kind,
 )
+from managed_research.models.smr_providers import (
+    ProviderBinding,
+    ProviderCapability,
+    UsageLimit,
+    coerce_provider_bindings,
+    coerce_usage_limit,
+)
+from managed_research.models.smr_network_topology import (
+    SmrNetworkTopology,
+    coerce_smr_network_topology,
+)
 from managed_research.models.smr_runtime_kinds import (
     SmrRuntimeKind,
     coerce_smr_runtime_kind,
@@ -229,9 +240,7 @@ class WorkspaceUploadResult:
             project_id=_optional_string(mapping, "project_id"),
             file_count=_optional_int(mapping, "file_count"),
             bytes_uploaded=_optional_int(mapping, "bytes_uploaded"),
-            uploaded_files=[
-                WorkspaceFileInput.from_wire(item) for item in uploaded_files_payload
-            ],
+            uploaded_files=[WorkspaceFileInput.from_wire(item) for item in uploaded_files_payload],
         )
 
 
@@ -308,9 +317,7 @@ class KickoffContract:
             repo_url=_optional_string(mapping, "repo_url"),
             worker_pool_id=_optional_string(mapping, "worker_pool_id"),
             project_notes_framing=_optional_string(mapping, "project_notes_framing"),
-            dispatch_requirements=_optional_object_dict(
-                mapping.get("dispatch_requirements")
-            ),
+            dispatch_requirements=_optional_object_dict(mapping.get("dispatch_requirements")),
             tasks=[_optional_object_dict(item) for item in task_payload],
             task_briefs=_string_list(
                 mapping.get("task_briefs"),
@@ -391,9 +398,7 @@ class StoredFile:
         return cls(
             file_id=_require_string(mapping, "file_id", label="stored file.file_id"),
             org_id=_require_string(mapping, "org_id", label="stored file.org_id"),
-            project_id=_require_string(
-                mapping, "project_id", label="stored file.project_id"
-            ),
+            project_id=_require_string(mapping, "project_id", label="stored file.project_id"),
             run_id=_optional_string(mapping, "run_id"),
             scope_kind=_optional_string(mapping, "scope_kind"),
             path=_optional_string(mapping, "path"),
@@ -464,9 +469,7 @@ class RunOutputFile:
                 mapping, "output_file_id", label="run output file.output_file_id"
             ),
             org_id=_require_string(mapping, "org_id", label="run output file.org_id"),
-            project_id=_require_string(
-                mapping, "project_id", label="run output file.project_id"
-            ),
+            project_id=_require_string(mapping, "project_id", label="run output file.project_id"),
             run_id=_require_string(mapping, "run_id", label="run output file.run_id"),
             artifact_type=_optional_string(mapping, "artifact_type"),
             title=_optional_string(mapping, "title"),
@@ -502,11 +505,11 @@ class RunArtifact:
     def from_wire(cls, payload: object) -> RunArtifact:
         mapping = _require_mapping(payload, label="run artifact")
         size_value = mapping.get("size_bytes")
-        size_bytes = size_value if isinstance(size_value, int) and not isinstance(size_value, bool) else None
+        size_bytes = (
+            size_value if isinstance(size_value, int) and not isinstance(size_value, bool) else None
+        )
         return cls(
-            artifact_id=_require_string(
-                mapping, "artifact_id", label="run artifact.artifact_id"
-            ),
+            artifact_id=_require_string(mapping, "artifact_id", label="run artifact.artifact_id"),
             project_id=_optional_string(mapping, "project_id"),
             run_id=_optional_string(mapping, "run_id"),
             artifact_type=_optional_string(mapping, "artifact_type"),
@@ -556,9 +559,7 @@ class RunArtifactManifest:
             project_id=_require_string(
                 mapping, "project_id", label="run artifact manifest.project_id"
             ),
-            run_id=_require_string(
-                mapping, "run_id", label="run artifact manifest.run_id"
-            ),
+            run_id=_require_string(mapping, "run_id", label="run artifact manifest.run_id"),
             generated_at=_optional_string(mapping, "generated_at"),
             artifact_count=(
                 artifact_count
@@ -566,12 +567,10 @@ class RunArtifactManifest:
                 else 0
             ),
             artifacts=[
-                RunArtifact.from_wire(item)
-                for item in _optional_array(mapping, "artifacts")
+                RunArtifact.from_wire(item) for item in _optional_array(mapping, "artifacts")
             ],
             output_files=[
-                RunArtifact.from_wire(item)
-                for item in _optional_array(mapping, "output_files")
+                RunArtifact.from_wire(item) for item in _optional_array(mapping, "output_files")
             ],
             result_json=(
                 RunArtifact.from_wire(result_json_payload)
@@ -579,16 +578,11 @@ class RunArtifactManifest:
                 else None
             ),
             result_outputs=[
-                RunArtifact.from_wire(item)
-                for item in _optional_array(mapping, "result_outputs")
+                RunArtifact.from_wire(item) for item in _optional_array(mapping, "result_outputs")
             ],
-            reports=[
-                RunArtifact.from_wire(item)
-                for item in _optional_array(mapping, "reports")
-            ],
+            reports=[RunArtifact.from_wire(item) for item in _optional_array(mapping, "reports")],
             pull_requests=[
-                RunArtifact.from_wire(item)
-                for item in _optional_array(mapping, "pull_requests")
+                RunArtifact.from_wire(item) for item in _optional_array(mapping, "pull_requests")
             ],
             workspace_archive=_optional_object_dict(mapping.get("workspace_archive")),
             models=[
@@ -625,9 +619,7 @@ class ResourceUploadResult:
             run_id=_optional_string(mapping, "run_id"),
             file_count=_optional_int(mapping, "file_count"),
             bytes_uploaded=_optional_int(mapping, "bytes_uploaded"),
-            uploaded_files=[
-                StoredFile.from_wire(item) for item in uploaded_files_payload
-            ],
+            uploaded_files=[StoredFile.from_wire(item) for item in uploaded_files_payload],
         )
 
 
@@ -653,9 +645,7 @@ class ExternalRepository:
             repository_id=_require_string(
                 mapping, "repository_id", label="external repository.repository_id"
             ),
-            org_id=_require_string(
-                mapping, "org_id", label="external repository.org_id"
-            ),
+            org_id=_require_string(mapping, "org_id", label="external repository.org_id"),
             project_id=_require_string(
                 mapping, "project_id", label="external repository.project_id"
             ),
@@ -687,9 +677,7 @@ class RunRepositoryMount:
         mapping = _require_mapping(payload, label="run repository mount")
         repository_payload = mapping.get("repository")
         return cls(
-            mount_id=_require_string(
-                mapping, "mount_id", label="run repository mount.mount_id"
-            ),
+            mount_id=_require_string(mapping, "mount_id", label="run repository mount.mount_id"),
             run_id=_require_string(mapping, "run_id", label="run repository mount.run_id"),
             repository_id=_require_string(
                 mapping,
@@ -732,9 +720,7 @@ class CredentialRef:
                 mapping, "credential_ref_id", label="credential ref.credential_ref_id"
             ),
             org_id=_require_string(mapping, "org_id", label="credential ref.org_id"),
-            project_id=_require_string(
-                mapping, "project_id", label="credential ref.project_id"
-            ),
+            project_id=_require_string(mapping, "project_id", label="credential ref.project_id"),
             run_id=_optional_string(mapping, "run_id"),
             scope_kind=_optional_string(mapping, "scope_kind"),
             kind=_optional_string(mapping, "kind"),
@@ -765,9 +751,7 @@ class RunCredentialBinding:
             binding_id=_require_string(
                 mapping, "binding_id", label="run credential binding.binding_id"
             ),
-            run_id=_require_string(
-                mapping, "run_id", label="run credential binding.run_id"
-            ),
+            run_id=_require_string(mapping, "run_id", label="run credential binding.run_id"),
             credential_ref_id=_require_string(
                 mapping,
                 "credential_ref_id",
@@ -826,9 +810,7 @@ class InlineExternalRepositoryBinding:
 @dataclass(frozen=True)
 class RunResourceBindings:
     external_repository_ids: list[str] = field(default_factory=list)
-    external_repositories: list[InlineExternalRepositoryBinding] = field(
-        default_factory=list
-    )
+    external_repositories: list[InlineExternalRepositoryBinding] = field(default_factory=list)
     credential_ref_ids: list[str] = field(default_factory=list)
 
     @classmethod
@@ -979,9 +961,7 @@ class SmrProjectSetup:
             project_id=_optional_string(mapping, "project_id"),
             state=state,
             blockers=[str(item) for item in blockers_payload if isinstance(item, str)],
-            reasons=[
-                SmrProjectSetupReason.from_wire(item) for item in reasons_payload
-            ],
+            reasons=[SmrProjectSetupReason.from_wire(item) for item in reasons_payload],
             recommended_actions=[
                 RecommendedAction.from_wire(item) for item in recommended_actions_payload
             ],
@@ -1019,15 +999,23 @@ class SmrLaunchPreflightBlocker:
 @dataclass(frozen=True)
 class SmrLaunchPreflight:
     project_id: str | None = None
+    project_alias: str | None = None
+    project_kind: str | None = None
     clear_to_trigger: bool | None = None
     checked: list[str] = field(default_factory=list)
     blockers: list[SmrLaunchPreflightBlocker] = field(default_factory=list)
     preferred_lane: str | None = None
     resolved_lane: str | None = None
     resolution_reason: str | None = None
+    network_topology: SmrNetworkTopology | None = None
+    network_surfaces: dict[str, object] = field(default_factory=dict)
     effective_plan: str | None = None
     using_synth_free_mode: bool | None = None
     compute_pool_payload: dict[str, object] = field(default_factory=dict)
+    providers: tuple[ProviderBinding, ...] = field(default_factory=tuple)
+    capabilities: frozenset[ProviderCapability] = field(default_factory=frozenset)
+    required_capabilities: frozenset[ProviderCapability] = field(default_factory=frozenset)
+    limit: UsageLimit | None = None
 
     @classmethod
     def from_wire(cls, payload: object) -> SmrLaunchPreflight:
@@ -1036,18 +1024,38 @@ class SmrLaunchPreflight:
         blockers_payload = _optional_array(mapping, "blockers")
         return cls(
             project_id=_optional_string(mapping, "project_id"),
+            project_alias=_optional_string(mapping, "project_alias"),
+            project_kind=_optional_string(mapping, "project_kind"),
             clear_to_trigger=_optional_bool(mapping, "clear_to_trigger"),
             checked=[str(item) for item in checked_payload if isinstance(item, str)],
-            blockers=[
-                SmrLaunchPreflightBlocker.from_wire(item)
-                for item in blockers_payload
-            ],
+            blockers=[SmrLaunchPreflightBlocker.from_wire(item) for item in blockers_payload],
             preferred_lane=_optional_string(mapping, "preferred_lane"),
             resolved_lane=_optional_string(mapping, "resolved_lane"),
             resolution_reason=_optional_string(mapping, "resolution_reason"),
+            network_topology=coerce_smr_network_topology(
+                _optional_string(mapping, "network_topology"),
+                field_name="launch_preflight.network_topology",
+            ),
+            network_surfaces=_optional_object_dict(mapping.get("network_surfaces")),
             effective_plan=_optional_string(mapping, "effective_plan"),
             using_synth_free_mode=_optional_bool(mapping, "using_synth_free_mode"),
             compute_pool_payload=_optional_object_dict(mapping.get("compute_pool_payload")),
+            providers=(
+                coerce_provider_bindings(mapping.get("providers"), field_name="providers")
+                if mapping.get("providers") is not None
+                else ()
+            ),
+            capabilities=frozenset(
+                ProviderCapability(str(item)) for item in _optional_array(mapping, "capabilities")
+            ),
+            required_capabilities=frozenset(
+                ProviderCapability(str(item))
+                for item in _optional_array(mapping, "required_capabilities")
+            ),
+            limit=coerce_usage_limit(
+                mapping.get("limit"),
+                field_name="limit",
+            ),
         )
 
 
@@ -1303,9 +1311,7 @@ class OpenEndedQuestion:
             run_id=_optional_string(mapping, "run_id"),
             title=_optional_string(mapping, "title"),
             question_text=_optional_string(mapping, "question_text"),
-            evaluation_state=(
-                ParentObjectiveEvaluationState(raw_state) if raw_state else None
-            ),
+            evaluation_state=(ParentObjectiveEvaluationState(raw_state) if raw_state else None),
         )
 
 
@@ -1332,9 +1338,7 @@ class DirectedEffortOutcome:
             run_id=_optional_string(mapping, "run_id"),
             title=_optional_string(mapping, "title"),
             outcome_text=_optional_string(mapping, "outcome_text"),
-            evaluation_state=(
-                ParentObjectiveEvaluationState(raw_state) if raw_state else None
-            ),
+            evaluation_state=(ParentObjectiveEvaluationState(raw_state) if raw_state else None),
         )
 
 
@@ -1458,9 +1462,7 @@ class ExperimentProgress:
             ),
             metrics_before=_optional_object_dict(mapping.get("metrics_before")),
             metrics_after=_optional_object_dict(mapping.get("metrics_after")),
-            comparison_metadata=_optional_object_dict(
-                mapping.get("comparison_metadata")
-            ),
+            comparison_metadata=_optional_object_dict(mapping.get("comparison_metadata")),
             linked_artifact_ids=_string_list(
                 mapping.get("linked_artifact_ids"),
                 label="experiment progress.linked_artifact_ids",
@@ -1517,8 +1519,7 @@ class SemanticProgressSnapshot:
                 for item in _optional_array(mapping, "directed_effort_outcomes")
             ],
             milestones=[
-                MilestoneProgress.from_wire(item)
-                for item in _optional_array(mapping, "milestones")
+                MilestoneProgress.from_wire(item) for item in _optional_array(mapping, "milestones")
             ],
             primary_parent_milestones=[
                 MilestoneProgress.from_wire(item)

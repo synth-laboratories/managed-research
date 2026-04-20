@@ -1,4 +1,4 @@
-"""Rewritten SMR control-plane client focused on the remigration surface."""
+"""Managed Research control-plane client."""
 
 from __future__ import annotations
 
@@ -13,7 +13,6 @@ from typing import Any
 
 import httpx
 
-from managed_research.auth import BACKEND_URL_BASE, get_api_key, normalize_backend_base
 from managed_research.errors import SmrApiError
 from managed_research.models import (
     BillingEntitlementSnapshot,
@@ -50,7 +49,8 @@ from managed_research.models.smr_actor_models import (
     normalize_actor_model_assignments,
     validate_shared_top_level_agent_model,
 )
-from managed_research.models.smr_agent_kinds import SmrAgentKind, coerce_smr_agent_kind
+from managed_research.models.smr_agent_harnesses import SmrAgentHarness
+from managed_research.models.smr_agent_kinds import SmrAgentKind
 from managed_research.models.smr_agent_models import SmrAgentModel
 from managed_research.models.smr_credential_providers import (
     SmrCredentialProvider,
@@ -61,8 +61,9 @@ from managed_research.models.smr_funding_sources import (
     coerce_smr_funding_source,
 )
 from managed_research.models.smr_host_kinds import SmrHostKind, coerce_smr_host_kind
-from managed_research.models.smr_run_policy import SmrRunPolicy, coerce_smr_run_policy
-from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
+from managed_research.models.smr_providers import ProviderBinding, UsageLimit
+from managed_research.models.smr_run_policy import SmrRunPolicy
+from managed_research.models.smr_work_modes import SmrWorkMode
 from managed_research.models.types import (
     KickoffContract,
     RunArtifact,
@@ -93,24 +94,33 @@ from managed_research.sdk.setup import SetupAPI
 from managed_research.sdk.trained_models import TrainedModelsAPI
 from managed_research.sdk.usage import UsageAPI
 from managed_research.sdk.workspace_inputs import WorkspaceInputsAPI
+from managed_research.sdk.compat import SmrControlClientMixin
+from managed_research.sdk.config import (
+    DEFAULT_MISC_PROJECT_ALIAS,
+    DEFAULT_TIMEOUT_SECONDS,
+    DEFAULT_WORKSPACE_ARCHIVE_DOWNLOAD_TIMEOUT_SECONDS,
+    OPENAI_TRANSPORT_MODE_AUTO,
+    OPENAI_TRANSPORT_MODE_BACKEND_BFF,
+    OPENAI_TRANSPORT_MODE_DIRECT_HP,
+    auth_headers as _auth_headers,
+    optional_str as _optional_str,
+    resolve_api_key as _resolve_api_key,
+    resolve_backend_base as _resolve_backend_base,
+)
+from managed_research.sdk.launch import (
+    build_project_run_payload as _build_project_run_payload_impl,
+    normalize_resource_uploaded_file as _normalize_resource_uploaded_file_impl,
+)
+from managed_research.sdk.transport import build_http_transport
 from managed_research.transport.http import SmrHttpTransport, _raise_for_error_response
 from managed_research.transport.pagination import build_query_params
 
 ACTIVE_RUN_STATES = {"queued", "planning", "executing", "blocked", "finalizing", "running"}
-DEFAULT_TIMEOUT_SECONDS = 30.0
-DEFAULT_WORKSPACE_ARCHIVE_DOWNLOAD_TIMEOUT_SECONDS = 600.0
-OPENAI_TRANSPORT_MODE_BACKEND_BFF = "backend_bff"
-OPENAI_TRANSPORT_MODE_DIRECT_HP = "direct_hp"
-OPENAI_TRANSPORT_MODE_AUTO = "auto"
-OPENAI_VALID_TRANSPORT_MODES = {
-    OPENAI_TRANSPORT_MODE_BACKEND_BFF,
-    OPENAI_TRANSPORT_MODE_DIRECT_HP,
-    OPENAI_TRANSPORT_MODE_AUTO,
-}
 
 __all__ = [
     "ACTIVE_RUN_STATES",
     "DEFAULT_TIMEOUT_SECONDS",
+    "DEFAULT_MISC_PROJECT_ALIAS",
     "OPENAI_TRANSPORT_MODE_AUTO",
     "OPENAI_TRANSPORT_MODE_BACKEND_BFF",
     "OPENAI_TRANSPORT_MODE_DIRECT_HP",
@@ -118,41 +128,6 @@ __all__ = [
     "SmrControlClient",
     "first_id",
 ]
-
-
-def _resolve_backend_base(backend_base: str | None) -> str:
-    candidate = str(backend_base or os.getenv("SYNTH_BACKEND_URL") or BACKEND_URL_BASE).strip()
-    if not candidate:
-        candidate = "https://api.usesynth.ai"
-    return normalize_backend_base(candidate).rstrip("/")
-
-
-def _resolve_api_key(api_key: str | None) -> str:
-    if api_key and api_key.strip():
-        return api_key.strip()
-    resolved = get_api_key("SYNTH_API_KEY", required=True)
-    if not resolved:
-        raise ValueError("api_key is required (provide api_key or set SYNTH_API_KEY)")
-    return resolved
-
-
-def _auth_headers(api_key: str) -> dict[str, str]:
-    return {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-
-
-def _optional_str(value: str | None) -> str | None:
-    normalized = str(value or "").strip()
-    return normalized or None
-
-
-def _resolve_openai_transport_mode(value: str | None) -> str:
-    normalized = str(value or OPENAI_TRANSPORT_MODE_AUTO).strip().lower()
-    if normalized not in OPENAI_VALID_TRANSPORT_MODES:
-        allowed = ", ".join(sorted(OPENAI_VALID_TRANSPORT_MODES))
-        raise ValueError(f"openai_transport_mode must be one of: {allowed}")
-    return normalized
-
-
 def _coerce_dict(payload: Any, *, label: str) -> dict[str, Any]:
     if isinstance(payload, dict):
         return payload
@@ -309,12 +284,15 @@ def _build_project_run_payload(
     *,
     host_kind: SmrHostKind,
     work_mode: SmrWorkMode,
+    providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]],
+    limit: UsageLimit | Mapping[str, Any] | dict[str, Any] | None = None,
     worker_pool_id: str | None = None,
     local_execution: Mapping[str, Any] | dict[str, Any] | None = None,
     execution_profile: LocalExecutionProfile | Mapping[str, Any] | dict[str, Any] | None = None,
     timebox_seconds: int | None = None,
     agent_profile: str | None = None,
     agent_model: SmrAgentModel | None = None,
+    agent_harness: SmrAgentHarness | None = None,
     agent_kind: SmrAgentKind | None = None,
     agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
     actor_model_overrides: Iterable[SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]]
@@ -339,7 +317,16 @@ def _build_project_run_payload(
     payload: dict[str, Any] = {
         "host_kind": normalized_host_kind.value,
         "work_mode": normalized_work_mode.value,
+        "providers": [
+            binding.to_wire()
+            for binding in coerce_provider_bindings(providers, field_name="providers")
+        ],
     }
+    normalized_limit = coerce_usage_limit(limit, field_name="limit")
+    if normalized_limit is not None:
+        limit_payload = normalized_limit.to_dict()
+        if limit_payload:
+            payload["limit"] = limit_payload
     normalized_actor_model_overrides = _normalized_actor_model_assignment_payloads(
         actor_model_overrides,
         field_name="actor_model_overrides",
@@ -367,12 +354,13 @@ def _build_project_run_payload(
     if normalized_actor_model_overrides and (
         (agent_profile and agent_profile.strip())
         or agent_model is not None
+        or agent_harness is not None
         or agent_kind is not None
         or agent_model_params is not None
     ):
         raise ValueError(
             "actor_model_overrides cannot be combined with shared top-level "
-            "agent_profile/agent_model/agent_kind/agent_model_params"
+            "agent_profile/agent_model/agent_harness/agent_kind/agent_model_params"
         )
     normalized_agent_model = validate_shared_top_level_agent_model(
         agent_model,
@@ -380,9 +368,20 @@ def _build_project_run_payload(
     )
     if normalized_agent_model is not None:
         payload["agent_model"] = normalized_agent_model.value
+    normalized_agent_harness = coerce_smr_agent_harness(
+        agent_harness,
+        field_name="agent_harness",
+    )
     normalized_agent_kind = coerce_smr_agent_kind(agent_kind, field_name="agent_kind")
-    if normalized_agent_kind is not None:
-        payload["agent_kind"] = normalized_agent_kind.value
+    if (
+        normalized_agent_harness is not None
+        and normalized_agent_kind is not None
+        and normalized_agent_harness.value != normalized_agent_kind.value
+    ):
+        raise ValueError("agent_harness and agent_kind must match when both are provided")
+    resolved_agent_harness = normalized_agent_harness or normalized_agent_kind
+    if resolved_agent_harness is not None:
+        payload["agent_harness"] = resolved_agent_harness.value
     normalized_agent_model_params = _optional_mapping(
         agent_model_params,
         field_name="agent_model_params",
@@ -496,18 +495,13 @@ def _normalize_resource_uploaded_file(entry: Mapping[str, Any]) -> dict[str, Any
 
 
 @dataclass
-class SmrControlClient:
-    """Public SMR control-plane client for the remigration surface."""
+class ManagedResearchClient:
+    """Managed Research client implementation."""
 
     api_key: str | None = None
     backend_base: str | None = None
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
-    openai_transport_mode: str = OPENAI_TRANSPORT_MODE_AUTO
-    openai_organization: str | None = None
-    openai_project: str | None = None
-    openai_request_id: str | None = None
     _transport: SmrHttpTransport = field(init=False, repr=False)
-    _synth_client: Any | None = field(init=False, default=None, repr=False)
     _projects_api: ProjectsAPI | None = field(init=False, default=None, repr=False)
     _runs_api: RunsAPI | None = field(init=False, default=None, repr=False)
     _workspace_inputs_api: WorkspaceInputsAPI | None = field(init=False, default=None, repr=False)
@@ -534,110 +528,22 @@ class SmrControlClient:
     def __post_init__(self) -> None:
         resolved_api_key = _resolve_api_key(self.api_key)
         resolved_backend_base = _resolve_backend_base(self.backend_base)
-        resolved_transport_mode = _resolve_openai_transport_mode(self.openai_transport_mode)
         self.api_key = resolved_api_key
         self.backend_base = resolved_backend_base
-        self.openai_transport_mode = resolved_transport_mode
-        self.openai_organization = _optional_str(self.openai_organization)
-        self.openai_project = _optional_str(self.openai_project)
-        self.openai_request_id = _optional_str(self.openai_request_id)
-        self._transport = SmrHttpTransport(
-            base_url=resolved_backend_base,
-            headers=_auth_headers(resolved_api_key),
-            timeout=self.timeout_seconds,
+        self._transport = build_http_transport(
+            api_key=resolved_api_key,
+            backend_base=resolved_backend_base,
+            timeout_seconds=self.timeout_seconds,
         )
 
-    def __enter__(self) -> SmrControlClient:
+    def __enter__(self) -> ManagedResearchClient:
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
         self.close()
 
     def close(self) -> None:
-        if self._synth_client is not None:
-            close_fn = getattr(self._synth_client, "close", None)
-            if callable(close_fn):
-                close_fn()
-            self._synth_client = None
         self._transport.close()
-
-    def _build_synth_client(
-        self,
-        *,
-        openai_transport_mode: str,
-        openai_organization: str | None,
-        openai_project: str | None,
-        openai_request_id: str | None,
-    ) -> Any:
-        try:
-            from synth_ai import SynthClient
-        except Exception as exc:  # pragma: no cover - optional dependency path
-            raise RuntimeError(
-                "synth-ai is required for OpenAI Agents SDK access from managed-research. "
-                "Install it with `uv add synth-ai`."
-            ) from exc
-
-        return SynthClient(
-            api_key=self.api_key,
-            base_url=self.backend_base,
-            timeout=self.timeout_seconds,
-            openai_transport_mode=openai_transport_mode,
-            openai_organization=openai_organization,
-            openai_project=openai_project,
-            openai_request_id=openai_request_id,
-        )
-
-    @property
-    def synth_ai(self) -> Any:
-        """Shared synth-ai client configured to this SMR client's auth/base."""
-
-        if self._synth_client is None:
-            self._synth_client = self._build_synth_client(
-                openai_transport_mode=self.openai_transport_mode,
-                openai_organization=self.openai_organization,
-                openai_project=self.openai_project,
-                openai_request_id=self.openai_request_id,
-            )
-        return self._synth_client
-
-    @property
-    def openai_agents_sdk(self) -> Any:
-        """OpenAI Agents SDK compatibility surface via synth-ai."""
-
-        return self.synth_ai.openai_agents_sdk
-
-    @property
-    def managed_agents(self) -> Any:
-        """Anthropic managed-agents compatibility surface via synth-ai."""
-
-        return self.synth_ai.managed_agents
-
-    def openai_agents_sdk_client(
-        self,
-        *,
-        transport_mode: str | None = None,
-        openai_organization: str | None = None,
-        openai_project: str | None = None,
-        request_id: str | None = None,
-    ) -> Any:
-        """Build a scoped OpenAI Agents SDK client with optional per-call overrides."""
-
-        if (
-            transport_mode is None
-            and openai_organization is None
-            and openai_project is None
-            and request_id is None
-        ):
-            return self.openai_agents_sdk
-
-        return self._build_synth_client(
-            openai_transport_mode=_resolve_openai_transport_mode(
-                transport_mode or self.openai_transport_mode
-            ),
-            openai_organization=_optional_str(openai_organization or self.openai_organization),
-            openai_project=_optional_str(openai_project or self.openai_project),
-            openai_request_id=_optional_str(request_id or self.openai_request_id),
-        ).openai_agents_sdk
 
     @property
     def projects(self) -> ProjectsAPI:
@@ -877,6 +783,9 @@ class SmrControlClient:
         return _coerce_dict(
             self._request_json("GET", f"/smr/projects/{project_id}"), label="get_project"
         )
+
+    def get_default_project(self) -> dict[str, Any]:
+        return self.get_project(DEFAULT_MISC_PROJECT_ALIAS)
 
     def patch_project(
         self,
@@ -2023,12 +1932,15 @@ class SmrControlClient:
         *,
         host_kind: SmrHostKind,
         work_mode: SmrWorkMode,
+        providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]],
+        limit: UsageLimit | Mapping[str, Any] | dict[str, Any] | None = None,
         worker_pool_id: str | None = None,
         local_execution: Mapping[str, Any] | dict[str, Any] | None = None,
         execution_profile: LocalExecutionProfile | Mapping[str, Any] | dict[str, Any] | None = None,
         timebox_seconds: int | None = None,
         agent_profile: str | None = None,
         agent_model: SmrAgentModel | None = None,
+        agent_harness: SmrAgentHarness | None = None,
         agent_kind: SmrAgentKind | None = None,
         agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
         actor_model_overrides: Iterable[
@@ -2049,12 +1961,15 @@ class SmrControlClient:
         payload = _build_project_run_payload(
             host_kind=host_kind,
             work_mode=work_mode,
+            providers=providers,
+            limit=limit,
             worker_pool_id=worker_pool_id,
             local_execution=local_execution,
             execution_profile=execution_profile,
             timebox_seconds=timebox_seconds,
             agent_profile=agent_profile,
             agent_model=agent_model,
+            agent_harness=agent_harness,
             agent_kind=agent_kind,
             agent_model_params=agent_model_params,
             actor_model_overrides=actor_model_overrides,
@@ -2078,6 +1993,17 @@ class SmrControlClient:
             label="get_launch_preflight",
         )
 
+    def get_one_off_launch_preflight(self, **kwargs: Any) -> dict[str, Any]:
+        payload = _build_project_run_payload(**kwargs)
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                "/smr/runs:one-off/launch-preflight",
+                json_body=payload,
+            ),
+            label="get_one_off_launch_preflight",
+        )
+
     def get_run_start_blockers(
         self,
         project_id: str,
@@ -2093,12 +2019,15 @@ class SmrControlClient:
         *,
         host_kind: SmrHostKind,
         work_mode: SmrWorkMode,
+        providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]],
+        limit: UsageLimit | Mapping[str, Any] | dict[str, Any] | None = None,
         worker_pool_id: str | None = None,
         local_execution: Mapping[str, Any] | dict[str, Any] | None = None,
         execution_profile: LocalExecutionProfile | Mapping[str, Any] | dict[str, Any] | None = None,
         timebox_seconds: int | None = None,
         agent_profile: str | None = None,
         agent_model: SmrAgentModel | None = None,
+        agent_harness: SmrAgentHarness | None = None,
         agent_kind: SmrAgentKind | None = None,
         agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
         actor_model_overrides: Iterable[
@@ -2119,12 +2048,15 @@ class SmrControlClient:
         payload = _build_project_run_payload(
             host_kind=host_kind,
             work_mode=work_mode,
+            providers=providers,
+            limit=limit,
             worker_pool_id=worker_pool_id,
             local_execution=local_execution,
             execution_profile=execution_profile,
             timebox_seconds=timebox_seconds,
             agent_profile=agent_profile,
             agent_model=agent_model,
+            agent_harness=agent_harness,
             agent_kind=agent_kind,
             agent_model_params=agent_model_params,
             actor_model_overrides=actor_model_overrides,
@@ -2142,6 +2074,13 @@ class SmrControlClient:
         return _coerce_dict(
             self._request_json("POST", f"/smr/projects/{project_id}/trigger", json_body=payload),
             label="trigger_run",
+        )
+
+    def trigger_one_off_run(self, **kwargs: Any) -> dict[str, Any]:
+        payload = _build_project_run_payload(**kwargs)
+        return _coerce_dict(
+            self._request_json("POST", "/smr/runs:one-off", json_body=payload),
+            label="trigger_one_off_run",
         )
 
     def list_runs(
@@ -3071,8 +3010,39 @@ class SmrControlClient:
             label="list_run_log_archives",
         )
 
+class SmrControlClient(SmrControlClientMixin, ManagedResearchClient):
+    """Compatibility alias that retains the legacy synth-ai bridge surface.
 
-ManagedResearchClient = SmrControlClient
+    `ManagedResearchClient` is the canonical public name. `SmrControlClient`
+    remains as a one-release alias and preserves the older default-backend +
+    synth-ai bridge behavior for migration safety.
+    """
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        backend_base: str | None = None,
+        timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
+        openai_transport_mode: str = OPENAI_TRANSPORT_MODE_AUTO,
+        openai_organization: str | None = None,
+        openai_project: str | None = None,
+        openai_request_id: str | None = None,
+    ) -> None:
+        super().__init__(
+            api_key=api_key,
+            backend_base=backend_base,
+            timeout_seconds=timeout_seconds,
+        )
+        self._initialize_openai_bridge(
+            openai_transport_mode=openai_transport_mode,
+            openai_organization=openai_organization,
+            openai_project=openai_project,
+            openai_request_id=openai_request_id,
+        )
+
+    def close(self) -> None:
+        self.close_openai_bridge()
+        super().close()
 
 
 def first_id(items: Iterable[dict[str, Any]], key: str) -> str | None:

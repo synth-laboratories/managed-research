@@ -7,8 +7,8 @@ from typing import Any
 
 from managed_research.mcp.registry import JSONDict
 from managed_research.models.run_timeline import SmrBranchMode, SmrRunBranchRequest
-from managed_research.models.types import SmrRunnableProjectRequest
 from managed_research.models.smr_actor_models import normalize_actor_model_assignments
+from managed_research.models.smr_agent_harnesses import coerce_smr_agent_harness
 from managed_research.models.smr_agent_kinds import coerce_smr_agent_kind
 from managed_research.models.smr_agent_models import coerce_smr_agent_model
 from managed_research.models.smr_credential_providers import (
@@ -16,8 +16,13 @@ from managed_research.models.smr_credential_providers import (
 )
 from managed_research.models.smr_funding_sources import coerce_smr_funding_source
 from managed_research.models.smr_host_kinds import coerce_smr_host_kind
+from managed_research.models.smr_providers import (
+    coerce_provider_bindings,
+    coerce_usage_limit,
+)
 from managed_research.models.smr_run_policy import coerce_smr_run_policy
 from managed_research.models.smr_work_modes import coerce_smr_work_mode
+from managed_research.models.types import SmrRunnableProjectRequest
 
 
 def require_string(payload: JSONDict, key: str) -> str:
@@ -114,6 +119,12 @@ def optional_smr_agent_kind(payload: JSONDict, key: str) -> str | None:
     return agent_kind.value if agent_kind is not None else None
 
 
+def optional_smr_agent_harness(payload: JSONDict, key: str) -> str | None:
+    value = optional_string(payload, key)
+    agent_harness = coerce_smr_agent_harness(value, field_name=key)
+    return agent_harness.value if agent_harness is not None else None
+
+
 def optional_smr_run_policy(payload: JSONDict, key: str) -> dict[str, Any] | None:
     value = payload.get(key)
     if value is None:
@@ -121,6 +132,20 @@ def optional_smr_run_policy(payload: JSONDict, key: str) -> dict[str, Any] | Non
     if not isinstance(value, dict):
         raise ValueError(f"'{key}' must be an object when provided")
     return coerce_smr_run_policy(value, field_name=key)
+
+
+def require_provider_bindings(payload: JSONDict, key: str) -> list[dict[str, Any]]:
+    value = payload.get(key)
+    return [binding.to_wire() for binding in coerce_provider_bindings(value, field_name=key)]
+
+
+def optional_usage_limit(payload: JSONDict, key: str) -> dict[str, Any] | None:
+    value = payload.get(key)
+    limit = coerce_usage_limit(value, field_name=key)
+    if limit is None:
+        return None
+    payload = limit.to_dict()
+    return payload or None
 
 
 def optional_actor_model_assignments(payload: JSONDict, key: str) -> list[dict[str, Any]] | None:
@@ -211,12 +236,8 @@ class RunnableProjectCreateRequest:
     def from_payload(cls, payload: JSONDict) -> RunnableProjectCreateRequest:
         normalized = dict(payload)
         agent_profiles: dict[str, Any] = {
-            "orchestrator_profile_id": require_string(
-                payload, "orchestrator_profile_id"
-            ),
-            "default_worker_profile_id": require_string(
-                payload, "default_worker_profile_id"
-            ),
+            "orchestrator_profile_id": require_string(payload, "orchestrator_profile_id"),
+            "default_worker_profile_id": require_string(payload, "default_worker_profile_id"),
         }
         worker_profile_ids = payload.get("worker_profile_ids")
         if worker_profile_ids is not None:
@@ -253,10 +274,13 @@ class RunLaunchRequest:
     project_id: str
     host_kind: str
     work_mode: str
+    providers: list[dict[str, Any]]
+    limit: dict[str, Any] | None = None
     worker_pool_id: str | None = None
     timebox_seconds: int | None = None
     agent_profile: str | None = None
     agent_model: str | None = None
+    agent_harness: str | None = None
     agent_kind: str | None = None
     agent_model_params: dict[str, Any] | None = None
     actor_model_overrides: list[dict[str, Any]] | None = None
@@ -280,18 +304,19 @@ class RunLaunchRequest:
             project_id=require_string(payload, "project_id"),
             host_kind=require_smr_host_kind(payload, "host_kind"),
             work_mode=require_smr_work_mode(payload, "work_mode"),
+            providers=require_provider_bindings(payload, "providers"),
+            limit=optional_usage_limit(payload, "limit"),
             worker_pool_id=optional_string(payload, "worker_pool_id"),
             timebox_seconds=optional_int(payload, "timebox_seconds"),
             agent_profile=optional_string(payload, "agent_profile"),
             agent_model=optional_smr_agent_model(payload, "agent_model"),
+            agent_harness=optional_smr_agent_harness(payload, "agent_harness"),
             agent_kind=optional_smr_agent_kind(payload, "agent_kind"),
             agent_model_params=_optional_object(payload, "agent_model_params"),
             actor_model_overrides=optional_actor_model_assignments(
                 payload, "actor_model_overrides"
             ),
-            initial_runtime_messages=_optional_object_list(
-                payload, "initial_runtime_messages"
-            ),
+            initial_runtime_messages=_optional_object_list(payload, "initial_runtime_messages"),
             workflow=_optional_object(payload, "workflow"),
             sandbox_override=_optional_object(payload, "sandbox_override"),
             local_execution=_optional_object(payload, "local_execution"),
@@ -301,9 +326,7 @@ class RunLaunchRequest:
             resource_bindings=_optional_object(payload, "resource_bindings"),
             primary_parent_ref=_optional_object(payload, "primary_parent_ref"),
             primary_parent=_optional_object(payload, "primary_parent"),
-            idempotency_key_run_create=optional_string(
-                payload, "idempotency_key_run_create"
-            ),
+            idempotency_key_run_create=optional_string(payload, "idempotency_key_run_create"),
             idempotency_key=optional_string(payload, "idempotency_key"),
         )
 
@@ -311,10 +334,101 @@ class RunLaunchRequest:
         return {
             "host_kind": self.host_kind,
             "work_mode": self.work_mode,
+            "providers": self.providers,
+            "limit": self.limit,
             "worker_pool_id": self.worker_pool_id,
             "timebox_seconds": self.timebox_seconds,
             "agent_profile": self.agent_profile,
             "agent_model": self.agent_model,
+            "agent_harness": self.agent_harness,
+            "agent_kind": self.agent_kind,
+            "agent_model_params": self.agent_model_params,
+            "actor_model_overrides": self.actor_model_overrides,
+            "initial_runtime_messages": self.initial_runtime_messages,
+            "workflow": self.workflow,
+            "sandbox_override": self.sandbox_override,
+            "local_execution": self.local_execution,
+            "execution_profile": self.execution_profile,
+            "run_policy": self.run_policy,
+            "kickoff_contract": self.kickoff_contract,
+            "resource_bindings": self.resource_bindings,
+            "primary_parent_ref": self.primary_parent_ref,
+            "primary_parent": self.primary_parent,
+            "idempotency_key_run_create": self.idempotency_key_run_create,
+            "idempotency_key": self.idempotency_key,
+        }
+
+
+@dataclass(frozen=True)
+class OneOffRunLaunchRequest:
+    host_kind: str
+    work_mode: str
+    providers: list[dict[str, Any]]
+    limit: dict[str, Any] | None = None
+    worker_pool_id: str | None = None
+    timebox_seconds: int | None = None
+    agent_profile: str | None = None
+    agent_model: str | None = None
+    agent_harness: str | None = None
+    agent_kind: str | None = None
+    agent_model_params: dict[str, Any] | None = None
+    actor_model_overrides: list[dict[str, Any]] | None = None
+    initial_runtime_messages: list[dict[str, Any]] | None = None
+    workflow: dict[str, Any] | None = None
+    sandbox_override: dict[str, Any] | None = None
+    local_execution: dict[str, Any] | None = None
+    execution_profile: dict[str, Any] | None = None
+    run_policy: dict[str, Any] | None = None
+    kickoff_contract: dict[str, Any] | None = None
+    resource_bindings: dict[str, Any] | None = None
+    primary_parent_ref: dict[str, Any] | None = None
+    primary_parent: dict[str, Any] | None = None
+    idempotency_key_run_create: str | None = None
+    idempotency_key: str | None = None
+
+    @classmethod
+    def from_payload(cls, payload: JSONDict) -> OneOffRunLaunchRequest:
+        reject_legacy_prompt_arg(payload)
+        return cls(
+            host_kind=require_smr_host_kind(payload, "host_kind"),
+            work_mode=require_smr_work_mode(payload, "work_mode"),
+            providers=require_provider_bindings(payload, "providers"),
+            limit=optional_usage_limit(payload, "limit"),
+            worker_pool_id=optional_string(payload, "worker_pool_id"),
+            timebox_seconds=optional_int(payload, "timebox_seconds"),
+            agent_profile=optional_string(payload, "agent_profile"),
+            agent_model=optional_smr_agent_model(payload, "agent_model"),
+            agent_harness=optional_smr_agent_harness(payload, "agent_harness"),
+            agent_kind=optional_smr_agent_kind(payload, "agent_kind"),
+            agent_model_params=_optional_object(payload, "agent_model_params"),
+            actor_model_overrides=optional_actor_model_assignments(
+                payload, "actor_model_overrides"
+            ),
+            initial_runtime_messages=_optional_object_list(payload, "initial_runtime_messages"),
+            workflow=_optional_object(payload, "workflow"),
+            sandbox_override=_optional_object(payload, "sandbox_override"),
+            local_execution=_optional_object(payload, "local_execution"),
+            execution_profile=_optional_object(payload, "execution_profile"),
+            run_policy=optional_smr_run_policy(payload, "run_policy"),
+            kickoff_contract=_optional_object(payload, "kickoff_contract"),
+            resource_bindings=_optional_object(payload, "resource_bindings"),
+            primary_parent_ref=_optional_object(payload, "primary_parent_ref"),
+            primary_parent=_optional_object(payload, "primary_parent"),
+            idempotency_key_run_create=optional_string(payload, "idempotency_key_run_create"),
+            idempotency_key=optional_string(payload, "idempotency_key"),
+        )
+
+    def client_kwargs(self) -> dict[str, Any]:
+        return {
+            "host_kind": self.host_kind,
+            "work_mode": self.work_mode,
+            "providers": self.providers,
+            "limit": self.limit,
+            "worker_pool_id": self.worker_pool_id,
+            "timebox_seconds": self.timebox_seconds,
+            "agent_profile": self.agent_profile,
+            "agent_model": self.agent_model,
+            "agent_harness": self.agent_harness,
             "agent_kind": self.agent_kind,
             "agent_model_params": self.agent_model_params,
             "actor_model_overrides": self.actor_model_overrides,

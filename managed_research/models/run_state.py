@@ -6,6 +6,20 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+from managed_research.models.smr_host_kinds import SmrHostKind, coerce_smr_host_kind
+from managed_research.models.smr_network_topology import (
+    SmrNetworkTopology,
+    coerce_smr_network_topology,
+)
+from managed_research.models.smr_providers import (
+    ProviderBinding,
+    ProviderCapability,
+    UsageLimit,
+    coerce_provider_bindings,
+    coerce_usage_limit,
+)
+from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
+
 
 class ManagedResearchRunState(StrEnum):
     UNKNOWN = "unknown"
@@ -97,11 +111,48 @@ def _parse_live_phase(value: str | None) -> ManagedResearchRunLivePhase:
     return ManagedResearchRunLivePhase(value)
 
 
+def _parse_host_kind(value: str | None, *, field_name: str) -> SmrHostKind | None:
+    return coerce_smr_host_kind(value, field_name=field_name)
+
+
+def _parse_work_mode(value: str | None, *, field_name: str) -> SmrWorkMode | None:
+    return coerce_smr_work_mode(value, field_name=field_name)
+
+
+def _parse_provider_bindings(payload: object) -> tuple[ProviderBinding, ...]:
+    if payload is None:
+        return ()
+    if not isinstance(payload, list):
+        raise ValueError("run.providers must be an array when provided")
+    return coerce_provider_bindings(payload, field_name="run.providers")
+
+
+def _parse_provider_capabilities(payload: object) -> frozenset[ProviderCapability]:
+    if payload is None:
+        return frozenset()
+    if not isinstance(payload, list):
+        raise ValueError("run.capabilities must be an array when provided")
+    capabilities: set[ProviderCapability] = set()
+    for index, value in enumerate(payload):
+        if not isinstance(value, str):
+            raise ValueError(f"run.capabilities[{index}] must be a string")
+        capabilities.add(ProviderCapability(value))
+    return frozenset(capabilities)
+
+
+def _parse_usage_limit(payload: object) -> UsageLimit | None:
+    if payload is None:
+        return None
+    return coerce_usage_limit(_require_mapping(payload, label="run.limit"), field_name="run.limit")
+
+
 @dataclass(frozen=True)
 class ManagedResearchRun:
     run_id: str
     project_id: str
     state: ManagedResearchRunState
+    project_alias: str | None = None
+    project_kind: str | None = None
     terminal_outcome: ManagedResearchRunTerminalOutcome | None = None
     live_phase: ManagedResearchRunLivePhase = ManagedResearchRunLivePhase.UNKNOWN
     state_reason: str | None = None
@@ -109,6 +160,15 @@ class ManagedResearchRun:
     work_completed: bool = False
     completion_classifier: str | None = None
     diagnostics: dict[str, object] = field(default_factory=dict)
+    host_kind: SmrHostKind | None = None
+    resolved_host_kind: SmrHostKind | None = None
+    work_mode: SmrWorkMode | None = None
+    resolved_work_mode: SmrWorkMode | None = None
+    network_topology: SmrNetworkTopology | None = None
+    network_surfaces: dict[str, object] = field(default_factory=dict)
+    providers: tuple[ProviderBinding, ...] = field(default_factory=tuple)
+    capabilities: frozenset[ProviderCapability] = field(default_factory=frozenset)
+    limit: UsageLimit | None = None
     raw: dict[str, object] = field(default_factory=dict)
 
     @classmethod
@@ -117,10 +177,10 @@ class ManagedResearchRun:
         return cls(
             run_id=_require_string(mapping, "run_id", label="run.run_id"),
             project_id=_require_string(mapping, "project_id", label="run.project_id"),
+            project_alias=_optional_string(mapping, "project_alias"),
+            project_kind=_optional_string(mapping, "project_kind"),
             state=_parse_state(_require_string(mapping, "state", label="run.state")),
-            terminal_outcome=_parse_terminal_outcome(
-                _optional_string(mapping, "terminal_outcome")
-            ),
+            terminal_outcome=_parse_terminal_outcome(_optional_string(mapping, "terminal_outcome")),
             live_phase=_parse_live_phase(_optional_string(mapping, "live_phase")),
             state_reason=_optional_string(mapping, "state_reason"),
             state_authority=(
@@ -133,6 +193,33 @@ class ManagedResearchRun:
                 mapping.get("diagnostics"),
                 label="run.diagnostics",
             ),
+            host_kind=_parse_host_kind(
+                _optional_string(mapping, "host_kind"),
+                field_name="run.host_kind",
+            ),
+            resolved_host_kind=_parse_host_kind(
+                _optional_string(mapping, "resolved_host_kind"),
+                field_name="run.resolved_host_kind",
+            ),
+            work_mode=_parse_work_mode(
+                _optional_string(mapping, "work_mode"),
+                field_name="run.work_mode",
+            ),
+            resolved_work_mode=_parse_work_mode(
+                _optional_string(mapping, "resolved_work_mode"),
+                field_name="run.resolved_work_mode",
+            ),
+            network_topology=coerce_smr_network_topology(
+                _optional_string(mapping, "network_topology"),
+                field_name="run.network_topology",
+            ),
+            network_surfaces=_optional_object_dict(
+                mapping.get("network_surfaces"),
+                label="run.network_surfaces",
+            ),
+            providers=_parse_provider_bindings(mapping.get("providers")),
+            capabilities=_parse_provider_capabilities(mapping.get("capabilities")),
+            limit=_parse_usage_limit(mapping.get("limit")),
             raw=dict(mapping),
         )
 
