@@ -18,6 +18,7 @@ from managed_research.models.smr_providers import (
     coerce_provider_bindings,
     coerce_usage_limit,
 )
+from managed_research.models.smr_roles import SmrRoleBindings
 from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
 
 
@@ -169,11 +170,18 @@ class ManagedResearchRun:
     providers: tuple[ProviderBinding, ...] = field(default_factory=tuple)
     capabilities: frozenset[ProviderCapability] = field(default_factory=frozenset)
     limit: UsageLimit | None = None
+    roles: SmrRoleBindings | None = None
     raw: dict[str, object] = field(default_factory=dict)
 
     @classmethod
     def from_wire(cls, payload: object) -> ManagedResearchRun:
         mapping = _require_mapping(payload, label="managed research run")
+        roles: SmrRoleBindings | None = None
+        if mapping.get("roles") is not None:
+            try:
+                roles = SmrRoleBindings.from_wire(mapping.get("roles"))
+            except ValueError:
+                roles = None
         return cls(
             run_id=_require_string(mapping, "run_id", label="run.run_id"),
             project_id=_require_string(mapping, "project_id", label="run.project_id"),
@@ -220,6 +228,7 @@ class ManagedResearchRun:
             providers=_parse_provider_bindings(mapping.get("providers")),
             capabilities=_parse_provider_capabilities(mapping.get("capabilities")),
             limit=_parse_usage_limit(mapping.get("limit")),
+            roles=roles,
             raw=dict(mapping),
         )
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from managed_research.models.checkpoints import Checkpoint
 from managed_research.models.canonical_usage import SmrRunUsage
 from managed_research.models.run_control import ManagedResearchRunControlAck
 from managed_research.models.run_diagnostics import (
@@ -167,9 +168,16 @@ class RunHandle:
     def actor_usage(self) -> SmrRunActorUsage:
         return self._client.get_project_run_actor_usage(self.project_id, self.run_id)
 
-    def checkpoints(self) -> list[dict[str, Any]]:
+    def checkpoints(self) -> list[Checkpoint]:
         return self._client.list_run_checkpoints(
             self.run_id,
+            project_id=self.project_id,
+        )
+
+    def checkpoint(self, checkpoint_id: str) -> Checkpoint:
+        return self._client.get_run_checkpoint(
+            self.run_id,
+            checkpoint_id,
             project_id=self.project_id,
         )
 
@@ -178,8 +186,25 @@ class RunHandle:
         *,
         checkpoint_id: str | None = None,
         reason: str | None = None,
-    ) -> dict[str, Any]:
+        timeout_seconds: float = 120.0,
+        poll_interval_seconds: float = 1.0,
+    ) -> Checkpoint:
         return self._client.create_run_checkpoint(
+            self.run_id,
+            project_id=self.project_id,
+            checkpoint_id=checkpoint_id,
+            reason=reason,
+            timeout_seconds=timeout_seconds,
+            poll_interval_seconds=poll_interval_seconds,
+        )
+
+    def request_checkpoint(
+        self,
+        *,
+        checkpoint_id: str | None = None,
+        reason: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.request_run_checkpoint(
             self.run_id,
             project_id=self.project_id,
             checkpoint_id=checkpoint_id,
@@ -486,13 +511,35 @@ class RunsAPI(_ClientNamespace):
 
     def create_checkpoint(
         self, run_id: str, *, project_id: str | None = None, **kwargs: Any
-    ) -> dict[str, Any]:
+    ) -> Checkpoint:
         return self._client.create_run_checkpoint(run_id, project_id=project_id, **kwargs)
 
     def list_checkpoints(
         self, run_id: str, *, project_id: str | None = None
-    ) -> list[dict[str, Any]]:
+    ) -> list[Checkpoint]:
         return self._client.list_run_checkpoints(run_id, project_id=project_id)
+
+    def checkpoint(
+        self,
+        run_id: str,
+        checkpoint_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> Checkpoint:
+        return self._client.get_run_checkpoint(
+            run_id,
+            checkpoint_id,
+            project_id=project_id,
+        )
+
+    def request_checkpoint(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return self._client.request_run_checkpoint(run_id, project_id=project_id, **kwargs)
 
     def artifact_manifest(
         self,

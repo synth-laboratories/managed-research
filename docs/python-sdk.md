@@ -85,6 +85,22 @@ run = client.runs.start(
 )
 ```
 
+Role-based launch policy is now first-class:
+
+- `roles=SmrRoleBindings(...)`
+- `RoleBinding(model=..., params=..., agent_harness=...)`
+- `WorkerRolePalette(permitted_models=[...], default_model=..., subtypes={...})`
+
+`roles` cannot be combined with `actor_model_overrides` or shared top-level `agent_*` selectors.
+`actor_model_overrides` remains as compatibility plumbing for one release window.
+
+## Checkpoints
+
+- `run.create_checkpoint(...) -> Checkpoint` is now blocking/typed.
+- `run.request_checkpoint(...) -> dict` is the non-blocking control-ack escape hatch.
+- `run.checkpoints() -> list[Checkpoint]`.
+- `run.checkpoint(checkpoint_id) -> Checkpoint`.
+
 ## Typed Errors
 
 The SDK raises typed exceptions instead of relying on success-shaped payloads.

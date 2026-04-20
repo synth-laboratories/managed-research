@@ -1198,7 +1198,7 @@ class ManagedResearchMcpServer:
         checkpoint_id = optional_string(args, "checkpoint_id")
         reason = optional_string(args, "reason")
         with self._client_from_args(args) as client:
-            return client.create_run_checkpoint(
+            return client.request_run_checkpoint(
                 run_id,
                 project_id=project_id,
                 checkpoint_id=checkpoint_id,
@@ -1209,7 +1209,13 @@ class ManagedResearchMcpServer:
         run_id = require_string(args, "run_id")
         project_id = optional_string(args, "project_id")
         with self._client_from_args(args) as client:
-            return client.list_run_checkpoints(run_id, project_id=project_id)
+            return [
+                checkpoint.to_wire()
+                for checkpoint in client.list_run_checkpoints(
+                    run_id,
+                    project_id=project_id,
+                )
+            ]
 
     def _tool_restore_run_checkpoint(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")

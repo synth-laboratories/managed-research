@@ -110,3 +110,4 @@ fields.
 - [`docs/quickstart.md`](./docs/quickstart.md)
 - [`docs/python-sdk.md`](./docs/python-sdk.md)
 - [`docs/mcp.md`](./docs/mcp.md)
+- [`docs/migrations-1.2026.0420.md`](./docs/migrations-1.2026.0420.md)

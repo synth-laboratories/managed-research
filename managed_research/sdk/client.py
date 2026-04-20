@@ -6,6 +6,7 @@ import base64
 import json as _json
 import mimetypes
 import os
+import time
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -16,6 +17,7 @@ import httpx
 from managed_research.errors import SmrApiError
 from managed_research.models import (
     BillingEntitlementSnapshot,
+    Checkpoint,
     SmrProjectEconomics,
     SmrProjectUsage,
     SmrRunUsage,
@@ -49,9 +51,19 @@ from managed_research.models.smr_actor_models import (
     normalize_actor_model_assignments,
     validate_shared_top_level_agent_model,
 )
-from managed_research.models.smr_agent_harnesses import SmrAgentHarness
-from managed_research.models.smr_agent_kinds import SmrAgentKind
+from managed_research.models.smr_agent_harnesses import (
+    SmrAgentHarness,
+    coerce_smr_agent_harness,
+)
+from managed_research.models.smr_agent_kinds import (
+    SmrAgentKind,
+    coerce_smr_agent_kind,
+)
 from managed_research.models.smr_agent_models import SmrAgentModel
+from managed_research.models.smr_roles import (
+    SmrRoleBindings,
+    coerce_smr_role_bindings,
+)
 from managed_research.models.smr_credential_providers import (
     SmrCredentialProvider,
     coerce_smr_credential_provider,
@@ -61,9 +73,14 @@ from managed_research.models.smr_funding_sources import (
     coerce_smr_funding_source,
 )
 from managed_research.models.smr_host_kinds import SmrHostKind, coerce_smr_host_kind
-from managed_research.models.smr_providers import ProviderBinding, UsageLimit
-from managed_research.models.smr_run_policy import SmrRunPolicy
-from managed_research.models.smr_work_modes import SmrWorkMode
+from managed_research.models.smr_providers import (
+    ProviderBinding,
+    UsageLimit,
+    coerce_provider_bindings,
+    coerce_usage_limit,
+)
+from managed_research.models.smr_run_policy import SmrRunPolicy, coerce_smr_run_policy
+from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
 from managed_research.models.types import (
     KickoffContract,
     RunArtifact,
@@ -280,6 +297,17 @@ def _merge_execution_actor_model_assignments(
     return normalized_payload
 
 
+def _normalized_roles_payload(
+    roles: SmrRoleBindings | Mapping[str, Any] | dict[str, Any] | None,
+    *,
+    field_name: str,
+) -> dict[str, Any] | None:
+    normalized = coerce_smr_role_bindings(roles, field_name=field_name)
+    if normalized is None:
+        return None
+    return normalized.to_wire()
+
+
 def _build_project_run_payload(
     *,
     host_kind: SmrHostKind,
@@ -297,6 +325,7 @@ def _build_project_run_payload(
     agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
     actor_model_overrides: Iterable[SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]]
     | None = None,
+    roles: SmrRoleBindings | Mapping[str, Any] | dict[str, Any] | None = None,
     initial_runtime_messages: Iterable[Mapping[str, Any] | dict[str, Any]] | None = None,
     workflow: Mapping[str, Any] | dict[str, Any] | None = None,
     sandbox_override: Mapping[str, Any] | dict[str, Any] | None = None,
@@ -331,6 +360,20 @@ def _build_project_run_payload(
         actor_model_overrides,
         field_name="actor_model_overrides",
     )
+    normalized_roles = _normalized_roles_payload(roles, field_name="roles")
+    if normalized_roles and normalized_actor_model_overrides:
+        raise ValueError("roles cannot be combined with actor_model_overrides")
+    if normalized_roles and (
+        (agent_profile and agent_profile.strip())
+        or agent_model is not None
+        or agent_harness is not None
+        or agent_kind is not None
+        or agent_model_params is not None
+    ):
+        raise ValueError(
+            "roles cannot be combined with shared top-level "
+            "agent_profile/agent_model/agent_harness/agent_kind/agent_model_params"
+        )
     if worker_pool_id and worker_pool_id.strip():
         payload["worker_pool_id"] = worker_pool_id.strip()
     normalized_local_execution = _optional_mapping(
@@ -390,6 +433,8 @@ def _build_project_run_payload(
         payload["agent_model_params"] = normalized_agent_model_params
     if normalized_actor_model_overrides:
         payload["actor_model_overrides"] = normalized_actor_model_overrides
+    if normalized_roles:
+        payload["roles"] = normalized_roles
     normalized_initial_runtime_messages = _optional_mapping_list(
         initial_runtime_messages,
         field_name="initial_runtime_messages",
@@ -1947,6 +1992,7 @@ class ManagedResearchClient:
             SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]
         ]
         | None = None,
+        roles: SmrRoleBindings | Mapping[str, Any] | dict[str, Any] | None = None,
         initial_runtime_messages: Iterable[Mapping[str, Any] | dict[str, Any]] | None = None,
         workflow: Mapping[str, Any] | dict[str, Any] | None = None,
         sandbox_override: Mapping[str, Any] | dict[str, Any] | None = None,
@@ -1973,6 +2019,7 @@ class ManagedResearchClient:
             agent_kind=agent_kind,
             agent_model_params=agent_model_params,
             actor_model_overrides=actor_model_overrides,
+            roles=roles,
             initial_runtime_messages=initial_runtime_messages,
             workflow=workflow,
             sandbox_override=sandbox_override,
@@ -2034,6 +2081,7 @@ class ManagedResearchClient:
             SmrActorModelAssignment | Mapping[str, Any] | dict[str, Any]
         ]
         | None = None,
+        roles: SmrRoleBindings | Mapping[str, Any] | dict[str, Any] | None = None,
         initial_runtime_messages: Iterable[Mapping[str, Any] | dict[str, Any]] | None = None,
         workflow: Mapping[str, Any] | dict[str, Any] | None = None,
         sandbox_override: Mapping[str, Any] | dict[str, Any] | None = None,
@@ -2060,6 +2108,7 @@ class ManagedResearchClient:
             agent_kind=agent_kind,
             agent_model_params=agent_model_params,
             actor_model_overrides=actor_model_overrides,
+            roles=roles,
             initial_runtime_messages=initial_runtime_messages,
             workflow=workflow,
             sandbox_override=sandbox_override,
@@ -2632,7 +2681,22 @@ class ManagedResearchClient:
             label="deny_run_approval",
         )
 
-    def create_run_checkpoint(
+    def _run_checkpoint_path(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+        checkpoint_id: str | None = None,
+    ) -> str:
+        if project_id:
+            base = f"/smr/projects/{project_id}/runs/{run_id}/checkpoints"
+        else:
+            base = f"/smr/runs/{run_id}/checkpoints"
+        if checkpoint_id and checkpoint_id.strip():
+            return f"{base}/{checkpoint_id.strip()}"
+        return base
+
+    def request_run_checkpoint(
         self,
         run_id: str,
         *,
@@ -2641,18 +2705,100 @@ class ManagedResearchClient:
         reason: str | None = None,
     ) -> dict[str, Any]:
         payload = build_query_params(checkpoint_id=checkpoint_id, reason=reason)
-        if project_id:
-            return _coerce_dict(
-                self._request_json(
-                    "POST",
-                    f"/smr/projects/{project_id}/runs/{run_id}/checkpoints",
-                    json_body=payload or {},
-                ),
-                label="create_project_run_checkpoint",
-            )
+        path = self._run_checkpoint_path(run_id, project_id=project_id)
+        label = (
+            "request_project_run_checkpoint"
+            if project_id is not None
+            else "request_run_checkpoint"
+        )
         return _coerce_dict(
-            self._request_json("POST", f"/smr/runs/{run_id}/checkpoints", json_body=payload or {}),
-            label="create_run_checkpoint",
+            self._request_json("POST", path, json_body=payload or {}),
+            label=label,
+        )
+
+    def get_run_checkpoint(
+        self,
+        run_id: str,
+        checkpoint_id: str,
+        *,
+        project_id: str | None = None,
+        allow_not_found: bool = False,
+    ) -> Checkpoint | None:
+        path = self._run_checkpoint_path(
+            run_id,
+            project_id=project_id,
+            checkpoint_id=checkpoint_id,
+        )
+        label = "get_project_run_checkpoint" if project_id is not None else "get_run_checkpoint"
+        payload = self._request_json("GET", path, allow_not_found=allow_not_found)
+        if payload is None:
+            return None
+        return Checkpoint.from_wire(_coerce_dict(payload, label=label))
+
+    def wait_for_run_checkpoint(
+        self,
+        run_id: str,
+        checkpoint_id: str,
+        *,
+        project_id: str | None = None,
+        timeout_seconds: float = 120.0,
+        poll_interval_seconds: float = 1.0,
+    ) -> Checkpoint:
+        checkpoint_id_text = _require_non_empty_string(
+            checkpoint_id,
+            field_name="checkpoint_id",
+        )
+        timeout = max(0.1, float(timeout_seconds))
+        poll_interval = max(0.1, float(poll_interval_seconds))
+        deadline = time.monotonic() + timeout
+        last_state: str | None = None
+        while True:
+            checkpoint = self.get_run_checkpoint(
+                run_id,
+                checkpoint_id_text,
+                project_id=project_id,
+                allow_not_found=True,
+            )
+            if checkpoint is not None:
+                state = str(checkpoint.state).strip().lower()
+                if state in {"ready", "failed", "pruned"}:
+                    return checkpoint
+                last_state = checkpoint.state
+            now = time.monotonic()
+            if now >= deadline:
+                break
+            time.sleep(min(poll_interval, deadline - now))
+        last_state_suffix = f" (last_state={last_state})" if last_state else ""
+        raise SmrApiError(
+            f"Timed out waiting for checkpoint '{checkpoint_id_text}' to materialize{last_state_suffix}"
+        )
+
+    def create_run_checkpoint(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+        checkpoint_id: str | None = None,
+        reason: str | None = None,
+        timeout_seconds: float = 120.0,
+        poll_interval_seconds: float = 1.0,
+    ) -> Checkpoint:
+        control_ack = self.request_run_checkpoint(
+            run_id,
+            project_id=project_id,
+            checkpoint_id=checkpoint_id,
+            reason=reason,
+        )
+        resolved_checkpoint_id = _require_non_empty_string(
+            str(control_ack.get("checkpoint_id") or checkpoint_id or ""),
+            field_name="checkpoint_id",
+        )
+        return self.wait_for_run_checkpoint(
+            run_id,
+            resolved_checkpoint_id,
+            project_id=project_id,
+            timeout_seconds=timeout_seconds,
+            poll_interval_seconds=poll_interval_seconds,
         )
 
     def list_run_checkpoints(
@@ -2660,16 +2806,20 @@ class ManagedResearchClient:
         run_id: str,
         *,
         project_id: str | None = None,
-    ) -> list[dict[str, Any]]:
-        if project_id:
-            return _coerce_dict_list(
-                self._request_json("GET", f"/smr/projects/{project_id}/runs/{run_id}/checkpoints"),
-                label="list_project_run_checkpoints",
-            )
-        return _coerce_dict_list(
-            self._request_json("GET", f"/smr/runs/{run_id}/checkpoints"),
-            label="list_run_checkpoints",
+    ) -> list[Checkpoint]:
+        path = self._run_checkpoint_path(run_id, project_id=project_id)
+        label = (
+            "list_project_run_checkpoints"
+            if project_id is not None
+            else "list_run_checkpoints"
         )
+        return [
+            Checkpoint.from_wire(item)
+            for item in _coerce_dict_list(
+                self._request_json("GET", path),
+                label=label,
+            )
+        ]
 
     def restore_run_checkpoint(
         self,

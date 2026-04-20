@@ -23,6 +23,10 @@ from managed_research.models.smr_providers import (
     coerce_usage_limit,
 )
 from managed_research.models.smr_run_policy import SmrRunPolicy, coerce_smr_run_policy
+from managed_research.models.smr_roles import (
+    SmrRoleBindings,
+    coerce_smr_role_bindings,
+)
 from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
 
 
@@ -100,6 +104,7 @@ def build_project_run_payload(
     agent_harness: SmrAgentHarness | str | None = None,
     agent_kind: SmrAgentKind | str | None = None,
     actor_model_overrides: Mapping[str, Any] | dict[str, Any] | list[Mapping[str, Any]] | None = None,
+    roles: SmrRoleBindings | Mapping[str, Any] | dict[str, Any] | None = None,
     uploaded_files: list[Mapping[str, Any]] | None = None,
     resource_files: list[Mapping[str, Any]] | None = None,
     one_off: bool = False,
@@ -179,6 +184,23 @@ def build_project_run_payload(
     resolved_agent_harness = normalized_agent_harness or normalized_agent_kind
     if resolved_agent_harness is not None:
         payload["agent_harness"] = resolved_agent_harness.value
+    normalized_roles = coerce_smr_role_bindings(roles, field_name="roles")
+    if normalized_roles is not None:
+        if actor_model_overrides:
+            raise ValueError("roles cannot be combined with actor_model_overrides")
+        if any(
+            (
+                str(agent_profile or "").strip(),
+                str(agent_model or "").strip(),
+                normalized_agent_model_params is not None,
+                resolved_agent_harness is not None,
+            )
+        ):
+            raise ValueError(
+                "roles cannot be combined with shared top-level "
+                "agent_profile/agent_model/agent_harness/agent_kind/agent_model_params"
+            )
+        payload["roles"] = normalized_roles.to_wire()
     if actor_model_overrides is not None:
         payload["actor_model_overrides"] = actor_model_overrides
     if uploaded_files is not None:

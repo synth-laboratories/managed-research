@@ -10,6 +10,11 @@ from managed_research.models.canonical_usage import (
     SmrRunCostTotals,
     SmrRunUsage,
 )
+from managed_research.models.checkpoints import (
+    Checkpoint,
+    CheckpointCadenceSource,
+    CheckpointScope,
+)
 from managed_research.models.local_execution_profile import (
     LEGACY_LOCAL_EXECUTION_PROFILE_SCHEMA_VERSION,
     LOCAL_EVAL_CONTRACT_ENV_VARS,
@@ -92,6 +97,11 @@ from managed_research.models.smr_actor_models import (
     SmrOrchestratorSubtype,
     SmrReviewerSubtype,
     SmrWorkerSubtype,
+)
+from managed_research.models.smr_roles import (
+    RoleBinding,
+    SmrRoleBindings,
+    WorkerRolePalette,
 )
 from managed_research.models.smr_agent_harnesses import SmrAgentHarness
 from managed_research.models.smr_agent_kinds import SmrAgentKind
@@ -220,6 +230,9 @@ __all__ = [
     "ActorSnapshot",
     "CandidatePublicationOutcome",
     "CandidatePublicationView",
+    "Checkpoint",
+    "CheckpointCadenceSource",
+    "CheckpointScope",
     "ModelsAPI",
     "OutputsAPI",
     "ProgressAPI",
@@ -247,6 +260,7 @@ __all__ = [
     "SmrActorModelAssignment",
     "SmrActorSubtype",
     "SmrActorType",
+    "RoleBinding",
     "SmrCredentialProvider",
     "SmrEnvironmentKind",
     "SmrFundingSource",
@@ -262,6 +276,7 @@ __all__ = [
     "SmrProjectUsage",
     "SmrResourceKind",
     "SmrReviewerSubtype",
+    "SmrRoleBindings",
     "SmrRunnableProjectRequest",
     "SmrRuntimeKind",
     "SmrRunActorUsage",
@@ -293,6 +308,7 @@ __all__ = [
     "UsageLimit",
     "SmrWorkMode",
     "SmrWorkerSubtype",
+    "WorkerRolePalette",
     "SmrControlClient",
     "SmrLogicalTimeline",
     "SmrLogicalTimelineNode",
@@ -326,6 +342,12 @@ __all__ = [
     "SmrWorkMode",
     "SmrAgentHarness",
     "SmrAgentModel",
+    "RoleBinding",
+    "SmrRoleBindings",
+    "WorkerRolePalette",
+    "Checkpoint",
+    "CheckpointCadenceSource",
+    "CheckpointScope",
     "SmrControlClient",
     "first_id",
 ]
