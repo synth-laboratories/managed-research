@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from managed_research.models.checkpoints import Checkpoint
@@ -57,6 +58,27 @@ class RunHandle:
             self._client.get_project_run(self.project_id, self.run_id)
         )
 
+    def wait(
+        self,
+        *,
+        timeout: float | None = None,
+        poll_interval: float = 10.0,
+    ) -> ManagedResearchRun:
+        if poll_interval <= 0:
+            raise ValueError("poll_interval must be greater than 0")
+        if timeout is not None and timeout < 0:
+            raise ValueError("timeout must be non-negative when provided")
+        deadline = time.monotonic() + timeout if timeout is not None else None
+        while True:
+            run = self.get()
+            if run.state.is_terminal:
+                return run
+            if deadline is not None and time.monotonic() >= deadline:
+                raise TimeoutError(
+                    f"run {self.run_id} did not complete within {timeout}s"
+                )
+            time.sleep(poll_interval)
+
     @property
     def host_kind(self) -> SmrHostKind | None:
         return self.get().host_kind
@@ -72,6 +94,10 @@ class RunHandle:
     @property
     def resolved_work_mode(self) -> SmrWorkMode | None:
         return self.get().resolved_work_mode
+
+    @property
+    def runbook(self) -> str | None:
+        return self.get().runbook
 
     @property
     def network_topology(self) -> SmrNetworkTopology | None:
@@ -323,6 +349,9 @@ class RunHandle:
 
 
 class RunsAPI(_ClientNamespace):
+    def _handle(self, project_id: str, run_id: str) -> RunHandle:
+        return RunHandle(self._client, project_id, run_id)
+
     def trigger(self, project_id: str, **kwargs: Any) -> dict[str, Any]:
         return self._client.trigger_run(project_id, **kwargs)
 
@@ -347,6 +376,15 @@ class RunsAPI(_ClientNamespace):
         run = ManagedResearchRun.from_wire(wire)
         return RunHandle(self._client, run.project_id, run.run_id)
 
+    def launch(
+        self,
+        objective: str,
+        *,
+        project_id: str | None = None,
+        **kwargs: Any,
+    ) -> RunHandle:
+        return self.start(objective, project_id=project_id, **kwargs)
+
     def list(
         self, project_id: str, *, active_only: bool = False, **kwargs: Any
     ) -> list[dict[str, Any]]:
@@ -357,6 +395,19 @@ class RunsAPI(_ClientNamespace):
 
     def get(self, run_id: str, *, project_id: str | None = None) -> ManagedResearchRun:
         return ManagedResearchRun.from_wire(self._client.get_run(run_id, project_id=project_id))
+
+    def wait(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        timeout: float | None = None,
+        poll_interval: float = 10.0,
+    ) -> ManagedResearchRun:
+        return self._handle(project_id, run_id).wait(
+            timeout=timeout,
+            poll_interval=poll_interval,
+        )
 
     def get_usage(self, run_id: str) -> SmrRunUsage:
         return self._client.get_run_usage(run_id)

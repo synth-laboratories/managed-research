@@ -38,7 +38,7 @@ from managed_research.models.local_execution_profile import (
     local_execution_payload,
     local_execution_profile_payload,
 )
-from managed_research.models.project import ManagedResearchProject
+from managed_research.models.project import CreateRunnableResult, ManagedResearchProject
 from managed_research.models.run_control import (
     ManagedResearchRunControlAck,
     ManagedResearchRunControlEnqueueStatus,
@@ -74,6 +74,7 @@ from managed_research.models.run_observability import (
 from managed_research.models.run_state import (
     ManagedResearchRun,
     ManagedResearchRunLivePhase,
+    RunState,
     ManagedResearchRunState,
     ManagedResearchRunTerminalOutcome,
 )
@@ -193,6 +194,7 @@ __all__ = [
     "BillingEntitlementAsset",
     "BillingEntitlementProfile",
     "BillingEntitlementSnapshot",
+    "CreateRunnableResult",
     "ProviderKeyStatus",
     "RecommendedAction",
     "ResourceUploadResult",
@@ -261,6 +263,7 @@ __all__ = [
     "ManagedResearchRunControlError",
     "RunLifecycleControlErrorCode",
     "ManagedResearchRunLivePhase",
+    "RunState",
     "ManagedResearchRunState",
     "ManagedResearchRunTerminalOutcome",
     "MilestoneProgress",

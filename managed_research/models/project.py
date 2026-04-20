@@ -119,4 +119,28 @@ class ManagedResearchProject:
         )
 
 
-__all__ = ["ManagedResearchProject"]
+@dataclass(frozen=True)
+class CreateRunnableResult:
+    project_id: str
+    name: str
+    project: ManagedResearchProject
+    raw: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> CreateRunnableResult:
+        project = ManagedResearchProject.from_wire(payload)
+        return cls(
+            project_id=project.project_id,
+            name=project.name,
+            project=project,
+            raw=dict(project.raw),
+        )
+
+    def __getitem__(self, key: str) -> object:
+        return self.raw[key]
+
+    def get(self, key: str, default: object = None) -> object:
+        return self.raw.get(key, default)
+
+
+__all__ = ["CreateRunnableResult", "ManagedResearchProject"]

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from managed_research.models.project import ManagedResearchProject
+from managed_research.models.project import CreateRunnableResult, ManagedResearchProject
 from managed_research.sdk.project import ManagedResearchProjectClient
 from managed_research.models.types import (
     ProviderKeyStatus,
@@ -24,8 +24,8 @@ class ProjectsAPI(_ClientNamespace):
     def create_runnable(
         self,
         request: SmrRunnableProjectRequest | dict[str, Any],
-    ) -> dict[str, Any]:
-        return self._client.create_runnable_project(request)
+    ) -> CreateRunnableResult:
+        return CreateRunnableResult.from_wire(self._client.create_runnable_project(request))
 
     def list(
         self, *, include_archived: bool = False, limit: int = 100
@@ -40,6 +40,18 @@ class ProjectsAPI(_ClientNamespace):
 
     def get(self, project_id: str) -> ManagedResearchProject:
         return ManagedResearchProject.from_wire(self._client.get_project(project_id))
+
+    def get_schedule(self, project_id: str) -> dict[str, Any]:
+        return self.get(project_id).schedule
+
+    def update_schedule(
+        self,
+        project_id: str,
+        schedule: dict[str, Any],
+    ) -> ManagedResearchProject:
+        return ManagedResearchProject.from_wire(
+            self._client.update_project_schedule(project_id, schedule)
+        )
 
     def default(self) -> ManagedResearchProjectClient:
         payload = self._client.get_default_project()

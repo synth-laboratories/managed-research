@@ -38,7 +38,7 @@ from managed_research.models.local_execution_profile import (
     local_execution_payload,
     local_execution_profile_payload,
 )
-from managed_research.models.project import ManagedResearchProject
+from managed_research.models.project import CreateRunnableResult, ManagedResearchProject
 from managed_research.models.run_control import (
     ManagedResearchRunControlAck,
     ManagedResearchRunControlEnqueueStatus,
@@ -72,6 +72,7 @@ from managed_research.models.run_observability import (
 from managed_research.models.run_state import (
     ManagedResearchRun,
     ManagedResearchRunLivePhase,
+    RunState,
     ManagedResearchRunState,
     ManagedResearchRunTerminalOutcome,
 )
@@ -210,6 +211,7 @@ __all__ = [
     "SOURCE_BINDING_KIND_TOOL_REPO",
     "build_local_launch_payload",
     "default_local_eval_contract_path",
+    "CreateRunnableResult",
     "load_local_eval_contract",
     "load_local_execution_profile",
     "load_local_execution_profiles",
@@ -222,6 +224,7 @@ __all__ = [
     "ManagedResearchRunControlAck",
     "ManagedResearchRunControlEnqueueStatus",
     "ManagedResearchRunLivePhase",
+    "RunState",
     "ManagedResearchRunState",
     "ManagedResearchRunTerminalOutcome",
     "LaunchPreflight",

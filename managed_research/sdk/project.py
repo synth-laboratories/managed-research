@@ -298,6 +298,9 @@ class _BoundProjectRunsAPI:
             **kwargs,
         )
 
+    def launch(self, objective: str, **kwargs: Any):
+        return self.start(objective, **kwargs)
+
     def trigger(self, **kwargs: Any) -> dict[str, Any]:
         return self._client.trigger_run(self.project_id, **kwargs)
 
@@ -451,6 +454,14 @@ class ManagedResearchProjectClient:
 
     def readiness(self) -> dict[str, Any]:
         return self._client.get_project_readiness(self.project_id)
+
+    def get_schedule(self) -> dict[str, Any]:
+        return self.get().schedule
+
+    def update_schedule(self, schedule: dict[str, Any]) -> ManagedResearchProject:
+        return ManagedResearchProject.from_wire(
+            self._client.update_project_schedule(self.project_id, schedule)
+        )
 
 
 __all__ = ["ManagedResearchProjectClient"]

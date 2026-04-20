@@ -22,7 +22,7 @@ from managed_research.models.smr_roles import SmrRoleBindings
 from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
 
 
-class ManagedResearchRunState(StrEnum):
+class RunState(StrEnum):
     UNKNOWN = "unknown"
     QUEUED = "queued"
     RUNNING = "running"
@@ -33,6 +33,22 @@ class ManagedResearchRunState(StrEnum):
     FAILED = "failed"
     STOPPED = "stopped"
     CANCELED = "canceled"
+
+    @property
+    def is_terminal(self) -> bool:
+        return self in _TERMINAL_RUN_STATES
+
+
+ManagedResearchRunState = RunState
+
+_TERMINAL_RUN_STATES = frozenset(
+    {
+        RunState.DONE,
+        RunState.FAILED,
+        RunState.STOPPED,
+        RunState.CANCELED,
+    }
+)
 
 
 class ManagedResearchRunTerminalOutcome(StrEnum):
@@ -92,10 +108,10 @@ def _optional_object_dict(payload: object, *, label: str = "metadata") -> dict[s
     return dict(_require_mapping(payload, label=label))
 
 
-def _parse_state(value: str | None) -> ManagedResearchRunState:
+def _parse_state(value: str | None) -> RunState:
     if not value:
-        return ManagedResearchRunState.UNKNOWN
-    return ManagedResearchRunState(value)
+        return RunState.UNKNOWN
+    return RunState(value)
 
 
 def _parse_terminal_outcome(
@@ -151,7 +167,8 @@ def _parse_usage_limit(payload: object) -> UsageLimit | None:
 class ManagedResearchRun:
     run_id: str
     project_id: str
-    state: ManagedResearchRunState
+    state: RunState
+    runbook: str | None = None
     project_alias: str | None = None
     project_kind: str | None = None
     terminal_outcome: ManagedResearchRunTerminalOutcome | None = None
@@ -185,6 +202,7 @@ class ManagedResearchRun:
         return cls(
             run_id=_require_string(mapping, "run_id", label="run.run_id"),
             project_id=_require_string(mapping, "project_id", label="run.project_id"),
+            runbook=_optional_string(mapping, "runbook"),
             project_alias=_optional_string(mapping, "project_alias"),
             project_kind=_optional_string(mapping, "project_kind"),
             state=_parse_state(_require_string(mapping, "state", label="run.state")),
@@ -236,6 +254,7 @@ class ManagedResearchRun:
 __all__ = [
     "ManagedResearchRun",
     "ManagedResearchRunLivePhase",
+    "RunState",
     "ManagedResearchRunState",
     "ManagedResearchRunTerminalOutcome",
 ]

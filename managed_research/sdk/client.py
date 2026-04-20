@@ -832,6 +832,20 @@ class ManagedResearchClient:
     def get_default_project(self) -> dict[str, Any]:
         return self.get_project(DEFAULT_MISC_PROJECT_ALIAS)
 
+    def update_project_schedule(
+        self,
+        project_id: str,
+        schedule: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "PATCH",
+                f"/smr/projects/{project_id}/schedule",
+                json_body={"schedule": dict(schedule)},
+            ),
+            label="update_project_schedule",
+        )
+
     def patch_project(
         self,
         project_id: str,
