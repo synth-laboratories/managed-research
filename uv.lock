@@ -174,7 +174,7 @@ wheels = [
 
 [[package]]
 name = "managed-research"
-version = "1.2026.420"
+version = "1.2026.42015"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
