@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from managed_research.errors import SmrApiError
 from managed_research.models import (
     BillingEntitlementSnapshot,
+    OrgLimits,
     SmrProjectEconomics,
     SmrProjectUsage,
     SmrRunUsage,
@@ -30,6 +31,12 @@ def _raise_on_error_payload(payload: object) -> object:
 
 class UsageAPI(_ClientNamespace):
     """Canonical usage and entitlement helpers."""
+
+    def get_limits(self) -> OrgLimits:
+        """Return resource usage and caps for the authenticated org's current plan."""
+        return OrgLimits.from_wire(
+            _raise_on_error_payload(self._client._request_json("GET", "/smr/limits"))
+        )
 
     def get_billing_entitlements(self) -> BillingEntitlementSnapshot:
         return BillingEntitlementSnapshot.from_wire(

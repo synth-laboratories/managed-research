@@ -110,6 +110,23 @@ class SmrCheckpointQuotaExceededError(SmrApiError):
         self.detail = dict(detail) if detail else {}
 
 
+class SmrConcurrentRunLimitExceededError(SmrApiError):
+    """Raised when the org has reached the concurrent run limit for their plan (HTTP 429)."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        status_code: int | None = None,
+        response_text: str | None = None,
+        detail: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message, status_code=status_code, response_text=response_text)
+        self.detail = dict(detail) if detail else {}
+        self.concurrent_limit: int | None = self.detail.get("concurrent_limit")
+        self.current_concurrent: int | None = self.detail.get("current_concurrent")
+
+
 class SmrStructuredDenialError(SmrApiError):
     """Raised for other JSON error bodies that include a string ``error_code`` (forward-compatible)."""
 
@@ -132,6 +149,7 @@ __all__ = [
     "ManagedResearchError",
     "SmrApiError",
     "SmrCheckpointQuotaExceededError",
+    "SmrConcurrentRunLimitExceededError",
     "SmrFundingLaneInvariantError",
     "SmrInsufficientCreditsError",
     "SmrLimitExceededError",

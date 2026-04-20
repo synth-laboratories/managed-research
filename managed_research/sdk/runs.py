@@ -5,6 +5,9 @@ from __future__ import annotations
 import time
 from typing import Any
 
+import httpx
+
+from managed_research.errors import SmrApiError
 from managed_research.models.checkpoints import Checkpoint
 from managed_research.models.canonical_usage import SmrRunUsage
 from managed_research.models.run_control import ManagedResearchRunControlAck
@@ -63,6 +66,7 @@ class RunHandle:
         *,
         timeout: float | None = None,
         poll_interval: float = 10.0,
+        raise_if_failed: bool = False,
     ) -> ManagedResearchRun:
         if poll_interval <= 0:
             raise ValueError("poll_interval must be greater than 0")
@@ -70,8 +74,16 @@ class RunHandle:
             raise ValueError("timeout must be non-negative when provided")
         deadline = time.monotonic() + timeout if timeout is not None else None
         while True:
-            run = self.get()
+            try:
+                run = self.get()
+            except httpx.TransportError as exc:
+                raise SmrApiError(
+                    f"Network error while polling run {self.run_id}: {exc}"
+                ) from exc
             if run.state.is_terminal:
+                if raise_if_failed and run.state.value in {"failed", "blocked"}:
+                    msg = run.stop_reason_message or run.stop_reason or f"run {self.run_id} ended in state {run.state.value}"
+                    raise SmrApiError(msg, status_code=None)
                 return run
             if deadline is not None and time.monotonic() >= deadline:
                 raise TimeoutError(
@@ -741,6 +753,59 @@ class RunsAPI(_ClientNamespace):
 
     def enqueue_runtime_message(self, run_id: str, **kwargs: Any) -> dict[str, Any]:
         return self._client.enqueue_runtime_message(run_id, **kwargs)
+
+    def transcript(
+        self,
+        run_id: str,
+        *,
+        cursor: str | None = None,
+        limit: int = 200,
+        participant_session_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Fetch one page of transcript events.
+
+        Returns a dict with ``events`` (list), ``next_cursor``, and
+        ``live_resume_cursor``. Pass ``cursor=page["next_cursor"]`` to page
+        forward. ``next_cursor`` is ``None`` when no more persisted events exist.
+
+        For live runs, use ``live_resume_cursor`` as the starting cursor on
+        subsequent calls to pick up new events as they arrive.
+        """
+        return self._client.get_run_transcript(
+            run_id,
+            cursor=cursor,
+            limit=limit,
+            participant_session_id=participant_session_id,
+        )
+
+    def stream_transcript(
+        self,
+        run_id: str,
+        *,
+        cursor: str | None = None,
+        page_size: int = 200,
+        participant_session_id: str | None = None,
+    ):
+        """Iterate over all persisted transcript events for a run.
+
+        Yields individual event dicts. Fetches pages until ``next_cursor`` is
+        exhausted. Suitable for completed runs; for live runs use
+        :meth:`transcript` in a poll loop with the returned ``live_resume_cursor``.
+        """
+        current_cursor = cursor
+        while True:
+            page = self._client.get_run_transcript(
+                run_id,
+                cursor=current_cursor,
+                limit=page_size,
+                participant_session_id=participant_session_id,
+            )
+            for event in page.get("events") or []:
+                yield event
+            next_cursor = page.get("next_cursor")
+            if not next_cursor:
+                break
+            current_cursor = next_cursor
 
 
 __all__ = ["RunHandle", "RunsAPI"]

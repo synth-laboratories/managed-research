@@ -257,10 +257,105 @@ class SmrProjectEconomics:
         )
 
 
+@dataclass(frozen=True)
+class OrgLimitItem:
+    """One limit on a resource for a given window (e.g. daily cap in USD)."""
+
+    metric: str
+    window: str
+    cap: float | None
+    refresh: str
+    unlimited: bool
+    current_usage: float
+    used_percent: float | None
+    resets_at: str | None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> OrgLimitItem:
+        m = _require_mapping(payload, label="org limit item")
+        cap_raw = m.get("cap")
+        return cls(
+            metric=_optional_string(m, "metric") or "spend_usd",
+            window=_optional_string(m, "window") or "",
+            cap=float(cap_raw) if cap_raw is not None else None,
+            refresh=_optional_string(m, "refresh") or "calendar",
+            unlimited=bool(m.get("unlimited", False)),
+            current_usage=float(m.get("current_usage") or 0),
+            used_percent=_optional_float_value(m, "used_percent"),
+            resets_at=_optional_string(m, "resets_at"),
+        )
+
+
+@dataclass(frozen=True)
+class OrgResourceUsage:
+    """Usage and limits for one metered resource."""
+
+    resource_id: str
+    display_name: str
+    description: str
+    unit: str
+    provider: str | None
+    limits: list[OrgLimitItem]
+
+    @property
+    def daily(self) -> OrgLimitItem | None:
+        return next((l for l in self.limits if l.window == "daily"), None)
+
+    @property
+    def weekly(self) -> OrgLimitItem | None:
+        return next((l for l in self.limits if l.window == "weekly"), None)
+
+    @property
+    def monthly(self) -> OrgLimitItem | None:
+        return next((l for l in self.limits if l.window == "monthly"), None)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> OrgResourceUsage:
+        m = _require_mapping(payload, label="org resource usage")
+        return cls(
+            resource_id=_require_string(m, "resource_id", label="org resource usage"),
+            display_name=_optional_string(m, "display_name") or "",
+            description=_optional_string(m, "description") or "",
+            unit=_optional_string(m, "unit") or "usd",
+            provider=_optional_string(m, "provider"),
+            limits=[
+                OrgLimitItem.from_wire(item)
+                for item in _optional_array(m, "limits")
+            ],
+        )
+
+
+@dataclass(frozen=True)
+class OrgLimits:
+    """Full resource limits snapshot for the authenticated org."""
+
+    org_id: str
+    plan: str
+    resources: list[OrgResourceUsage]
+
+    def resource(self, resource_id: str) -> OrgResourceUsage | None:
+        return next((r for r in self.resources if r.resource_id == resource_id), None)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> OrgLimits:
+        m = _require_mapping(payload, label="org limits")
+        return cls(
+            org_id=_require_string(m, "org_id", label="org limits"),
+            plan=_optional_string(m, "plan") or "unknown",
+            resources=[
+                OrgResourceUsage.from_wire(item)
+                for item in _optional_array(m, "resources")
+            ],
+        )
+
+
 __all__ = [
     "BillingEntitlementAsset",
     "BillingEntitlementProfile",
     "BillingEntitlementSnapshot",
+    "OrgLimitItem",
+    "OrgLimits",
+    "OrgResourceUsage",
     "SmrProjectEconomics",
     "SmrProjectEntitlementOverlay",
     "SmrProjectUsage",

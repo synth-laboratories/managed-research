@@ -631,6 +631,36 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_list_active_runs,
         ),
         ToolDefinition(
+            name="smr_get_run_transcript",
+            description=(
+                "Fetch transcript events for a run — what the agent said, did, and "
+                "produced, in chronological order. Returns one page of events with "
+                "next_cursor for paging and live_resume_cursor for live polling. "
+                "Call repeatedly with cursor=next_cursor to page forward. For live "
+                "runs, pass cursor=live_resume_cursor on each poll to receive only "
+                "new events since the last call."
+            ),
+            input_schema=tool_schema(
+                {
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "cursor": {
+                        "type": "string",
+                        "description": "Pagination cursor. Omit for the first page.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Events per page (max 200, default 100).",
+                    },
+                    "participant_session_id": {
+                        "type": "string",
+                        "description": "Optional filter to a single participant session.",
+                    },
+                },
+                required=["run_id"],
+            ),
+            handler=server._tool_get_run_transcript,
+        ),
+        ToolDefinition(
             name="smr_list_run_questions",
             description="List pending or historical questions for a run.",
             input_schema=tool_schema(

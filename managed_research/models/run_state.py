@@ -188,6 +188,8 @@ class ManagedResearchRun:
     capabilities: frozenset[ProviderCapability] = field(default_factory=frozenset)
     limit: UsageLimit | None = None
     roles: SmrRoleBindings | None = None
+    stop_reason: str | None = None
+    stop_reason_message: str | None = None
     raw: dict[str, object] = field(default_factory=dict)
 
     @classmethod
@@ -247,6 +249,8 @@ class ManagedResearchRun:
             capabilities=_parse_provider_capabilities(mapping.get("capabilities")),
             limit=_parse_usage_limit(mapping.get("limit")),
             roles=roles,
+            stop_reason=_optional_string(mapping, "stop_reason"),
+            stop_reason_message=_optional_string(mapping, "stop_reason_message"),
             raw=dict(mapping),
         )
 

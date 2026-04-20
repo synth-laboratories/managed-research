@@ -1242,6 +1242,19 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.logs.list_run_archives(project_id, run_id)
 
+    def _tool_get_run_transcript(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        cursor = optional_string(args, "cursor")
+        limit = optional_int(args, "limit") or 100
+        participant_session_id = optional_string(args, "participant_session_id")
+        with self._client_from_args(args) as client:
+            return client.runs.transcript(
+                run_id,
+                cursor=cursor,
+                limit=min(limit, 200),
+                participant_session_id=participant_session_id,
+            )
+
     def _tool_get_launch_preflight(self, args: JSONDict) -> Any:
         request = RunLaunchRequest.from_payload(args)
         with self._client_from_args(args) as client:

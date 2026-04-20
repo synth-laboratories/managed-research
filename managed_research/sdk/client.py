@@ -2257,6 +2257,28 @@ class ManagedResearchClient:
             message_limit=message_limit,
         )
 
+    def get_run_transcript(
+        self,
+        run_id: str,
+        *,
+        cursor: str | None = None,
+        limit: int = 200,
+        participant_session_id: str | None = None,
+    ) -> dict[str, Any]:
+        params = build_query_params(
+            cursor=cursor,
+            limit=limit,
+            participant_session_id=participant_session_id,
+        )
+        return _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/runs/{run_id}/runtime/transcript",
+                params=params,
+            ),
+            label="get_run_transcript",
+        )
+
     def get_run_primary_parent(self, run_id: str) -> dict[str, Any]:
         return _coerce_dict(
             self._request_json("GET", f"/smr/runs/{run_id}/primary-parent"),

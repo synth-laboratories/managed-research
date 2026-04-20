@@ -10,6 +10,7 @@ import httpx
 from managed_research.errors import (
     SmrApiError,
     SmrCheckpointQuotaExceededError,
+    SmrConcurrentRunLimitExceededError,
     SmrFundingLaneInvariantError,
     SmrInsufficientCreditsError,
     SmrLimitExceededError,
@@ -57,6 +58,13 @@ def _raise_for_error_response(response: httpx.Response) -> None:
                 stripped = code.strip()
                 if stripped == "smr_limit_exceeded":
                     raise SmrLimitExceededError(
+                        message,
+                        status_code=status_code,
+                        response_text=response_text,
+                        detail=detail,
+                    )
+                if stripped == "smr_concurrent_run_limit_exceeded":
+                    raise SmrConcurrentRunLimitExceededError(
                         message,
                         status_code=status_code,
                         response_text=response_text,
@@ -143,12 +151,21 @@ class SmrHttpTransport:
         json_body: dict[str, Any] | None = None,
         allow_not_found: bool = False,
     ) -> Any:
-        response = self.client.request(
-            method,
-            path,
-            params=params,
-            json=json_body,
-        )
+        try:
+            response = self.client.request(
+                method,
+                path,
+                params=params,
+                json=json_body,
+            )
+        except httpx.TimeoutException as exc:
+            raise SmrApiError(
+                f"{method} {path} timed out"
+            ) from exc
+        except httpx.TransportError as exc:
+            raise SmrApiError(
+                f"{method} {path} failed: network error ({type(exc).__name__})"
+            ) from exc
         if allow_not_found and response.status_code == 404:
             return None
         if response.is_error:
