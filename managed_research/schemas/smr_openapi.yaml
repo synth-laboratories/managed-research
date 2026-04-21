@@ -37,6 +37,30 @@ paths:
                 additionalProperties: true
                 type: object
                 title: Response Liveness Health Live Get
+  /version:
+    get:
+      summary: Version
+      description: Return queryable backend SemVer and deploy metadata.
+      operationId: version_version_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionResponse'
+  /api/v1/version:
+    get:
+      summary: Version
+      description: Return queryable backend SemVer and deploy metadata.
+      operationId: version_api_v1_version_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionResponse'
   /health:
     get:
       summary: Health
@@ -52,7 +76,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthResponse'
+                $ref: '#/components/schemas/app__api__v1__routes_misc__HealthResponse'
   /health/db:
     get:
       summary: Health Db
@@ -265,7 +289,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UsageSummaryResponse'
+                $ref: '#/components/schemas/app__api__v1__routes_balance__UsageSummaryResponse'
   /api/v1/balance/autumn-current:
     get:
       tags:
@@ -1536,6 +1560,38 @@ paths:
             schema:
               $ref: '#/components/schemas/SmrRunnableProjectCreateRequest'
         required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrProjectResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/schedule:
+    patch:
+      tags:
+      - smr
+      summary: Update project schedule
+      operationId: update_project_schedule_smr_projects__project_id__schedule_patch
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrProjectScheduleUpdateRequest'
       responses:
         '200':
           description: Successful Response
@@ -10345,6 +10401,13 @@ paths:
           - type: string
           - type: 'null'
           title: Transcript Cursor
+      - name: view
+        in: query
+        required: false
+        schema:
+          type: string
+          default: operator
+          title: View
       responses:
         '200':
           description: Successful Response
@@ -11335,6 +11398,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /smr/agent-models:
+    get:
+      tags:
+      - smr
+      summary: Get Agent Models
+      description: Return the backend-owned public SMR agent-model catalog.
+      operationId: get_agent_models_smr_agent_models_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrAgentModelsResponse'
   /smr/projects/{project_id}/milestones:
     get:
       tags:
@@ -12199,6 +12276,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /smr/runs/{run_id}/checkpoints/{checkpoint_id}:
+    get:
+      tags:
+      - smr
+      summary: Get Run Checkpoint
+      description: Fetch one checkpoint row by checkpoint_id for the selected run.
+      operationId: get_run_checkpoint_smr_runs__run_id__checkpoints__checkpoint_id__get
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: checkpoint_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Checkpoint Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrRunCheckpointStatusResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /smr/projects/{project_id}/runs/{run_id}/actors/{actor_key}/logs:
     get:
       tags:
@@ -12288,6 +12398,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SmrActorLogListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/checkpoints/{checkpoint_id}:
+    get:
+      tags:
+      - smr
+      summary: Get Project Run Checkpoint
+      description: Fetch one checkpoint row by checkpoint_id for a project-scoped
+        run.
+      operationId: get_project_run_checkpoint_smr_projects__project_id__runs__run_id__checkpoints__checkpoint_id__get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: checkpoint_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Checkpoint Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrRunCheckpointStatusResponse'
         '422':
           description: Validation Error
           content:
@@ -16650,7 +16800,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Responses Response Id
-      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__delete
+      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__get
       responses:
         '200':
           description: Successful Response
@@ -16661,7 +16811,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Responses Response Id
-      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__delete__delete__1
+      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__get__delete__1
       responses:
         '200':
           description: Successful Response
@@ -16733,7 +16883,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__delete
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__post
       responses:
         '200':
           description: Successful Response
@@ -16744,7 +16894,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__delete__post__1
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__post__post__1
       responses:
         '200':
           description: Successful Response
@@ -16755,7 +16905,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__delete__delete__2
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__post__delete__2
       responses:
         '200':
           description: Successful Response
@@ -16790,7 +16940,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id Items Item Id
-      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__delete
+      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__get
       responses:
         '200':
           description: Successful Response
@@ -16801,7 +16951,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id Items Item Id
-      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__delete__delete__1
+      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__get__delete__1
       responses:
         '200':
           description: Successful Response
@@ -16809,11 +16959,11 @@ paths:
             application/json:
               schema: {}
   /s/{route_token}/{path}:
-    put:
+    get:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__put
+      operationId: synthtunnel_gateway_s__route_token___path__get
       parameters:
       - name: route_token
         in: path
@@ -16839,11 +16989,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-    get:
+    put:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__put__get__1
+      operationId: synthtunnel_gateway_s__route_token___path__get__put__1
       parameters:
       - name: route_token
         in: path
@@ -16873,37 +17023,7 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__put__patch__2
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    options:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__put__options__3
+      operationId: synthtunnel_gateway_s__route_token___path__get__patch__2
       parameters:
       - name: route_token
         in: path
@@ -16933,7 +17053,7 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__put__post__4
+      operationId: synthtunnel_gateway_s__route_token___path__get__post__3
       parameters:
       - name: route_token
         in: path
@@ -16963,7 +17083,37 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__put__delete__5
+      operationId: synthtunnel_gateway_s__route_token___path__get__delete__4
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    options:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__get__options__5
       parameters:
       - name: route_token
         in: path
@@ -17722,7 +17872,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/app__api__v1__admin__UsageSummaryResponse'
+                $ref: '#/components/schemas/UsageSummaryResponse'
         '422':
           description: Validation Error
           content:
@@ -19566,42 +19716,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
   /api/inference/{path}:
-    put:
-      summary: Catch All Inference
-      description: 'Catch-all route to log unmatched inference requests.
-
-
-        This helps debug what URLs agent SDKs are actually calling.'
-      operationId: catch_all_inference_api_inference__path__put
-      parameters:
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: true
-                title: Response Catch All Inference Api Inference  Path  Put
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
     get:
       summary: Catch All Inference
       description: 'Catch-all route to log unmatched inference requests.
 
 
         This helps debug what URLs agent SDKs are actually calling.'
-      operationId: catch_all_inference_api_inference__path__put__get__1
+      operationId: catch_all_inference_api_inference__path__get
       parameters:
       - name: path
         in: path
@@ -19617,7 +19738,36 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Catch All Inference Api Inference  Path  Put
+                title: Response Catch All Inference Api Inference  Path  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      summary: Catch All Inference
+      description: 'Catch-all route to log unmatched inference requests.
+
+
+        This helps debug what URLs agent SDKs are actually calling.'
+      operationId: catch_all_inference_api_inference__path__get__put__1
+      parameters:
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Catch All Inference Api Inference  Path  Get
         '422':
           description: Validation Error
           content:
@@ -19630,7 +19780,7 @@ paths:
 
 
         This helps debug what URLs agent SDKs are actually calling.'
-      operationId: catch_all_inference_api_inference__path__put__patch__2
+      operationId: catch_all_inference_api_inference__path__get__patch__2
       parameters:
       - name: path
         in: path
@@ -19646,7 +19796,7 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Catch All Inference Api Inference  Path  Put
+                title: Response Catch All Inference Api Inference  Path  Get
         '422':
           description: Validation Error
           content:
@@ -19659,7 +19809,7 @@ paths:
 
 
         This helps debug what URLs agent SDKs are actually calling.'
-      operationId: catch_all_inference_api_inference__path__put__post__3
+      operationId: catch_all_inference_api_inference__path__get__post__3
       parameters:
       - name: path
         in: path
@@ -19675,7 +19825,7 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Catch All Inference Api Inference  Path  Put
+                title: Response Catch All Inference Api Inference  Path  Get
         '422':
           description: Validation Error
           content:
@@ -19688,7 +19838,7 @@ paths:
 
 
         This helps debug what URLs agent SDKs are actually calling.'
-      operationId: catch_all_inference_api_inference__path__put__delete__4
+      operationId: catch_all_inference_api_inference__path__get__delete__4
       parameters:
       - name: path
         in: path
@@ -19704,7 +19854,7 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Catch All Inference Api Inference  Path  Put
+                title: Response Catch All Inference Api Inference  Path  Get
         '422':
           description: Validation Error
           content:
@@ -21997,11 +22147,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
   /api/policy-optimization/online/{path}:
-    put:
+    get:
       tags:
       - policy-optimization-online
       summary: Policy Optimization Proxy
-      operationId: policy_optimization_proxy_api_policy_optimization_online__path__put
+      operationId: policy_optimization_proxy_api_policy_optimization_online__path__get
       deprecated: true
       parameters:
       - name: path
@@ -22022,11 +22172,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-    get:
+    put:
       tags:
       - policy-optimization-online
       summary: Policy Optimization Proxy
-      operationId: policy_optimization_proxy_api_policy_optimization_online__path__put__get__1
+      operationId: policy_optimization_proxy_api_policy_optimization_online__path__get__put__1
       deprecated: true
       parameters:
       - name: path
@@ -22051,7 +22201,7 @@ paths:
       tags:
       - policy-optimization-online
       summary: Policy Optimization Proxy
-      operationId: policy_optimization_proxy_api_policy_optimization_online__path__put__patch__2
+      operationId: policy_optimization_proxy_api_policy_optimization_online__path__get__patch__2
       deprecated: true
       parameters:
       - name: path
@@ -22076,7 +22226,7 @@ paths:
       tags:
       - policy-optimization-online
       summary: Policy Optimization Proxy
-      operationId: policy_optimization_proxy_api_policy_optimization_online__path__put__post__3
+      operationId: policy_optimization_proxy_api_policy_optimization_online__path__get__post__3
       deprecated: true
       parameters:
       - name: path
@@ -22101,7 +22251,7 @@ paths:
       tags:
       - policy-optimization-online
       summary: Policy Optimization Proxy
-      operationId: policy_optimization_proxy_api_policy_optimization_online__path__put__delete__4
+      operationId: policy_optimization_proxy_api_policy_optimization_online__path__get__delete__4
       deprecated: true
       parameters:
       - name: path
@@ -26371,7 +26521,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/app__routes__internal__graph_rollout__models__HealthResponse'
+                $ref: '#/components/schemas/HealthResponse'
   /graph/rollout:
     post:
       tags:
@@ -26747,6 +26897,13 @@ components:
       - ga
       - suspended
       title: AccessTier
+    ActorResourceCapability:
+      type: string
+      enum:
+      - inference
+      - training
+      - model_artifact
+      title: ActorResourceCapability
     AddCreditsRequest:
       properties:
         org_id:
@@ -30741,20 +30898,14 @@ components:
         status:
           type: string
           title: Status
-        database:
+          default: ok
+        version:
           type: string
-          title: Database
-          default: unknown
-        details:
-          additionalProperties: true
-          type: object
-          title: Details
-          default: {}
+          title: Version
+          default: 1.0.0
       type: object
-      required:
-      - status
       title: HealthResponse
-      description: Health check response model.
+      description: Health check response.
     HeartbeatRequest:
       properties:
         connected_to_edge:
@@ -32608,13 +32759,6 @@ components:
       required:
       - provider
       title: ProviderBinding
-    ActorResourceCapability:
-      type: string
-      enum:
-      - inference
-      - training
-      - model_artifact
-      title: ActorResourceCapability
     ProviderUsed:
       type: string
       enum:
@@ -33861,6 +34005,23 @@ components:
       - actor_subtype
       - agent_model
       title: SmrActorModelSelectionRequest
+    SmrActorResourceEntry:
+      properties:
+        provider:
+          $ref: '#/components/schemas/Provider'
+        capabilities:
+          items:
+            $ref: '#/components/schemas/ActorResourceCapability'
+          type: array
+          title: Capabilities
+        launch_enabled:
+          type: boolean
+          title: Launch Enabled
+      type: object
+      required:
+      - provider
+      - launch_enabled
+      title: SmrActorResourceEntry
     SmrActorStatusListResponse:
       properties:
         project_id:
@@ -34152,7 +34313,98 @@ components:
       - anthropic/claude-sonnet-4-6
       - anthropic/claude-haiku-4-5-20251001
       - x-ai/grok-4.1-fast
+      - moonshotai/kimi-k2.6
       title: SmrAgentModel
+    SmrAgentModelCatalogEntry:
+      properties:
+        id:
+          type: string
+          title: Id
+        display_name:
+          type: string
+          title: Display Name
+        display_group:
+          type: string
+          title: Display Group
+        public:
+          type: boolean
+          title: Public
+        provider:
+          type: string
+          title: Provider
+        provider_model_id:
+          type: string
+          title: Provider Model Id
+        auth_route:
+          type: string
+          title: Auth Route
+        harnesses:
+          items:
+            type: string
+          type: array
+          title: Harnesses
+        aliases:
+          items:
+            type: string
+          type: array
+          title: Aliases
+        supported_reasoning_efforts:
+          items:
+            type: string
+          type: array
+          title: Supported Reasoning Efforts
+        default_reasoning_effort:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Default Reasoning Effort
+        usage_required:
+          type: boolean
+          title: Usage Required
+        pricing_present:
+          type: boolean
+          title: Pricing Present
+        pricing:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Pricing
+      type: object
+      required:
+      - id
+      - display_name
+      - display_group
+      - public
+      - provider
+      - provider_model_id
+      - auth_route
+      - usage_required
+      - pricing_present
+      title: SmrAgentModelCatalogEntry
+    SmrAgentModelsResponse:
+      properties:
+        version:
+          type: integer
+          title: Version
+          default: 1
+        models:
+          items:
+            $ref: '#/components/schemas/SmrAgentModelCatalogEntry'
+          type: array
+          title: Models
+        shared_top_level_agent_models:
+          items:
+            $ref: '#/components/schemas/SmrAgentModel'
+          type: array
+          title: Shared Top Level Agent Models
+        actor_model_policy:
+          items:
+            $ref: '#/components/schemas/SmrActorModelCapabilityEntry'
+          type: array
+          title: Actor Model Policy
+      type: object
+      title: SmrAgentModelsResponse
     SmrApprovalDecisionRequest:
       properties:
         comment:
@@ -39134,6 +39386,14 @@ components:
       - created_at
       - updated_at
       title: SmrProjectRunRef
+    SmrProjectScheduleUpdateRequest:
+      properties:
+        schedule:
+          additionalProperties: true
+          type: object
+          title: Schedule
+      type: object
+      title: SmrProjectScheduleUpdateRequest
     SmrProjectSetupAuthorityResponse:
       properties:
         project_id:
@@ -39449,6 +39709,15 @@ components:
       title: SmrProjectStatusRunSummary
     SmrProjectTriggerRequest:
       properties:
+        runbook:
+          type: string
+          enum:
+          - lite
+          - heavy
+          title: Runbook
+          description: Typed orchestration posture for this run. Runbooks control
+            collaboration behavior, not model selection.
+          default: lite
         host_kind:
           $ref: '#/components/schemas/SmrHostKind'
           description: Required run-level execution substrate. Supported values are
@@ -39493,8 +39762,9 @@ components:
           - type: 'null'
           description: Override one shared agent model for this run. Shared top-level
             values are 'anthropic/claude-haiku-4-5-20251001', 'anthropic/claude-sonnet-4-6',
-            'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-oss-120b', 'x-ai/grok-4.1-fast'.
-            Use actor_model_overrides for actor-specific model selection.
+            'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-oss-120b', 'moonshotai/kimi-k2.6',
+            'x-ai/grok-4.1-fast'. Use actor_model_overrides for actor-specific model
+            selection.
         agent_harness:
           anyOf:
           - type: string
@@ -39528,9 +39798,14 @@ components:
             $ref: '#/components/schemas/SmrActorModelSelectionRequest'
           type: array
           title: Actor Model Overrides
-          description: Optional actor-scoped model overrides keyed by actor_type and
-            actor_subtype. Use this to target worker:engineer or worker:researcher
-            explicitly.
+          description: Deprecated compatibility input for actor-scoped model overrides
+            keyed by actor_type and actor_subtype. Prefer roles for new integrations.
+        roles:
+          anyOf:
+          - $ref: '#/components/schemas/SmrRoleBindingsRequest'
+          - type: 'null'
+          description: 'Role-based launch policy: explicit orchestrator/reviewer bindings
+            plus worker palette and subtype overrides.'
         work_mode:
           type: string
           enum:
@@ -39640,23 +39915,6 @@ components:
       - work_mode
       - providers
       title: SmrProjectTriggerRequest
-    SmrActorResourceEntry:
-      properties:
-        provider:
-          $ref: '#/components/schemas/Provider'
-        capabilities:
-          items:
-            $ref: '#/components/schemas/ActorResourceCapability'
-          type: array
-          title: Capabilities
-        launch_enabled:
-          type: boolean
-          title: Launch Enabled
-      type: object
-      required:
-      - provider
-      - launch_enabled
-      title: SmrActorResourceEntry
     SmrProviderKeySetRequest:
       properties:
         provider:
@@ -40152,6 +40410,56 @@ components:
       - file_count
       - bytes_uploaded
       title: SmrResourceUploadResult
+    SmrRoleBindingRequest:
+      properties:
+        model:
+          $ref: '#/components/schemas/SmrAgentModel'
+          description: Actor role model binding.
+        params:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Params
+          description: Optional role-level model params.
+        agent_harness:
+          anyOf:
+          - type: string
+            enum:
+            - codex
+            - opencode_sdk
+          - type: 'null'
+          title: Agent Harness
+          description: Optional role-level harness hint.
+        agent_kind:
+          anyOf:
+          - type: string
+            enum:
+            - codex
+            - opencode_sdk
+          - type: 'null'
+          title: Agent Kind
+          description: Compatibility alias for agent_harness.
+      additionalProperties: false
+      type: object
+      required:
+      - model
+      title: SmrRoleBindingRequest
+    SmrRoleBindingsRequest:
+      properties:
+        orchestrator:
+          $ref: '#/components/schemas/SmrRoleBindingRequest'
+        reviewer:
+          $ref: '#/components/schemas/SmrRoleBindingRequest'
+        worker:
+          $ref: '#/components/schemas/SmrWorkerRolePaletteRequest'
+      additionalProperties: false
+      type: object
+      required:
+      - orchestrator
+      - reviewer
+      - worker
+      title: SmrRoleBindingsRequest
     SmrRunActorUsageResponse:
       properties:
         org_id:
@@ -40355,6 +40663,48 @@ components:
           - type: string
           - type: 'null'
           title: Checkpoint Id
+        captured_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Captured At
+        cadence_source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cadence Source
+        scope:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scope
+        parent_checkpoint_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Parent Checkpoint Id
+        retained_until:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Retained Until
+        milestone_phase_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Milestone Phase Id
+        descriptor_digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Descriptor Digest
+        size_bytes:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Size Bytes
         state:
           type: string
           title: State
@@ -41184,16 +41534,26 @@ components:
             format: date-time
           - type: 'null'
           title: Last Progress At
-        latest_kind:
+        run_phase:
           anyOf:
           - type: string
           - type: 'null'
-          title: Latest Kind
-        latest_summary:
+          title: Run Phase
+        session_liveness:
           anyOf:
           - type: string
           - type: 'null'
-          title: Latest Summary
+          title: Session Liveness
+        operator_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Operator Summary
+        reason_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason Code
         failure_summary:
           anyOf:
           - type: string
@@ -41546,6 +41906,9 @@ components:
         project_id:
           type: string
           title: Project Id
+        runbook:
+          type: string
+          title: Runbook
         project_alias:
           anyOf:
           - type: string
@@ -41634,6 +41997,11 @@ components:
           - type: string
           - type: 'null'
           title: Stop Reason
+        stop_reason_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stop Reason Message
         runtime_kind:
           anyOf:
           - type: string
@@ -41706,6 +42074,12 @@ components:
           additionalProperties: true
           type: object
           title: Execution State
+        roles:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Roles
         lifecycle:
           $ref: '#/components/schemas/SmrRunLifecycleResponse'
         tasks_summary:
@@ -41807,6 +42181,7 @@ components:
       - run_id
       - org_id
       - project_id
+      - runbook
       - trigger
       - state
       - created_at
@@ -42080,16 +42455,26 @@ components:
           additionalProperties: true
           type: object
           title: Authority Diagnostics
-        latest_kind:
+        run_phase:
           anyOf:
           - type: string
           - type: 'null'
-          title: Latest Kind
-        latest_summary:
+          title: Run Phase
+        session_liveness:
           anyOf:
           - type: string
           - type: 'null'
-          title: Latest Summary
+          title: Session Liveness
+        operator_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Operator Summary
+        reason_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason Code
         events:
           items:
             $ref: '#/components/schemas/SmrRunRuntimeTimelineEventResponse'
@@ -44119,6 +44504,14 @@ components:
           additionalProperties: true
           type: object
           title: Payload
+        semantic_scope:
+          type: string
+          title: Semantic Scope
+          default: participant
+        run_terminal:
+          type: boolean
+          title: Run Terminal
+          default: false
       type: object
       required:
       - run_id
@@ -44838,6 +45231,39 @@ components:
       - abstract_text
       - relevance_note
       title: SmrWorkerRegisterRelevantPaperRequest
+    SmrWorkerRolePaletteRequest:
+      properties:
+        permitted_models:
+          items:
+            $ref: '#/components/schemas/SmrAgentModel'
+          type: array
+          minItems: 1
+          title: Permitted Models
+          description: Authoritative worker model palette.
+        default_model:
+          $ref: '#/components/schemas/SmrAgentModel'
+          description: Default worker model when subtype override is omitted.
+        default_params:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Default Params
+          description: Default worker model params.
+        subtypes:
+          additionalProperties:
+            $ref: '#/components/schemas/SmrRoleBindingRequest'
+          propertyNames:
+            $ref: '#/components/schemas/SmrWorkerSubtype'
+          type: object
+          title: Subtypes
+          description: Optional subtype-specific worker bindings.
+      additionalProperties: false
+      type: object
+      required:
+      - permitted_models
+      - default_model
+      title: SmrWorkerRolePaletteRequest
     SmrWorkerRunConfigResponse:
       properties:
         run_id:
@@ -45235,6 +45661,12 @@ components:
       required:
       - state
       title: SmrWorkerSetStateRequest
+    SmrWorkerSubtype:
+      type: string
+      enum:
+      - engineer
+      - researcher
+      title: SmrWorkerSubtype
     SmrWorkerTaskClaimRequest:
       properties:
         lease_seconds:
@@ -46804,21 +47236,30 @@ components:
         org_id:
           type: string
           title: Org Id
-        current_month:
-          additionalProperties: true
-          type: object
-          title: Current Month
-        last_30_days:
-          additionalProperties: true
-          type: object
-          title: Last 30 Days
+        date_range:
+          type: string
+          title: Date Range
+        total_cost_cents:
+          type: integer
+          title: Total Cost Cents
+        total_cost_dollars:
+          type: number
+          title: Total Cost Dollars
+        gpu_events_count:
+          type: integer
+          title: Gpu Events Count
+        total_gpu_seconds:
+          type: number
+          title: Total Gpu Seconds
       type: object
       required:
       - org_id
-      - current_month
-      - last_30_days
+      - date_range
+      - total_cost_cents
+      - total_cost_dollars
+      - gpu_events_count
+      - total_gpu_seconds
       title: UsageSummaryResponse
-      description: Response model for usage summary.
     UsageType:
       type: string
       enum:
@@ -47002,6 +47443,29 @@ components:
       - cancelled
       title: ValidationWaveLifecycleState
       description: Validation-wave lifecycle with explicit success and reopen outcomes.
+    VersionResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        version:
+          type: string
+          title: Version
+        semver:
+          type: string
+          title: Semver
+        build:
+          additionalProperties: true
+          type: object
+          title: Build
+          default: {}
+      type: object
+      required:
+      - id
+      - version
+      - semver
+      title: VersionResponse
+      description: Public service version response.
     VllmLoraCreateRequest:
       properties:
         lora_id:
@@ -47160,35 +47624,45 @@ components:
       required:
       - commit_sha
       title: WorkspaceConfirmPushRequest
-    app__api__v1__admin__UsageSummaryResponse:
+    app__api__v1__routes_balance__UsageSummaryResponse:
       properties:
         org_id:
           type: string
           title: Org Id
-        date_range:
-          type: string
-          title: Date Range
-        total_cost_cents:
-          type: integer
-          title: Total Cost Cents
-        total_cost_dollars:
-          type: number
-          title: Total Cost Dollars
-        gpu_events_count:
-          type: integer
-          title: Gpu Events Count
-        total_gpu_seconds:
-          type: number
-          title: Total Gpu Seconds
+        current_month:
+          additionalProperties: true
+          type: object
+          title: Current Month
+        last_30_days:
+          additionalProperties: true
+          type: object
+          title: Last 30 Days
       type: object
       required:
       - org_id
-      - date_range
-      - total_cost_cents
-      - total_cost_dollars
-      - gpu_events_count
-      - total_gpu_seconds
+      - current_month
+      - last_30_days
       title: UsageSummaryResponse
+      description: Response model for usage summary.
+    app__api__v1__routes_misc__HealthResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        database:
+          type: string
+          title: Database
+          default: unknown
+        details:
+          additionalProperties: true
+          type: object
+          title: Details
+          default: {}
+      type: object
+      required:
+      - status
+      title: HealthResponse
+      description: Health check response model.
     app__api__v1__routes_usage_overview__UsageSummaryResponse:
       properties:
         total_nominal_usd:
@@ -47290,19 +47764,6 @@ components:
       - session_time_steps
       title: SessionTraceInput
       description: V3-compatible session trace input.
-    app__routes__internal__graph_rollout__models__HealthResponse:
-      properties:
-        status:
-          type: string
-          title: Status
-          default: ok
-        version:
-          type: string
-          title: Version
-          default: 1.0.0
-      type: object
-      title: HealthResponse
-      description: Health check response.
   securitySchemes:
     HTTPBearer:
       type: http
