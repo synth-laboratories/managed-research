@@ -1,31 +1,26 @@
-# managed-research
+# Managed Research
 
-Managed Research lets you hand repo work to hosted AI workers and inspect what
-they do. Start a run from Python or MCP, attach repositories and context, then
-read back logs, checkpoints, artifacts, PRs, usage, and final outputs.
+Hosted AI workers for durable repo and research runs.
 
-It is built for work that should be repeatable instead of one-off chat:
+**Documentation:** https://docs.usesynth.ai/managed-research/intro
 
-- improve a benchmark or eval harness
-- review a codebase and open a focused PR
-- run a research task with durable artifacts
-- branch from checkpoints when an attempt needs a different direction
-- give agents controlled access to project knowledge, files, credentials, and
-  integrations
+Managed Research lets you start work from Python or MCP, attach repositories and
+context, then inspect logs, checkpoints, artifacts, PRs, usage, and final
+reports.
 
-## Install
+## Installation
 
 ```bash
 uv add managed-research
 ```
 
-Set an API key:
+## Authenticate
 
 ```bash
 export SYNTH_API_KEY="sk_..."
 ```
 
-## 60-Second Quickstart
+## Python Quickstart
 
 ```python
 import os
@@ -69,69 +64,38 @@ if preflight.clear_to_trigger:
     )
 ```
 
-## Why Managed Research
+## MCP Quickstart
 
-- **Durable runs:** every run has an ID, state, runtime messages, traces, and
-  artifacts.
-- **Inspectable execution:** read task and actor counts, logical timelines,
-  logs, usage, questions, approvals, and output manifests.
-- **Recoverable progress:** create checkpoints, restore them, or branch from a
-  checkpoint with a new message.
-- **Harness choice:** run the default Codex harness or opt into OpenCode.
-- **Agent-native access:** use the same project/run surface from Python or MCP.
-
-## MCP
-
-Hosted:
+Add the hosted Managed Research MCP server to Codex:
 
 ```bash
 codex mcp add managed-research --url https://api.usesynth.ai/mcp
+```
+
+Or add it to Claude Code:
+
+```bash
 claude mcp add --transport http managed-research https://api.usesynth.ai/mcp
 ```
 
-Local stdio:
+Then ask your agent to list projects or start a run with the Managed Research
+tools.
 
-```bash
-uv tool install managed-research
-managed-research-mcp
-```
+## What You Get
 
-Example one-off run:
+- Durable runs with IDs, states, messages, traces, and artifacts.
+- Inspectable evidence: timelines, logs, usage, actor/task counts, questions,
+  approvals, and output manifests.
+- Recoverable progress through checkpoints and checkpoint branches.
+- Python and MCP as the supported public integration paths.
+- Configurable harnesses, runbooks, work modes, providers, budgets, and runtime
+  limits.
 
-```json
-{
-  "tool": "smr_start_one_off_run",
-  "arguments": {
-    "host_kind": "daytona",
-    "work_mode": "directed_effort",
-    "providers": [{"provider": "openrouter"}],
-    "initial_runtime_messages": [
-      {
-        "mode": "queue",
-        "body": "Inspect the repo, improve the target workflow, and explain the changes."
-      }
-    ]
-  }
-}
-```
+## Links
 
-Launch denials are MCP tool errors, not success payloads with embedded error
-fields.
-
-## Worker Knowledge
-
-Managed Research workers can already receive project files, repositories,
-credentials, notes, and org/project knowledge. The next high-leverage layer is
-a curated research index exposed to workers through MCP: papers, datasets,
-GitHub repositories, Tinker cookbooks, internal runbooks, and project-specific
-material behind one searchable interface.
-
-The detailed design note lives in the Synth specifications tree:
-[`specifications/daily/april21_2026/worker-knowledge.md`](../specifications/daily/april21_2026/worker-knowledge.md).
-
-## More
-
-- [`docs/quickstart.md`](./docs/quickstart.md)
-- [`docs/python-sdk.md`](./docs/python-sdk.md)
-- [`docs/mcp.md`](./docs/mcp.md)
-- [`docs/migrations-1.2026.0420.md`](./docs/migrations-1.2026.0420.md)
+- [Quickstart](https://docs.usesynth.ai/managed-research/quickstart)
+- [MCP quickstart](https://docs.usesynth.ai/managed-research/mcp-quickstart)
+- [Python SDK quickstart](https://docs.usesynth.ai/managed-research/sdk-quickstart)
+- [Models and harnesses](https://docs.usesynth.ai/managed-research/models-and-harnesses)
+- [Runs and evidence](https://docs.usesynth.ai/managed-research/runs-and-evidence)
+- [Preflight and errors](https://docs.usesynth.ai/managed-research/preflight-and-errors)
