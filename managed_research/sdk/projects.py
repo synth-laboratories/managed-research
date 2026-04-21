@@ -4,20 +4,20 @@ from __future__ import annotations
 
 from typing import Any
 
+from managed_research.models.canonical_usage import (
+    BillingEntitlementSnapshot,
+    SmrProjectEconomics,
+    SmrProjectUsage,
+)
 from managed_research.models.project import CreateRunnableResult, ManagedResearchProject
-from managed_research.sdk.project import ManagedResearchProjectClient
 from managed_research.models.types import (
     ProviderKeyStatus,
     SmrLaunchPreflight,
     SmrProjectSetup,
     SmrRunnableProjectRequest,
 )
-from managed_research.models.canonical_usage import (
-    BillingEntitlementSnapshot,
-    SmrProjectEconomics,
-    SmrProjectUsage,
-)
 from managed_research.sdk._base import _ClientNamespace
+from managed_research.sdk.project import ManagedResearchProjectClient
 
 
 class ProjectsAPI(_ClientNamespace):
@@ -111,6 +111,9 @@ class ProjectsAPI(_ClientNamespace):
 
     def get_capabilities(self) -> dict[str, Any]:
         return self._client.get_capabilities()
+
+    def get_agent_models(self) -> dict[str, Any]:
+        return self._client.get_agent_models()
 
     def get_limits(self) -> dict[str, Any]:
         return self._client.get_limits()

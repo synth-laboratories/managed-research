@@ -14,7 +14,7 @@ class Provider(StrEnum):
     SYNTH_AI = "synth_ai"
 
 
-class ProviderCapability(StrEnum):
+class ActorResourceCapability(StrEnum):
     INFERENCE = "inference"
     TRAINING = "training"
     MODEL_ARTIFACT = "model_artifact"
@@ -22,23 +22,23 @@ class ProviderCapability(StrEnum):
 
 PROVIDER_VALUES: tuple[str, ...] = tuple(provider.value for provider in Provider)
 PROVIDER_CAPABILITY_VALUES: tuple[str, ...] = tuple(
-    capability.value for capability in ProviderCapability
+    capability.value for capability in ActorResourceCapability
 )
 
-PROVIDER_CAPABILITIES: dict[Provider, frozenset[ProviderCapability]] = {
-    Provider.OPENROUTER: frozenset({ProviderCapability.INFERENCE}),
+ACTOR_RESOURCE_CAPABILITIES: dict[Provider, frozenset[ActorResourceCapability]] = {
+    Provider.OPENROUTER: frozenset({ActorResourceCapability.INFERENCE}),
     Provider.TINKER: frozenset(
         {
-            ProviderCapability.INFERENCE,
-            ProviderCapability.TRAINING,
-            ProviderCapability.MODEL_ARTIFACT,
+            ActorResourceCapability.INFERENCE,
+            ActorResourceCapability.TRAINING,
+            ActorResourceCapability.MODEL_ARTIFACT,
         }
     ),
     Provider.SYNTH_AI: frozenset(
         {
-            ProviderCapability.INFERENCE,
-            ProviderCapability.TRAINING,
-            ProviderCapability.MODEL_ARTIFACT,
+            ActorResourceCapability.INFERENCE,
+            ActorResourceCapability.TRAINING,
+            ActorResourceCapability.MODEL_ARTIFACT,
         }
     ),
 }
@@ -162,8 +162,8 @@ class ProviderBinding:
         return payload
 
     @property
-    def capabilities(self) -> frozenset[ProviderCapability]:
-        return PROVIDER_CAPABILITIES[self.provider]
+    def capabilities(self) -> frozenset[ActorResourceCapability]:
+        return ACTOR_RESOURCE_CAPABILITIES[self.provider]
 
 
 def coerce_provider(
@@ -298,8 +298,8 @@ def coerce_provider_bindings(
 
 def provider_capabilities(
     bindings: Sequence[ProviderBinding | Provider | str | Mapping[str, Any]],
-) -> frozenset[ProviderCapability]:
-    capabilities: set[ProviderCapability] = set()
+) -> frozenset[ActorResourceCapability]:
+    capabilities: set[ActorResourceCapability] = set()
     for binding in coerce_provider_bindings(bindings):
         capabilities.update(binding.capabilities)
     return frozenset(capabilities)
@@ -307,13 +307,13 @@ def provider_capabilities(
 
 __all__ = [
     "DEFAULT_CONFIGS",
-    "PROVIDER_CAPABILITIES",
+    "ACTOR_RESOURCE_CAPABILITIES",
     "PROVIDER_CAPABILITY_VALUES",
     "PROVIDER_VALUES",
     "OpenRouterConfig",
     "Provider",
     "ProviderBinding",
-    "ProviderCapability",
+    "ActorResourceCapability",
     "ProviderConfig",
     "SynthAIConfig",
     "TinkerConfig",

@@ -5,12 +5,12 @@ import managed_research.models as public_models
 import managed_research.sdk as public_sdk
 import pytest
 from managed_research import (
+    ActorResourceCapability,
     ManagedResearchProject,
     ManagedResearchRun,
     ManagedResearchRunControlEnqueueStatus,
     ManagedResearchRunControlError,
     Provider,
-    ProviderCapability,
     SmrApiError,
     SmrControlClient,
     SmrHostKind,
@@ -46,7 +46,7 @@ def test_legacy_provider_enums_are_not_public_launch_exports() -> None:
     assert hasattr(managed_research, "Provider")
     assert hasattr(managed_research, "ProviderBinding")
     assert hasattr(managed_research, "UsageLimit")
-    assert hasattr(managed_research, "ProviderCapability")
+    assert hasattr(managed_research, "ActorResourceCapability")
 
 
 def test_namespace_properties_are_stable() -> None:
@@ -60,6 +60,7 @@ def test_namespace_properties_are_stable() -> None:
     assert isinstance(client.github, GithubAPI)
     assert isinstance(client.credentials, CredentialsAPI)
     assert isinstance(client.exports, ExportsAPI)
+    assert callable(client.projects.get_agent_models)
     assert callable(client.projects.get_capacity_lane_preview)
     assert callable(client.projects.get_run_start_blockers)
     assert callable(client.projects.set_provider_key)
@@ -91,6 +92,34 @@ def test_namespace_properties_are_stable() -> None:
     assert callable(project.outputs.list)
     assert callable(project.readiness)
 
+    client.close()
+
+
+def test_projects_namespace_fetches_agent_model_catalog(monkeypatch) -> None:
+    client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
+    calls: list[tuple[str, str]] = []
+    payload = {
+        "version": 1,
+        "models": [
+            {
+                "id": "x-ai/grok-4.1-fast",
+                "provider": "openrouter",
+                "harnesses": ["opencode_sdk"],
+                "usage_required": True,
+                "pricing_present": True,
+            }
+        ],
+    }
+
+    def _request(method: str, path: str, **_kwargs):
+        calls.append((method, path))
+        return payload
+
+    monkeypatch.setattr(client, "_request_json", _request)
+
+    assert client.get_agent_models() == payload
+    assert client.projects.get_agent_models() == payload
+    assert calls == [("GET", "/smr/agent-models"), ("GET", "/smr/agent-models")]
     client.close()
 
 
@@ -189,7 +218,7 @@ def test_runs_namespace_get_returns_typed_run(monkeypatch) -> None:
     assert run.work_mode is SmrWorkMode.DIRECTED_EFFORT
     assert run.resolved_work_mode is SmrWorkMode.DIRECTED_EFFORT
     assert run.providers[0].provider is Provider.OPENROUTER
-    assert run.capabilities == frozenset({ProviderCapability.INFERENCE})
+    assert run.capabilities == frozenset({ActorResourceCapability.INFERENCE})
     assert run.limit is not None
     assert run.limit.max_spend_usd == 5.0
     client.close()

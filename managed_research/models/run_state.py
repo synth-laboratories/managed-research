@@ -13,7 +13,7 @@ from managed_research.models.smr_network_topology import (
 )
 from managed_research.models.smr_providers import (
     ProviderBinding,
-    ProviderCapability,
+    ActorResourceCapability,
     UsageLimit,
     coerce_provider_bindings,
     coerce_usage_limit,
@@ -144,16 +144,16 @@ def _parse_provider_bindings(payload: object) -> tuple[ProviderBinding, ...]:
     return coerce_provider_bindings(payload, field_name="run.providers")
 
 
-def _parse_provider_capabilities(payload: object) -> frozenset[ProviderCapability]:
+def _parse_actor_resource_capabilities(payload: object) -> frozenset[ActorResourceCapability]:
     if payload is None:
         return frozenset()
     if not isinstance(payload, list):
         raise ValueError("run.capabilities must be an array when provided")
-    capabilities: set[ProviderCapability] = set()
+    capabilities: set[ActorResourceCapability] = set()
     for index, value in enumerate(payload):
         if not isinstance(value, str):
             raise ValueError(f"run.capabilities[{index}] must be a string")
-        capabilities.add(ProviderCapability(value))
+        capabilities.add(ActorResourceCapability(value))
     return frozenset(capabilities)
 
 
@@ -185,7 +185,7 @@ class ManagedResearchRun:
     network_topology: SmrNetworkTopology | None = None
     network_surfaces: dict[str, object] = field(default_factory=dict)
     providers: tuple[ProviderBinding, ...] = field(default_factory=tuple)
-    capabilities: frozenset[ProviderCapability] = field(default_factory=frozenset)
+    capabilities: frozenset[ActorResourceCapability] = field(default_factory=frozenset)
     limit: UsageLimit | None = None
     roles: SmrRoleBindings | None = None
     stop_reason: str | None = None
@@ -246,7 +246,7 @@ class ManagedResearchRun:
                 label="run.network_surfaces",
             ),
             providers=_parse_provider_bindings(mapping.get("providers")),
-            capabilities=_parse_provider_capabilities(mapping.get("capabilities")),
+            capabilities=_parse_actor_resource_capabilities(mapping.get("capabilities")),
             limit=_parse_usage_limit(mapping.get("limit")),
             roles=roles,
             stop_reason=_optional_string(mapping, "stop_reason"),

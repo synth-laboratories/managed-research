@@ -34,7 +34,7 @@ from managed_research.models.smr_host_kinds import SmrHostKind
 from managed_research.models.smr_network_topology import SmrNetworkTopology
 from managed_research.models.smr_providers import (
     ProviderBinding,
-    ProviderCapability,
+    ActorResourceCapability,
     UsageLimit,
 )
 from managed_research.models.smr_work_modes import SmrWorkMode
@@ -124,7 +124,7 @@ class RunHandle:
         return self.get().providers
 
     @property
-    def capabilities(self) -> frozenset[ProviderCapability]:
+    def capabilities(self) -> frozenset[ActorResourceCapability]:
         return self.get().capabilities
 
     @property

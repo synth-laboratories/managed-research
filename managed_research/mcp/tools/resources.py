@@ -6,7 +6,6 @@ from typing import Any
 
 from managed_research.mcp.registry import ToolDefinition, tool_schema
 
-
 _FILE_ITEM_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -98,32 +97,6 @@ def build_resource_tools(server: Any) -> list[ToolDefinition]:
                 required=["run_id", "files"],
             ),
             handler=server._tool_upload_run_files,
-        ),
-        ToolDefinition(
-            name="smr_list_run_output_files",
-            description="List run output files from the canonical public run-output surface.",
-            input_schema=tool_schema(
-                {
-                    "run_id": {"type": "string"},
-                    "artifact_type": {"type": "string"},
-                    "limit": {"type": "integer"},
-                },
-                required=["run_id"],
-            ),
-            handler=server._tool_list_run_output_files,
-        ),
-        ToolDefinition(
-            name="smr_get_run_output_file_content",
-            description="Fetch run output file content as utf-8 text or base64 payload.",
-            input_schema=tool_schema(
-                {
-                    "run_id": {"type": "string"},
-                    "output_file_id": {"type": "string"},
-                    "disposition": {"type": "string"},
-                },
-                required=["run_id", "output_file_id"],
-            ),
-            handler=server._tool_get_run_output_file_content,
         ),
         ToolDefinition(
             name="smr_list_project_external_repositories",

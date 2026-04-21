@@ -16,7 +16,7 @@ from managed_research.models.smr_environment_kinds import (
 )
 from managed_research.models.smr_providers import (
     ProviderBinding,
-    ProviderCapability,
+    ActorResourceCapability,
     UsageLimit,
     coerce_provider_bindings,
     coerce_usage_limit,
@@ -1013,8 +1013,8 @@ class SmrLaunchPreflight:
     using_synth_free_mode: bool | None = None
     compute_pool_payload: dict[str, object] = field(default_factory=dict)
     providers: tuple[ProviderBinding, ...] = field(default_factory=tuple)
-    capabilities: frozenset[ProviderCapability] = field(default_factory=frozenset)
-    required_capabilities: frozenset[ProviderCapability] = field(default_factory=frozenset)
+    capabilities: frozenset[ActorResourceCapability] = field(default_factory=frozenset)
+    required_capabilities: frozenset[ActorResourceCapability] = field(default_factory=frozenset)
     limit: UsageLimit | None = None
 
     @classmethod
@@ -1046,10 +1046,10 @@ class SmrLaunchPreflight:
                 else ()
             ),
             capabilities=frozenset(
-                ProviderCapability(str(item)) for item in _optional_array(mapping, "capabilities")
+                ActorResourceCapability(str(item)) for item in _optional_array(mapping, "capabilities")
             ),
             required_capabilities=frozenset(
-                ProviderCapability(str(item))
+                ActorResourceCapability(str(item))
                 for item in _optional_array(mapping, "required_capabilities")
             ),
             limit=coerce_usage_limit(

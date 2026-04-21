@@ -32608,13 +32608,13 @@ components:
       required:
       - provider
       title: ProviderBinding
-    ProviderCapability:
+    ActorResourceCapability:
       type: string
       enum:
       - inference
       - training
       - model_artifact
-      title: ProviderCapability
+      title: ActorResourceCapability
     ProviderUsed:
       type: string
       enum:
@@ -34369,7 +34369,7 @@ components:
           title: Supported Host Kinds
         supported_providers:
           items:
-            $ref: '#/components/schemas/SmrProviderCapabilityEntry'
+            $ref: '#/components/schemas/SmrActorResourceEntry'
           type: array
           title: Supported Providers
         shared_top_level_agent_models:
@@ -36638,12 +36638,12 @@ components:
           title: Providers
         capabilities:
           items:
-            $ref: '#/components/schemas/ProviderCapability'
+            $ref: '#/components/schemas/ActorResourceCapability'
           type: array
           title: Capabilities
         required_capabilities:
           items:
-            $ref: '#/components/schemas/ProviderCapability'
+            $ref: '#/components/schemas/ActorResourceCapability'
           type: array
           title: Required Capabilities
         limit:
@@ -39553,7 +39553,7 @@ components:
           description: Optional run-scoped usage limit.
         required_capabilities:
           items:
-            $ref: '#/components/schemas/ProviderCapability'
+            $ref: '#/components/schemas/ActorResourceCapability'
           type: array
           title: Required Capabilities
           description: Internal proof-lane capability requirement. Defaults to inference.
@@ -39640,13 +39640,13 @@ components:
       - work_mode
       - providers
       title: SmrProjectTriggerRequest
-    SmrProviderCapabilityEntry:
+    SmrActorResourceEntry:
       properties:
         provider:
           $ref: '#/components/schemas/Provider'
         capabilities:
           items:
-            $ref: '#/components/schemas/ProviderCapability'
+            $ref: '#/components/schemas/ActorResourceCapability'
           type: array
           title: Capabilities
         launch_enabled:
@@ -39656,7 +39656,7 @@ components:
       required:
       - provider
       - launch_enabled
-      title: SmrProviderCapabilityEntry
+      title: SmrActorResourceEntry
     SmrProviderKeySetRequest:
       properties:
         provider:
@@ -41685,7 +41685,7 @@ components:
           title: Providers
         capabilities:
           items:
-            $ref: '#/components/schemas/ProviderCapability'
+            $ref: '#/components/schemas/ActorResourceCapability'
           type: array
           title: Capabilities
         limit:

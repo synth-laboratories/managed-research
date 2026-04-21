@@ -40,19 +40,25 @@
     {
       "id": "anthropic/claude-sonnet-4-6",
       "display_group": "additional_first_launch",
-      "launch_lane": "synth_backend_proxy",
+      "launch_lane": "anthropic",
       "public": true
     },
     {
       "id": "anthropic/claude-haiku-4-5-20251001",
       "display_group": "additional_first_launch",
-      "launch_lane": "synth_backend_proxy",
+      "launch_lane": "anthropic",
       "public": true
     },
     {
       "id": "x-ai/grok-4.1-fast",
       "display_group": "additional_first_launch",
-      "launch_lane": "synth_backend_proxy",
+      "launch_lane": "openrouter",
+      "public": true
+    },
+    {
+      "id": "moonshotai/kimi-k2.6",
+      "display_group": "additional_first_launch",
+      "launch_lane": "openrouter",
       "public": true
     }
   ]

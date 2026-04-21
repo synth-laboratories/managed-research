@@ -60,10 +60,6 @@ from managed_research.models.smr_agent_kinds import (
     coerce_smr_agent_kind,
 )
 from managed_research.models.smr_agent_models import SmrAgentModel
-from managed_research.models.smr_roles import (
-    SmrRoleBindings,
-    coerce_smr_role_bindings,
-)
 from managed_research.models.smr_credential_providers import (
     SmrCredentialProvider,
     coerce_smr_credential_provider,
@@ -79,6 +75,10 @@ from managed_research.models.smr_providers import (
     coerce_provider_bindings,
     coerce_usage_limit,
 )
+from managed_research.models.smr_roles import (
+    SmrRoleBindings,
+    coerce_smr_role_bindings,
+)
 from managed_research.models.smr_run_policy import SmrRunPolicy, coerce_smr_run_policy
 from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
 from managed_research.models.types import (
@@ -89,6 +89,21 @@ from managed_research.models.types import (
     SmrRunnableProjectRequest,
 )
 from managed_research.sdk.approvals import ApprovalsAPI
+from managed_research.sdk.compat import SmrControlClientMixin
+from managed_research.sdk.config import (
+    DEFAULT_MISC_PROJECT_ALIAS,
+    DEFAULT_TIMEOUT_SECONDS,
+    DEFAULT_WORKSPACE_ARCHIVE_DOWNLOAD_TIMEOUT_SECONDS,
+    OPENAI_TRANSPORT_MODE_AUTO,
+    OPENAI_TRANSPORT_MODE_BACKEND_BFF,
+    OPENAI_TRANSPORT_MODE_DIRECT_HP,
+)
+from managed_research.sdk.config import (
+    resolve_api_key as _resolve_api_key,
+)
+from managed_research.sdk.config import (
+    resolve_backend_base as _resolve_backend_base,
+)
 from managed_research.sdk.cost import RunCostAPI
 from managed_research.sdk.credentials import CredentialsAPI
 from managed_research.sdk.datasets import DatasetsAPI
@@ -109,26 +124,9 @@ from managed_research.sdk.repositories import RepositoriesAPI
 from managed_research.sdk.runs import RunsAPI
 from managed_research.sdk.setup import SetupAPI
 from managed_research.sdk.trained_models import TrainedModelsAPI
+from managed_research.sdk.transport import build_http_transport
 from managed_research.sdk.usage import UsageAPI
 from managed_research.sdk.workspace_inputs import WorkspaceInputsAPI
-from managed_research.sdk.compat import SmrControlClientMixin
-from managed_research.sdk.config import (
-    DEFAULT_MISC_PROJECT_ALIAS,
-    DEFAULT_TIMEOUT_SECONDS,
-    DEFAULT_WORKSPACE_ARCHIVE_DOWNLOAD_TIMEOUT_SECONDS,
-    OPENAI_TRANSPORT_MODE_AUTO,
-    OPENAI_TRANSPORT_MODE_BACKEND_BFF,
-    OPENAI_TRANSPORT_MODE_DIRECT_HP,
-    auth_headers as _auth_headers,
-    optional_str as _optional_str,
-    resolve_api_key as _resolve_api_key,
-    resolve_backend_base as _resolve_backend_base,
-)
-from managed_research.sdk.launch import (
-    build_project_run_payload as _build_project_run_payload_impl,
-    normalize_resource_uploaded_file as _normalize_resource_uploaded_file_impl,
-)
-from managed_research.sdk.transport import build_http_transport
 from managed_research.transport.http import SmrHttpTransport, _raise_for_error_response
 from managed_research.transport.pagination import build_query_params
 
@@ -315,11 +313,12 @@ def _build_project_run_payload(
     providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]],
     limit: UsageLimit | Mapping[str, Any] | dict[str, Any] | None = None,
     worker_pool_id: str | None = None,
+    runbook: str | None = None,
     local_execution: Mapping[str, Any] | dict[str, Any] | None = None,
     execution_profile: LocalExecutionProfile | Mapping[str, Any] | dict[str, Any] | None = None,
     timebox_seconds: int | None = None,
     agent_profile: str | None = None,
-    agent_model: SmrAgentModel | None = None,
+    agent_model: SmrAgentModel | str | None = None,
     agent_harness: SmrAgentHarness | None = None,
     agent_kind: SmrAgentKind | None = None,
     agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
@@ -376,6 +375,8 @@ def _build_project_run_payload(
         )
     if worker_pool_id and worker_pool_id.strip():
         payload["worker_pool_id"] = worker_pool_id.strip()
+    if runbook and runbook.strip():
+        payload["runbook"] = runbook.strip().lower()
     normalized_local_execution = _optional_mapping(
         local_execution,
         field_name="local_execution",
@@ -984,6 +985,12 @@ class ManagedResearchClient:
     def get_capabilities(self) -> dict[str, Any]:
         return _coerce_dict(
             self._request_json("GET", "/smr/capabilities"), label="get_capabilities"
+        )
+
+    def get_agent_models(self) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("GET", "/smr/agent-models"),
+            label="get_agent_models",
         )
 
     def get_limits(self) -> dict[str, Any]:
@@ -1994,11 +2001,12 @@ class ManagedResearchClient:
         providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]],
         limit: UsageLimit | Mapping[str, Any] | dict[str, Any] | None = None,
         worker_pool_id: str | None = None,
+        runbook: str | None = None,
         local_execution: Mapping[str, Any] | dict[str, Any] | None = None,
         execution_profile: LocalExecutionProfile | Mapping[str, Any] | dict[str, Any] | None = None,
         timebox_seconds: int | None = None,
         agent_profile: str | None = None,
-        agent_model: SmrAgentModel | None = None,
+        agent_model: SmrAgentModel | str | None = None,
         agent_harness: SmrAgentHarness | None = None,
         agent_kind: SmrAgentKind | None = None,
         agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
@@ -2024,6 +2032,7 @@ class ManagedResearchClient:
             providers=providers,
             limit=limit,
             worker_pool_id=worker_pool_id,
+            runbook=runbook,
             local_execution=local_execution,
             execution_profile=execution_profile,
             timebox_seconds=timebox_seconds,
@@ -2083,11 +2092,12 @@ class ManagedResearchClient:
         providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]],
         limit: UsageLimit | Mapping[str, Any] | dict[str, Any] | None = None,
         worker_pool_id: str | None = None,
+        runbook: str | None = None,
         local_execution: Mapping[str, Any] | dict[str, Any] | None = None,
         execution_profile: LocalExecutionProfile | Mapping[str, Any] | dict[str, Any] | None = None,
         timebox_seconds: int | None = None,
         agent_profile: str | None = None,
-        agent_model: SmrAgentModel | None = None,
+        agent_model: SmrAgentModel | str | None = None,
         agent_harness: SmrAgentHarness | None = None,
         agent_kind: SmrAgentKind | None = None,
         agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
@@ -2113,6 +2123,7 @@ class ManagedResearchClient:
             providers=providers,
             limit=limit,
             worker_pool_id=worker_pool_id,
+            runbook=runbook,
             local_execution=local_execution,
             execution_profile=execution_profile,
             timebox_seconds=timebox_seconds,

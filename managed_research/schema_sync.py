@@ -45,7 +45,7 @@ def _enum_member_name(model_id: str) -> str:
 
 def _default_backend_manifest_path() -> Path:
     repo_root = Path(__file__).resolve().parent.parent
-    return repo_root.parent / "backend" / "config" / "smr_public_models.json"
+    return repo_root.parent / "backend" / "config" / "smr_supported_models.json"
 
 
 _STATIC_ENUM_SPECS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
@@ -183,7 +183,7 @@ def sync_smr_agent_models(
     source_manifest: Path | None = None,
     destination_file: Path | None = None,
 ) -> Path:
-    """Generate the public SMR model enum from the backend manifest."""
+    """Generate the public SMR model enum from the backend agent-model catalog."""
 
     source = source_manifest or _default_backend_manifest_path()
     destination = destination_file or (
@@ -205,7 +205,7 @@ def sync_smr_agent_models(
     lines = [
         '"""Generated public SMR agent model enum.',
         "",
-        "Source of truth: backend/config/smr_public_models.json",
+        "Source of truth: backend/config/smr_supported_models.json",
         '"""',
         "",
         "from __future__ import annotations",
@@ -240,7 +240,8 @@ def sync_smr_agent_models(
             "        return SmrAgentModel(normalized)",
             "    except ValueError as exc:",
             '        raise ValueError(',
-            '            f"{field_name} must be one of: {\', \'.join(SMR_AGENT_MODEL_VALUES)}"',
+            '            f"{field_name} must be one of: {\', \'.join(SMR_AGENT_MODEL_VALUES)}. "',
+            '            "Backend preflight remains authoritative for model availability."',
             "        ) from exc",
             "",
             "",
@@ -252,16 +253,57 @@ def sync_smr_agent_models(
     return destination
 
 
+def sync_smr_public_models_snapshot(
+    *,
+    source_manifest: Path | None = None,
+    destination_file: Path | None = None,
+) -> Path:
+    """Generate the vendored public-model snapshot from the backend catalog."""
+
+    source = source_manifest or _default_backend_manifest_path()
+    destination = destination_file or (
+        Path(__file__).resolve().parent / "schemas" / "public_models.json"
+    )
+    raw = json.loads(source.read_text(encoding="utf-8"))
+    models = raw.get("models")
+    if not isinstance(models, list) or not models:
+        raise ValueError("SMR supported model manifest must contain models")
+    public_models = []
+    for item in models:
+        if not isinstance(item, dict) or not bool(item.get("public", True)):
+            continue
+        model_id = str(item.get("id") or "").strip()
+        if not model_id:
+            raise ValueError("SMR public model manifest entries require non-empty ids")
+        public_models.append(
+            {
+                "id": model_id,
+                "display_group": str(
+                    item.get("display_group") or "additional_first_launch"
+                ),
+                "launch_lane": str(item.get("auth_route") or "").strip(),
+                "public": True,
+            }
+        )
+    destination.write_text(
+        json.dumps({"version": 1, "models": public_models}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return destination
+
+
 def main() -> None:
     """CLI entrypoint: sync tracked generated artifacts."""
     copied = sync_public_schemas()
     static_enums = sync_smr_layered_enums()
     generated = sync_smr_agent_models()
+    public_models = sync_smr_public_models_snapshot()
     for path in copied:
         print(path)
     for path in static_enums:
         print(path)
     print(generated)
+    print(public_models)
 
 
 __all__ = [
@@ -269,4 +311,5 @@ __all__ = [
     "sync_public_schemas",
     "sync_smr_agent_models",
     "sync_smr_layered_enums",
+    "sync_smr_public_models_snapshot",
 ]

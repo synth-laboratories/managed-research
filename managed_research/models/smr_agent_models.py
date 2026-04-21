@@ -1,6 +1,6 @@
 """Generated public SMR agent model enum.
 
-Source of truth: backend/config/smr_public_models.json
+Source of truth: backend/config/smr_supported_models.json
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ class SmrAgentModel(StrEnum):
     ANTHROPIC_CLAUDE_SONNET_4_6 = "anthropic/claude-sonnet-4-6"
     ANTHROPIC_CLAUDE_HAIKU_4_5_20251001 = "anthropic/claude-haiku-4-5-20251001"
     X_AI_GROK_4_1_FAST = "x-ai/grok-4.1-fast"
+    MOONSHOTAI_KIMI_K2_6 = "moonshotai/kimi-k2.6"
 
 
 SMR_AGENT_MODEL_VALUES: tuple[str, ...] = tuple(model.value for model in SmrAgentModel)
@@ -39,7 +40,8 @@ def coerce_smr_agent_model(
         return SmrAgentModel(normalized)
     except ValueError as exc:
         raise ValueError(
-            f"{field_name} must be one of: {', '.join(SMR_AGENT_MODEL_VALUES)}"
+            f"{field_name} must be one of: {', '.join(SMR_AGENT_MODEL_VALUES)}. "
+            "Backend preflight remains authoritative for model availability."
         ) from exc
 
 
