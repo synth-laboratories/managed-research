@@ -28,6 +28,8 @@ Boundary rule:
 Stability rule:
 - keep MCP tool names and wire payload shapes stable unless a deliberate migration is planned
 - fail loudly on malformed input instead of silently defaulting to success-shaped values
+- tool names retain the stable `smr_` wire prefix; descriptions and docs should
+  call the product Managed Research.
 
 Canonical launch flow:
 - `smr_create_runnable_project`

@@ -11,7 +11,7 @@ def build_pr_tools(server: Any) -> list[ToolDefinition]:
     return [
         ToolDefinition(
             name="smr_results_prs_list",
-            description="List project pull requests published by SMR.",
+            description="List project pull requests published by Managed Research.",
             input_schema=tool_schema(
                 {"project_id": {"type": "string"}},
                 required=["project_id"],

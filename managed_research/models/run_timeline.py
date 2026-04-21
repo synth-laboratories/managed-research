@@ -1,4 +1,4 @@
-"""Typed SMR logical timeline and checkpoint-branching models."""
+"""Typed Managed Research logical timeline and checkpoint-branching models."""
 
 from __future__ import annotations
 

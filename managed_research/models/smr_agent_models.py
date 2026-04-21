@@ -1,4 +1,4 @@
-"""Generated public SMR agent model enum.
+"""Generated public Managed Research agent model enum.
 
 Source of truth: backend/config/smr_supported_models.json
 """

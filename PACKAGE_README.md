@@ -1,7 +1,9 @@
 # managed-research
 
-Managed Research is Synth's Python SDK and MCP package for repeatable,
-inspectable repo work.
+Managed Research lets you start hosted AI workers from Python or MCP and inspect
+their work as durable runs. It is for repo and research tasks where you want
+logs, checkpoints, artifacts, approvals, usage, and final outputs instead of an
+untraceable chat transcript.
 
 ## Install
 
@@ -9,22 +11,31 @@ inspectable repo work.
 uv add managed-research
 ```
 
-## 60-Second Quickstart
+```bash
+export SYNTH_API_KEY="sk_..."
+```
+
+## Quickstart
 
 ```python
+import os
+
 from managed_research import ManagedResearchClient
 
-client = ManagedResearchClient(api_key="sk_...")
+client = ManagedResearchClient(api_key=os.environ["SYNTH_API_KEY"])
 
-project = client.projects.default()
-run = project.runs.start(
-    "Inspect the repo, improve the benchmark path, and explain the changes.",
+run = client.runs.start(
+    "Review the project context and propose the smallest high-impact improvement.",
     host_kind="daytona",
     work_mode="directed_effort",
     providers=[{"provider": "openrouter"}],
 )
 
-print(run.id)
+print("run:", run.run_id)
+
+result = run.wait(timeout=60 * 60, poll_interval=15)
+print("state:", result.state.value)
+print("artifacts:", [artifact.title for artifact in run.artifacts()])
 ```
 
 `ManagedResearchClient` is the canonical entrypoint. `SmrControlClient`
@@ -32,12 +43,15 @@ remains available as a compatibility alias for one release.
 
 ## Main Ideas
 
-- Use `client.projects` to create or list projects.
-- Use `client.project(project_id)` for project-scoped nouns like
-  `repositories`, `files`, `outputs`, and `runs`.
-- Use `client.runs.start(...)` when you want the default miscellaneous
-  project flow.
-- Use launch preflight before a manual run when you need to inspect blockers.
+- Use `client.runs.start(...)` for a one-off run on the default project.
+- Use `client.projects.create(...)` and `client.project(project_id)` for durable
+  project-scoped work.
+- Attach repositories, files, datasets, credentials, notes, and knowledge before
+  starting a run.
+- Use preflight when you want launch blockers as structured data before spending
+  runtime.
+- Inspect runs through messages, timeline, traces, checkpoints, artifacts,
+  usage, questions, approvals, and actor/task counts.
 - Use `agent_harness="codex"` or `agent_harness="opencode_sdk"` when you want
   to pin the harness explicitly.
 

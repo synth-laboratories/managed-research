@@ -1,4 +1,4 @@
-"""Shared MCP input-schema fragments for SMR policy surfaces."""
+"""Shared MCP input-schema fragments for Managed Research policy surfaces."""
 
 from __future__ import annotations
 

@@ -12,14 +12,18 @@ def build_trained_model_tools(server: Any) -> list[ToolDefinition]:
         ToolDefinition(
             name="smr_register_trained_model",
             description=(
-                "Register a Tinker-trained LoRA adapter produced by the current SMR "
+                "Register a Tinker-trained LoRA adapter produced by the current "
+                "Managed Research "
                 "run. This downloads the adapter from Tinker, uploads it to Wasabi, "
                 "and inserts an ``smr_models`` registry row so the adapter can be "
                 "rehydrated for offline evaluation and cleaned up at end of run."
             ),
             input_schema=tool_schema(
                 {
-                    "run_id": {"type": "string", "description": "SMR run identifier."},
+                    "run_id": {
+                        "type": "string",
+                        "description": "Managed Research run identifier.",
+                    },
                     "base_model": {
                         "type": "string",
                         "description": "Base model name, e.g. 'meta-llama/Llama-3.2-1B'.",
@@ -59,7 +63,7 @@ def build_trained_model_tools(server: Any) -> list[ToolDefinition]:
         ),
         ToolDefinition(
             name="smr_list_trained_models_for_run",
-            description="List trained models registered for a given SMR run.",
+            description="List trained models registered for a given Managed Research run.",
             input_schema=tool_schema(
                 {"run_id": {"type": "string"}},
                 required=["run_id"],

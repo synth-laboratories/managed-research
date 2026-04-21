@@ -6,7 +6,7 @@ from typing import Any
 
 
 class SmrApiError(RuntimeError):
-    """Raised when the SMR API returns an error response."""
+    """Raised when the Managed Research API returns an error response."""
 
     def __init__(
         self,

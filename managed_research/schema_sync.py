@@ -183,7 +183,7 @@ def sync_smr_agent_models(
     source_manifest: Path | None = None,
     destination_file: Path | None = None,
 ) -> Path:
-    """Generate the public SMR model enum from the backend agent-model catalog."""
+    """Generate the public Managed Research model enum from the backend agent-model catalog."""
 
     source = source_manifest or _default_backend_manifest_path()
     destination = destination_file or (
@@ -192,7 +192,7 @@ def sync_smr_agent_models(
     raw = json.loads(source.read_text(encoding="utf-8"))
     models = raw.get("models")
     if not isinstance(models, list) or not models:
-        raise ValueError("SMR public model manifest must contain a non-empty models list")
+        raise ValueError("Managed Research public model manifest must contain a non-empty models list")
 
     model_ids = [
         str(item.get("id") or "").strip()
@@ -200,10 +200,10 @@ def sync_smr_agent_models(
         if isinstance(item, dict) and bool(item.get("public", True))
     ]
     if not model_ids or any(not model_id for model_id in model_ids):
-        raise ValueError("SMR public model manifest entries require non-empty ids")
+        raise ValueError("Managed Research public model manifest entries require non-empty ids")
 
     lines = [
-        '"""Generated public SMR agent model enum.',
+        '"""Generated public Managed Research agent model enum.',
         "",
         "Source of truth: backend/config/smr_supported_models.json",
         '"""',
@@ -267,14 +267,14 @@ def sync_smr_public_models_snapshot(
     raw = json.loads(source.read_text(encoding="utf-8"))
     models = raw.get("models")
     if not isinstance(models, list) or not models:
-        raise ValueError("SMR supported model manifest must contain models")
+        raise ValueError("Managed Research supported model manifest must contain models")
     public_models = []
     for item in models:
         if not isinstance(item, dict) or not bool(item.get("public", True)):
             continue
         model_id = str(item.get("id") or "").strip()
         if not model_id:
-            raise ValueError("SMR public model manifest entries require non-empty ids")
+            raise ValueError("Managed Research public model manifest entries require non-empty ids")
         public_models.append(
             {
                 "id": model_id,

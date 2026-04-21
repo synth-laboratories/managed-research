@@ -1,4 +1,4 @@
-"""Public SMR funding-source enum."""
+"""Public Managed Research funding-source enum."""
 
 from __future__ import annotations
 

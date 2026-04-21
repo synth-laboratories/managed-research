@@ -1,4 +1,4 @@
-"""Public SMR provider binding and usage-limit models."""
+"""Public Managed Research provider binding and usage-limit models."""
 
 from __future__ import annotations
 

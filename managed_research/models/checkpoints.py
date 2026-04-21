@@ -1,4 +1,4 @@
-"""Typed checkpoint models for SMR checkpointing/persistence/replay."""
+"""Typed checkpoint models for Managed Research checkpointing, persistence, and replay."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Typed SMR run trace and actor-usage read models."""
+"""Typed Managed Research run trace and actor-usage read models."""
 
 from __future__ import annotations
 

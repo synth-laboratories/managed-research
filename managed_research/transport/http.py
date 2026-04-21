@@ -1,4 +1,4 @@
-"""HTTP transport helpers for the SMR SDK."""
+"""HTTP transport helpers for the Managed Research SDK."""
 
 from __future__ import annotations
 

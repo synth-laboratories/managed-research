@@ -1,4 +1,4 @@
-"""Public SMR actor-type/subtype model policy helpers.
+"""Public Managed Research actor-type/subtype model policy helpers.
 
 Source of truth: backend/config/smr_actor_model_policy.json
 """
@@ -162,7 +162,7 @@ def _permitted_models_for_actor(actor_type: SmrActorType, actor_subtype: SmrActo
         ):
             return tuple(str(item) for item in entry.get("permitted_models") or ())
     raise ValueError(
-        f"No SMR actor model policy entry exists for {actor_type.value}:{actor_subtype.value}"
+            f"No Managed Research actor model policy entry exists for {actor_type.value}:{actor_subtype.value}"
     )
 
 

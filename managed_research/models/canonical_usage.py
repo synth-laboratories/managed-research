@@ -1,4 +1,4 @@
-"""Canonical SMR usage and entitlement models."""
+"""Canonical Managed Research usage and entitlement models."""
 
 from __future__ import annotations
 

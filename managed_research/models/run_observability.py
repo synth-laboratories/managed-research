@@ -1,4 +1,4 @@
-"""Typed run observability models for rich SMR polling."""
+"""Typed run observability models for rich Managed Research polling."""
 
 from __future__ import annotations
 

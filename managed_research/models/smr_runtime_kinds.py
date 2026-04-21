@@ -1,4 +1,4 @@
-"""Public SMR runtime-kind enum."""
+"""Public Managed Research runtime-kind enum."""
 
 from __future__ import annotations
 

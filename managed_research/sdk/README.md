@@ -13,10 +13,17 @@ Guidelines:
 - when a backend route has a stable response concept, return a typed model from the namespace API when practical
 
 Current typed namespace returns:
+- [`project.py`](/Users/joshpurtell/Documents/GitHub/managed-research/managed_research/sdk/project.py)
+  - bound project setup via `client.project(id).setup.get()` and
+    `client.project(id).setup.prepare()`
+  - bound project launch preflight via `client.project(id).runs.preflight(...)`
+  - typed run reads via `client.project(id).runs.get(run_id)`
+  - trained-model result helpers via `client.project(id).models.*`
 - [`progress.py`](/Users/joshpurtell/Documents/GitHub/managed-research/managed_research/sdk/progress.py)
   - `ProjectSetupAuthority` via `get_project_setup_authority(...)`
   - `LaunchPreflight` via `get_launch_preflight(...)`
 - [`runs.py`](/Users/joshpurtell/Documents/GitHub/managed-research/managed_research/sdk/runs.py)
+  - `ManagedResearchRun` via `get(run_id, project_id=...)`
   - `SmrLogicalTimeline` via `get_logical_timeline(project_id, run_id)`
   - `SmrRunBranchResponse` via `branch_from_checkpoint(...)`
 - [`workspace_inputs.py`](/Users/joshpurtell/Documents/GitHub/managed-research/managed_research/sdk/workspace_inputs.py)

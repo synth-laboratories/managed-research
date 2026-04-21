@@ -1,9 +1,17 @@
 # managed-research
 
-Managed Research is Synth's public Python SDK and MCP package for repeatable,
-inspectable repo work. The canonical Python entrypoint is
-`ManagedResearchClient`, and the canonical MCP surface mirrors the same
-project/run nouns.
+Managed Research lets you hand repo work to hosted AI workers and inspect what
+they do. Start a run from Python or MCP, attach repositories and context, then
+read back logs, checkpoints, artifacts, PRs, usage, and final outputs.
+
+It is built for work that should be repeatable instead of one-off chat:
+
+- improve a benchmark or eval harness
+- review a codebase and open a focused PR
+- run a research task with durable artifacts
+- branch from checkpoints when an attempt needs a different direction
+- give agents controlled access to project knowledge, files, credentials, and
+  integrations
 
 ## Install
 
@@ -11,61 +19,66 @@ project/run nouns.
 uv add managed-research
 ```
 
-## Python SDK
+Set an API key:
+
+```bash
+export SYNTH_API_KEY="sk_..."
+```
+
+## 60-Second Quickstart
 
 ```python
+import os
+
 from managed_research import ManagedResearchClient
 
-client = ManagedResearchClient(api_key="sk_...")
+client = ManagedResearchClient(api_key=os.environ["SYNTH_API_KEY"])
 
-project = client.projects.default()
-run = project.runs.start(
-    "Inspect the repo, improve the benchmark path, and explain the changes.",
+run = client.runs.start(
+    "Review the project context and propose the smallest high-impact improvement.",
     host_kind="daytona",
     work_mode="directed_effort",
     providers=[{"provider": "openrouter"}],
 )
 
-print(run.id)
+print("run:", run.run_id)
+
+result = run.wait(timeout=60 * 60, poll_interval=15)
+print("state:", result.state.value)
+print("artifacts:", [artifact.title for artifact in run.artifacts()])
 ```
 
-You can also use the one-off shortcut:
+For project-scoped work:
 
 ```python
-run = client.runs.start(
-    "Review the repo and propose the smallest safe improvement.",
+project = client.projects.create(name="Improve my eval runner")
+project.repositories.attach(github_repo="owner/repo")
+
+preflight = project.runs.preflight(
     host_kind="daytona",
     work_mode="directed_effort",
     providers=[{"provider": "openrouter"}],
 )
+
+if preflight.clear_to_trigger:
+    run = project.runs.start(
+        "Inspect the eval runner, fix the highest-leverage issue, and leave evidence.",
+        host_kind="daytona",
+        work_mode="directed_effort",
+        providers=[{"provider": "openrouter"}],
+    )
 ```
 
-`SmrControlClient` remains importable as a compatibility alias for one release.
+## Why Managed Research
 
-## OpenCode Harness
-
-Managed Research supports Codex as the default harness and OpenCode as an
-opt-in harness choice:
-
-```python
-run = client.runs.start(
-    "Do a careful bug-hunt and explain the fix.",
-    host_kind="daytona",
-    work_mode="directed_effort",
-    providers=[{"provider": "openrouter"}],
-    agent_harness="opencode_sdk",
-    agent_model="anthropic/claude-sonnet-4-6",
-)
-```
-
-Supported OpenCode models:
-
-- `anthropic/claude-sonnet-4-6`
-- `anthropic/claude-haiku-4-5-20251001`
-- `x-ai/grok-4.1-fast`
-
-Unsupported `(agent_harness, agent_model)` pairs fail at preflight and run
-start with structured denials.
+- **Durable runs:** every run has an ID, state, runtime messages, traces, and
+  artifacts.
+- **Inspectable execution:** read task and actor counts, logical timelines,
+  logs, usage, questions, approvals, and output manifests.
+- **Recoverable progress:** create checkpoints, restore them, or branch from a
+  checkpoint with a new message.
+- **Harness choice:** run the default Codex harness or opt into OpenCode.
+- **Agent-native access:** use the same project/run surface from Python or MCP.
 
 ## MCP
 
@@ -104,6 +117,17 @@ Example one-off run:
 
 Launch denials are MCP tool errors, not success payloads with embedded error
 fields.
+
+## Worker Knowledge
+
+Managed Research workers can already receive project files, repositories,
+credentials, notes, and org/project knowledge. The next high-leverage layer is
+a curated research index exposed to workers through MCP: papers, datasets,
+GitHub repositories, Tinker cookbooks, internal runbooks, and project-specific
+material behind one searchable interface.
+
+The detailed design note lives in the Synth specifications tree:
+[`specifications/daily/april21_2026/worker-knowledge.md`](../specifications/daily/april21_2026/worker-knowledge.md).
 
 ## More
 

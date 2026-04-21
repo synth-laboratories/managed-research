@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "managed-research"
-version = "1.2026.042020"
+version = "1.2026.042111"
 description = "Public SDK, MCP, and schemas for Managed Research."
 readme = "PACKAGE_README.md"
 requires-python = ">=3.11"

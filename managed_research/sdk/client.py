@@ -763,6 +763,13 @@ class ManagedResearchClient:
             allow_not_found=allow_not_found,
         )
 
+    def get_backend_version(self) -> dict[str, Any]:
+        """Return backend SemVer and deploy metadata."""
+        return _coerce_dict(
+            self._request_json("GET", "/api/v1/version"),
+            label="get_backend_version",
+        )
+
     def _request_content(
         self,
         method: str,

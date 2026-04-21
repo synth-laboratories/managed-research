@@ -1,4 +1,4 @@
-"""Public SMR work-mode enum."""
+"""Public Managed Research work-mode enum."""
 
 from __future__ import annotations
 

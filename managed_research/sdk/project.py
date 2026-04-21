@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Any
 
 from managed_research.models.project import ManagedResearchProject
+from managed_research.models.run_state import ManagedResearchRun
+from managed_research.models.types import SmrLaunchPreflight, SmrProjectSetup
 
 
 def _guess_content_type(path: Path) -> str:
@@ -278,41 +280,34 @@ class _BoundProjectPrsAPI:
 
 
 @dataclass
+class _BoundProjectSetupAPI:
+    _client: Any
+    project_id: str
+
+    def get(self) -> SmrProjectSetup:
+        return SmrProjectSetup.from_wire(self._client.get_project_setup(self.project_id))
+
+    def get_authority(self) -> SmrProjectSetup:
+        return SmrProjectSetup.from_wire(
+            self._client.get_project_setup_authority(self.project_id)
+        )
+
+    def prepare(self) -> SmrProjectSetup:
+        return SmrProjectSetup.from_wire(self._client.prepare_project_setup(self.project_id))
+
+    def prepare_authority(self) -> SmrProjectSetup:
+        return SmrProjectSetup.from_wire(
+            self._client.prepare_project_setup_authority(self.project_id)
+        )
+
+
+@dataclass
 class _BoundProjectModelsAPI:
     _client: Any
     project_id: str
 
     def list(self) -> list[dict[str, Any]]:
         return self._client.list_project_models(self.project_id)
-
-
-@dataclass
-class _BoundProjectRunsAPI:
-    _client: Any
-    project_id: str
-
-    def start(self, objective: str, **kwargs: Any):
-        return self._client.runs.start(
-            objective,
-            project_id=self.project_id,
-            **kwargs,
-        )
-
-    def launch(self, objective: str, **kwargs: Any):
-        return self.start(objective, **kwargs)
-
-    def trigger(self, **kwargs: Any) -> dict[str, Any]:
-        return self._client.trigger_run(self.project_id, **kwargs)
-
-    def list(self, *, active_only: bool = False, **kwargs: Any) -> list[dict[str, Any]]:
-        return self._client.list_runs(
-            self.project_id,
-            active_only=active_only,
-            **kwargs,
-        )
-
-    def list_active(self) -> list[dict[str, Any]]:
-        return self._client.list_active_runs(self.project_id)
 
     def get(self, model_id: str) -> dict[str, Any]:
         return self._client.get_project_model(self.project_id, model_id)
@@ -334,6 +329,46 @@ class _BoundProjectRunsAPI:
 
     def export(self, model_id: str) -> dict[str, Any]:
         return self._client.export_project_model(self.project_id, model_id)
+
+
+@dataclass
+class _BoundProjectRunsAPI:
+    _client: Any
+    project_id: str
+
+    def start(self, objective: str, **kwargs: Any):
+        return self._client.runs.start(
+            objective,
+            project_id=self.project_id,
+            **kwargs,
+        )
+
+    def launch(self, objective: str, **kwargs: Any):
+        return self.start(objective, **kwargs)
+
+    def trigger(self, **kwargs: Any) -> dict[str, Any]:
+        return self._client.trigger_run(self.project_id, **kwargs)
+
+    def preflight(self, **kwargs: Any) -> SmrLaunchPreflight:
+        return SmrLaunchPreflight.from_wire(
+            self._client.get_launch_preflight(self.project_id, **kwargs)
+        )
+
+    def launch_preflight(self, **kwargs: Any) -> SmrLaunchPreflight:
+        return self.preflight(**kwargs)
+
+    def list(self, *, active_only: bool = False, **kwargs: Any) -> list[dict[str, Any]]:
+        return self._client.list_runs(
+            self.project_id,
+            active_only=active_only,
+            **kwargs,
+        )
+
+    def list_active(self) -> list[dict[str, Any]]:
+        return self._client.list_active_runs(self.project_id)
+
+    def get(self, run_id: str) -> ManagedResearchRun:
+        return self._client.runs.get(run_id, project_id=self.project_id)
 
 
 @dataclass
@@ -368,6 +403,11 @@ class ManagedResearchProjectClient:
         repr=False,
     )
     _prs_api: _BoundProjectPrsAPI | None = field(init=False, default=None, repr=False)
+    _setup_api: _BoundProjectSetupAPI | None = field(
+        init=False,
+        default=None,
+        repr=False,
+    )
     _models_api: _BoundProjectModelsAPI | None = field(
         init=False,
         default=None,
@@ -436,6 +476,12 @@ class ManagedResearchProjectClient:
         if self._prs_api is None:
             self._prs_api = _BoundProjectPrsAPI(self._client, self.project_id)
         return self._prs_api
+
+    @property
+    def setup(self) -> _BoundProjectSetupAPI:
+        if self._setup_api is None:
+            self._setup_api = _BoundProjectSetupAPI(self._client, self.project_id)
+        return self._setup_api
 
     @property
     def models(self) -> _BoundProjectModelsAPI:
