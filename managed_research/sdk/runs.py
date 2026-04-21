@@ -8,11 +8,15 @@ from typing import Any
 import httpx
 
 from managed_research.errors import SmrApiError
-from managed_research.models.checkpoints import Checkpoint
 from managed_research.models.canonical_usage import SmrRunUsage
+from managed_research.models.checkpoints import Checkpoint
 from managed_research.models.run_control import ManagedResearchRunControlAck
 from managed_research.models.run_diagnostics import (
+    SmrRunActorLogs,
     SmrRunActorUsage,
+    SmrRunArtifactProgress,
+    SmrRunCostSummary,
+    SmrRunParticipants,
     SmrRunTraces,
 )
 from managed_research.models.run_observability import (
@@ -33,8 +37,8 @@ from managed_research.models.runtime_intent import (
 from managed_research.models.smr_host_kinds import SmrHostKind
 from managed_research.models.smr_network_topology import SmrNetworkTopology
 from managed_research.models.smr_providers import (
-    ProviderBinding,
     ActorResourceCapability,
+    ProviderBinding,
     UsageLimit,
 )
 from managed_research.models.smr_work_modes import SmrWorkMode
@@ -61,6 +65,9 @@ class RunHandle:
             self._client.get_project_run(self.project_id, self.run_id)
         )
 
+    def state(self) -> ManagedResearchRun:
+        return self._client.get_run_state(self.run_id, project_id=self.project_id)
+
     def wait(
         self,
         *,
@@ -77,18 +84,18 @@ class RunHandle:
             try:
                 run = self.get()
             except httpx.TransportError as exc:
-                raise SmrApiError(
-                    f"Network error while polling run {self.run_id}: {exc}"
-                ) from exc
+                raise SmrApiError(f"Network error while polling run {self.run_id}: {exc}") from exc
             if run.state.is_terminal:
                 if raise_if_failed and run.state.value in {"failed", "blocked"}:
-                    msg = run.stop_reason_message or run.stop_reason or f"run {self.run_id} ended in state {run.state.value}"
+                    msg = (
+                        run.stop_reason_message
+                        or run.stop_reason
+                        or f"run {self.run_id} ended in state {run.state.value}"
+                    )
                     raise SmrApiError(msg, status_code=None)
                 return run
             if deadline is not None and time.monotonic() >= deadline:
-                raise TimeoutError(
-                    f"run {self.run_id} did not complete within {timeout}s"
-                )
+                raise TimeoutError(f"run {self.run_id} did not complete within {timeout}s")
             time.sleep(poll_interval)
 
     @property
@@ -344,6 +351,28 @@ class RunHandle:
     def datasets(self) -> list[dict[str, Any]]:
         return self._client.list_run_datasets(self.run_id, project_id=self.project_id)
 
+    def participants(self) -> SmrRunParticipants:
+        return self._client.list_run_participants(
+            self.run_id,
+            project_id=self.project_id,
+        )
+
+    def artifact_progress(self) -> SmrRunArtifactProgress:
+        return self._client.get_run_artifact_progress(
+            self.run_id,
+            project_id=self.project_id,
+        )
+
+    def actor_logs(self, **kwargs: Any) -> SmrRunActorLogs:
+        return self._client.list_run_actor_logs(
+            self.run_id,
+            project_id=self.project_id,
+            **kwargs,
+        )
+
+    def cost_summary(self) -> SmrRunCostSummary:
+        return self._client.get_run_cost_summary(self.run_id)
+
     def stop(self) -> ManagedResearchRunControlAck:
         return ManagedResearchRunControlAck.from_wire(
             self._client.stop_run(self.run_id, project_id=self.project_id)
@@ -407,6 +436,14 @@ class RunsAPI(_ClientNamespace):
 
     def get(self, run_id: str, *, project_id: str | None = None) -> ManagedResearchRun:
         return ManagedResearchRun.from_wire(self._client.get_run(run_id, project_id=project_id))
+
+    def state(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> ManagedResearchRun:
+        return self._client.get_run_state(run_id, project_id=project_id)
 
     def wait(
         self,
@@ -577,9 +614,7 @@ class RunsAPI(_ClientNamespace):
     ) -> Checkpoint:
         return self._client.create_run_checkpoint(run_id, project_id=project_id, **kwargs)
 
-    def list_checkpoints(
-        self, run_id: str, *, project_id: str | None = None
-    ) -> list[Checkpoint]:
+    def list_checkpoints(self, run_id: str, *, project_id: str | None = None) -> list[Checkpoint]:
         return self._client.list_run_checkpoints(run_id, project_id=project_id)
 
     def checkpoint(
@@ -707,6 +742,38 @@ class RunsAPI(_ClientNamespace):
             return self._client.get_project_run_actor_usage(project_id, run_id)
         return self._client.get_run_actor_usage(run_id)
 
+    def participants(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> SmrRunParticipants:
+        return self._client.list_run_participants(run_id, project_id=project_id)
+
+    def artifact_progress(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> SmrRunArtifactProgress:
+        return self._client.get_run_artifact_progress(run_id, project_id=project_id)
+
+    def actor_logs(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+        **kwargs: Any,
+    ) -> SmrRunActorLogs:
+        return self._client.list_run_actor_logs(
+            run_id,
+            project_id=project_id,
+            **kwargs,
+        )
+
+    def cost_summary(self, run_id: str) -> SmrRunCostSummary:
+        return self._client.get_run_cost_summary(run_id)
+
     def branch_from_checkpoint(
         self,
         run_id: str | None = None,
@@ -800,8 +867,7 @@ class RunsAPI(_ClientNamespace):
                 limit=page_size,
                 participant_session_id=participant_session_id,
             )
-            for event in page.get("events") or []:
-                yield event
+            yield from page.get("events") or []
             next_cursor = page.get("next_cursor")
             if not next_cursor:
                 break

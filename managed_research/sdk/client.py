@@ -28,13 +28,18 @@ from managed_research.models.local_execution_profile import (
 )
 from managed_research.models.run_control import ManagedResearchRunControlError
 from managed_research.models.run_diagnostics import (
+    SmrRunActorLogs,
     SmrRunActorUsage,
+    SmrRunArtifactProgress,
+    SmrRunCostSummary,
+    SmrRunParticipants,
     SmrRunTraces,
 )
 from managed_research.models.run_observability import (
     RunObservabilitySnapshot,
     RunObservationCursor,
 )
+from managed_research.models.run_state import ManagedResearchRun
 from managed_research.models.run_timeline import (
     SmrBranchMode,
     SmrLogicalTimeline,
@@ -143,6 +148,8 @@ __all__ = [
     "SmrControlClient",
     "first_id",
 ]
+
+
 def _coerce_dict(payload: Any, *, label: str) -> dict[str, Any]:
     if isinstance(payload, dict):
         return payload
@@ -2204,6 +2211,14 @@ class ManagedResearchClient:
             label="get_project_run",
         )
 
+    def get_run_state(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> ManagedResearchRun:
+        return ManagedResearchRun.from_wire(self.get_run(run_id, project_id=project_id))
+
     def get_run_observability_snapshot(
         self,
         project_id: str,
@@ -2761,9 +2776,7 @@ class ManagedResearchClient:
         payload = build_query_params(checkpoint_id=checkpoint_id, reason=reason)
         path = self._run_checkpoint_path(run_id, project_id=project_id)
         label = (
-            "request_project_run_checkpoint"
-            if project_id is not None
-            else "request_run_checkpoint"
+            "request_project_run_checkpoint" if project_id is not None else "request_run_checkpoint"
         )
         return _coerce_dict(
             self._request_json("POST", path, json_body=payload or {}),
@@ -2862,11 +2875,7 @@ class ManagedResearchClient:
         project_id: str | None = None,
     ) -> list[Checkpoint]:
         path = self._run_checkpoint_path(run_id, project_id=project_id)
-        label = (
-            "list_project_run_checkpoints"
-            if project_id is not None
-            else "list_run_checkpoints"
-        )
+        label = "list_project_run_checkpoints" if project_id is not None else "list_run_checkpoints"
         return [
             Checkpoint.from_wire(item)
             for item in _coerce_dict_list(
@@ -2960,6 +2969,78 @@ class ManagedResearchClient:
             label="get_project_run_actor_usage",
         )
         return SmrRunActorUsage.from_wire(payload)
+
+    def list_run_participants(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> SmrRunParticipants:
+        path = (
+            f"/smr/projects/{project_id}/runs/{run_id}/participants"
+            if project_id
+            else f"/smr/runs/{run_id}/participants"
+        )
+        payload = _coerce_dict(
+            self._request_json("GET", path),
+            label="list_run_participants",
+        )
+        return SmrRunParticipants.from_wire(payload)
+
+    def get_run_artifact_progress(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> SmrRunArtifactProgress:
+        path = (
+            f"/smr/projects/{project_id}/runs/{run_id}/artifact-progress"
+            if project_id
+            else f"/smr/runs/{run_id}/artifact-progress"
+        )
+        payload = _coerce_dict(
+            self._request_json("GET", path),
+            label="get_run_artifact_progress",
+        )
+        return SmrRunArtifactProgress.from_wire(payload)
+
+    def list_run_actor_logs(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+        actor_id: str | None = None,
+        turn_id: str | None = None,
+        kind: str | None = None,
+        since: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> SmrRunActorLogs:
+        path = (
+            f"/smr/projects/{project_id}/runs/{run_id}/actor-logs"
+            if project_id
+            else f"/smr/runs/{run_id}/actor-logs"
+        )
+        params = build_query_params(
+            actor_id=actor_id,
+            turn_id=turn_id,
+            kind=kind,
+            since=since,
+            cursor=cursor,
+            limit=limit,
+        )
+        payload = _coerce_dict(
+            self._request_json("GET", path, params=params),
+            label="list_run_actor_logs",
+        )
+        return SmrRunActorLogs.from_wire(payload)
+
+    def get_run_cost_summary(self, run_id: str) -> SmrRunCostSummary:
+        payload = _coerce_dict(
+            self.run_cost.summary(run_id),
+            label="get_run_cost_summary",
+        )
+        return SmrRunCostSummary.from_wire(payload)
 
     def branch_run_from_checkpoint(
         self,
@@ -3213,6 +3294,7 @@ class ManagedResearchClient:
             self._request_json("GET", f"/smr/projects/{project_id}/runs/{run_id}/logs/archives"),
             label="list_run_log_archives",
         )
+
 
 class SmrControlClient(SmrControlClientMixin, ManagedResearchClient):
     """Compatibility alias that retains the legacy synth-ai bridge surface.

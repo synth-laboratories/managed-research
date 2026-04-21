@@ -45,7 +45,14 @@ from managed_research.models.run_control import (
 )
 from managed_research.models.run_diagnostics import (
     SmrActorUsageSummary,
+    SmrRunActorLogEvent,
+    SmrRunActorLogs,
     SmrRunActorUsage,
+    SmrRunArtifactProgress,
+    SmrRunCostSummary,
+    SmrRunMeterCost,
+    SmrRunParticipant,
+    SmrRunParticipants,
     SmrRunTraceItem,
     SmrRunTraces,
 )
@@ -72,9 +79,9 @@ from managed_research.models.run_observability import (
 from managed_research.models.run_state import (
     ManagedResearchRun,
     ManagedResearchRunLivePhase,
-    RunState,
     ManagedResearchRunState,
     ManagedResearchRunTerminalOutcome,
+    RunState,
 )
 from managed_research.models.run_timeline import (
     SmrBranchMode,
@@ -99,11 +106,6 @@ from managed_research.models.smr_actor_models import (
     SmrReviewerSubtype,
     SmrWorkerSubtype,
 )
-from managed_research.models.smr_roles import (
-    RoleBinding,
-    SmrRoleBindings,
-    WorkerRolePalette,
-)
 from managed_research.models.smr_agent_harnesses import SmrAgentHarness
 from managed_research.models.smr_agent_kinds import SmrAgentKind
 from managed_research.models.smr_agent_models import SmrAgentModel
@@ -113,15 +115,20 @@ from managed_research.models.smr_funding_sources import SmrFundingSource
 from managed_research.models.smr_host_kinds import SmrHostKind
 from managed_research.models.smr_network_topology import SmrNetworkTopology
 from managed_research.models.smr_providers import (
+    ActorResourceCapability,
     OpenRouterConfig,
     Provider,
     ProviderBinding,
-    ActorResourceCapability,
     SynthAIConfig,
     TinkerConfig,
     UsageLimit,
 )
 from managed_research.models.smr_resource_kinds import SmrResourceKind
+from managed_research.models.smr_roles import (
+    RoleBinding,
+    SmrRoleBindings,
+    WorkerRolePalette,
+)
 from managed_research.models.smr_run_policy import (
     SmrRunPolicy,
     SmrRunPolicyAccess,
@@ -282,7 +289,12 @@ __all__ = [
     "SmrRoleBindings",
     "SmrRunnableProjectRequest",
     "SmrRuntimeKind",
+    "SmrRunActorLogEvent",
+    "SmrRunActorLogs",
     "SmrRunActorUsage",
+    "SmrRunArtifactProgress",
+    "SmrRunCostSummary",
+    "SmrRunMeterCost",
     "SmrRunCostTotals",
     "SmrRunPolicy",
     "SmrRunPolicyAccess",
@@ -316,6 +328,8 @@ __all__ = [
     "SmrLogicalTimeline",
     "SmrLogicalTimelineNode",
     "SmrActorUsageSummary",
+    "SmrRunParticipant",
+    "SmrRunParticipants",
     "SemanticProgressSnapshot",
     "SmrRunBranchRequest",
     "SmrRunBranchResponse",
