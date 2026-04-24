@@ -1011,6 +1011,22 @@ class ManagedResearchMcpServer:
                 return client.get_project_run_traces(project_id, run_id)
             return client.get_run_traces(run_id)
 
+    def _tool_get_run_actor_trace(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        actor_key = require_string(args, "actor_key")
+        with self._client_from_args(args) as client:
+            return client.get_project_run_actor_trace(
+                project_id,
+                run_id,
+                actor_key,
+                cursor=optional_string(args, "cursor"),
+                live_cursor=optional_string(args, "live_cursor"),
+                limit=optional_int(args, "limit"),
+                include_live=optional_bool(args, "include_live"),
+                include_traces=optional_bool(args, "include_traces"),
+            )
+
     def _tool_get_run_actor_usage(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
         project_id = optional_string(args, "project_id")

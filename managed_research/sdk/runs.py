@@ -771,6 +771,20 @@ class RunsAPI(_ClientNamespace):
             **kwargs,
         )
 
+    def actor_trace(
+        self,
+        project_id: str,
+        run_id: str,
+        actor_key: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return self._client.get_project_run_actor_trace(
+            project_id,
+            run_id,
+            actor_key,
+            **kwargs,
+        )
+
     def cost_summary(self, run_id: str) -> SmrRunCostSummary:
         return self._client.get_run_cost_summary(run_id)
 

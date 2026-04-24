@@ -2946,6 +2946,34 @@ class ManagedResearchClient:
         )
         return SmrRunTraces.from_wire(payload)
 
+    def get_project_run_actor_trace(
+        self,
+        project_id: str,
+        run_id: str,
+        actor_key: str,
+        *,
+        cursor: str | None = None,
+        live_cursor: str | None = None,
+        limit: int | None = None,
+        include_live: bool | None = None,
+        include_traces: bool | None = None,
+    ) -> dict[str, Any]:
+        params = build_query_params(
+            cursor=cursor,
+            live_cursor=live_cursor,
+            limit=limit,
+            include_live=include_live,
+            include_traces=include_traces,
+        )
+        return _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/runs/{run_id}/actors/{actor_key}/trace",
+                params=params,
+            ),
+            label="get_project_run_actor_trace",
+        )
+
     def get_run_actor_usage(self, run_id: str) -> SmrRunActorUsage:
         payload = _coerce_dict(
             self._request_json(

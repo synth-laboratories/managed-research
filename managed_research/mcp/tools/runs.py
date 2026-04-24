@@ -361,6 +361,50 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_get_run_traces,
         ),
         ToolDefinition(
+            name="smr_get_run_actor_trace",
+            description=(
+                "Read privileged actor-scoped trace activity for one run actor. "
+                "Returns persisted transcript events, optional live transcript events "
+                "after live_cursor, and completed raw-session trace artifact references "
+                "when available."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Managed research project id.",
+                    },
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "actor_key": {
+                        "type": "string",
+                        "description": "Stable actor key, for example orchestrator-1.",
+                    },
+                    "cursor": {
+                        "type": "string",
+                        "description": "Persisted transcript pagination cursor.",
+                    },
+                    "live_cursor": {
+                        "type": "string",
+                        "description": "Redis live cursor returned by a previous response.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum transcript events to inspect per source.",
+                    },
+                    "include_live": {
+                        "type": "boolean",
+                        "description": "Whether to include live events after live_cursor.",
+                    },
+                    "include_traces": {
+                        "type": "boolean",
+                        "description": "Whether to include completed raw trace artifact references.",
+                    },
+                },
+                required=["project_id", "run_id", "actor_key"],
+            ),
+            handler=server._tool_get_run_actor_trace,
+        ),
+        ToolDefinition(
             name="smr_get_run_actor_usage",
             description=(
                 "Read actor-centric usage for a run. "

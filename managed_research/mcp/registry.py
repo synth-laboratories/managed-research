@@ -72,6 +72,7 @@ _DEFAULT_REQUIRED_SCOPES_BY_TOOL_NAME: dict[str, tuple[str, ...]] = {
     "smr_get_run": READ_SCOPES,
     "smr_get_run_logical_timeline": READ_SCOPES,
     "smr_get_run_traces": READ_SCOPES,
+    "smr_get_run_actor_trace": READ_SCOPES,
     "smr_get_run_actor_usage": READ_SCOPES,
     "smr_list_run_participants": READ_SCOPES,
     "smr_get_run_artifact_progress": READ_SCOPES,
