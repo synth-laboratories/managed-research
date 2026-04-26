@@ -6133,8 +6133,7 @@ paths:
       tags:
       - smr
       summary: List Jobs
-      description: Org-level jobs feed for Managed Research runs, optionally scoped
-        to a project.
+      description: Org-level jobs feed for SMR runs, optionally scoped to a project.
       operationId: list_jobs_smr_jobs_get
       parameters:
       - name: project_id
@@ -11404,7 +11403,7 @@ paths:
       tags:
       - smr
       summary: Get Agent Models
-      description: Return the backend-owned public Managed Research agent-model catalog.
+      description: Return the backend-owned public SMR agent-model catalog.
       operationId: get_agent_models_smr_agent_models_get
       responses:
         '200':
@@ -14234,7 +14233,7 @@ paths:
       description: 'Return the immutable config snapshot referenced by a run.
 
 
-        This is required for deterministic data-plane execution (harness/dataset/reviewer
+        This is required for deterministic data-plane execution (harness/dataset/verifier
         selection,
 
         policy settings, etc.) while keeping the control plane as the source of truth.
@@ -16568,7 +16567,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Environments
-      operationId: proxy_environments_api_managed_agents_anthropic_v1_environments_get
+      operationId: proxy_environments_api_managed_agents_anthropic_v1_environments_post
       responses:
         '200':
           description: Successful Response
@@ -16579,7 +16578,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Environments
-      operationId: proxy_environments_api_managed_agents_anthropic_v1_environments_get__post__1
+      operationId: proxy_environments_api_managed_agents_anthropic_v1_environments_post__post__1
       responses:
         '200':
           description: Successful Response
@@ -16591,7 +16590,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Environments Environment Id
-      operationId: proxy_environments_environment_id_api_managed_agents_anthropic_v1_environments__environment_id__get
+      operationId: proxy_environments_environment_id_api_managed_agents_anthropic_v1_environments__environment_id__post
       responses:
         '200':
           description: Successful Response
@@ -16602,7 +16601,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Environments Environment Id
-      operationId: proxy_environments_environment_id_api_managed_agents_anthropic_v1_environments__environment_id__get__post__1
+      operationId: proxy_environments_environment_id_api_managed_agents_anthropic_v1_environments__environment_id__post__post__1
       responses:
         '200':
           description: Successful Response
@@ -16626,7 +16625,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Agents
-      operationId: proxy_agents_api_managed_agents_anthropic_v1_agents_get
+      operationId: proxy_agents_api_managed_agents_anthropic_v1_agents_post
       responses:
         '200':
           description: Successful Response
@@ -16637,7 +16636,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Agents
-      operationId: proxy_agents_api_managed_agents_anthropic_v1_agents_get__post__1
+      operationId: proxy_agents_api_managed_agents_anthropic_v1_agents_post__post__1
       responses:
         '200':
           description: Successful Response
@@ -16649,7 +16648,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Agents Agent Id
-      operationId: proxy_agents_agent_id_api_managed_agents_anthropic_v1_agents__agent_id__get
+      operationId: proxy_agents_agent_id_api_managed_agents_anthropic_v1_agents__agent_id__post
       responses:
         '200':
           description: Successful Response
@@ -16660,7 +16659,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Agents Agent Id
-      operationId: proxy_agents_agent_id_api_managed_agents_anthropic_v1_agents__agent_id__get__post__1
+      operationId: proxy_agents_agent_id_api_managed_agents_anthropic_v1_agents__agent_id__post__post__1
       responses:
         '200':
           description: Successful Response
@@ -16684,7 +16683,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions
-      operationId: proxy_sessions_api_managed_agents_anthropic_v1_sessions_get
+      operationId: proxy_sessions_api_managed_agents_anthropic_v1_sessions_post
       responses:
         '200':
           description: Successful Response
@@ -16695,7 +16694,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions
-      operationId: proxy_sessions_api_managed_agents_anthropic_v1_sessions_get__post__1
+      operationId: proxy_sessions_api_managed_agents_anthropic_v1_sessions_post__post__1
       responses:
         '200':
           description: Successful Response
@@ -16707,7 +16706,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions Session Id
-      operationId: proxy_sessions_session_id_api_managed_agents_anthropic_v1_sessions__session_id__get
+      operationId: proxy_sessions_session_id_api_managed_agents_anthropic_v1_sessions__session_id__post
       responses:
         '200':
           description: Successful Response
@@ -16718,7 +16717,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions Session Id
-      operationId: proxy_sessions_session_id_api_managed_agents_anthropic_v1_sessions__session_id__get__post__1
+      operationId: proxy_sessions_session_id_api_managed_agents_anthropic_v1_sessions__session_id__post__post__1
       responses:
         '200':
           description: Successful Response
@@ -16742,7 +16741,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions Session Id Events
-      operationId: proxy_sessions_session_id_events_api_managed_agents_anthropic_v1_sessions__session_id__events_get
+      operationId: proxy_sessions_session_id_events_api_managed_agents_anthropic_v1_sessions__session_id__events_post
       responses:
         '200':
           description: Successful Response
@@ -16753,7 +16752,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions Session Id Events
-      operationId: proxy_sessions_session_id_events_api_managed_agents_anthropic_v1_sessions__session_id__events_get__post__1
+      operationId: proxy_sessions_session_id_events_api_managed_agents_anthropic_v1_sessions__session_id__events_post__post__1
       responses:
         '200':
           description: Successful Response
@@ -16884,7 +16883,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__get
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__post
       responses:
         '200':
           description: Successful Response
@@ -16895,7 +16894,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__get__post__1
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__post__post__1
       responses:
         '200':
           description: Successful Response
@@ -16906,7 +16905,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__get__delete__2
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__post__delete__2
       responses:
         '200':
           description: Successful Response
@@ -16918,7 +16917,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id Items
-      operationId: proxy_openai_conversations_conversation_id_items_api_managed_agents_openai_v1_conversations__conversation_id__items_get
+      operationId: proxy_openai_conversations_conversation_id_items_api_managed_agents_openai_v1_conversations__conversation_id__items_post
       responses:
         '200':
           description: Successful Response
@@ -16929,7 +16928,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id Items
-      operationId: proxy_openai_conversations_conversation_id_items_api_managed_agents_openai_v1_conversations__conversation_id__items_get__post__1
+      operationId: proxy_openai_conversations_conversation_id_items_api_managed_agents_openai_v1_conversations__conversation_id__items_post__post__1
       responses:
         '200':
           description: Successful Response
@@ -16960,101 +16959,41 @@ paths:
             application/json:
               schema: {}
   /s/{route_token}/{path}:
-    put:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__put
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    options:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__put__options__1
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    delete:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__put__delete__2
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
     get:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__put__get__3
+      operationId: synthtunnel_gateway_s__route_token___path__get
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__get__put__1
       parameters:
       - name: route_token
         in: path
@@ -17084,7 +17023,7 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__put__patch__4
+      operationId: synthtunnel_gateway_s__route_token___path__get__patch__2
       parameters:
       - name: route_token
         in: path
@@ -17114,7 +17053,67 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__put__post__5
+      operationId: synthtunnel_gateway_s__route_token___path__get__post__3
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__get__delete__4
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    options:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__get__options__5
       parameters:
       - name: route_token
         in: path
@@ -17873,7 +17872,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/app__api__v1__admin__UsageSummaryResponse'
+                $ref: '#/components/schemas/UsageSummaryResponse'
         '422':
           description: Validation Error
           content:
@@ -19717,71 +19716,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
   /api/inference/{path}:
-    put:
-      summary: Catch All Inference
-      description: 'Catch-all route to log unmatched inference requests.
-
-
-        This helps debug what URLs agent SDKs are actually calling.'
-      operationId: catch_all_inference_api_inference__path__put
-      parameters:
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: true
-                title: Response Catch All Inference Api Inference  Path  Put
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    delete:
-      summary: Catch All Inference
-      description: 'Catch-all route to log unmatched inference requests.
-
-
-        This helps debug what URLs agent SDKs are actually calling.'
-      operationId: catch_all_inference_api_inference__path__put__delete__1
-      parameters:
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: true
-                title: Response Catch All Inference Api Inference  Path  Put
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
     get:
       summary: Catch All Inference
       description: 'Catch-all route to log unmatched inference requests.
 
 
         This helps debug what URLs agent SDKs are actually calling.'
-      operationId: catch_all_inference_api_inference__path__put__get__2
+      operationId: catch_all_inference_api_inference__path__get
       parameters:
       - name: path
         in: path
@@ -19797,7 +19738,36 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Catch All Inference Api Inference  Path  Put
+                title: Response Catch All Inference Api Inference  Path  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      summary: Catch All Inference
+      description: 'Catch-all route to log unmatched inference requests.
+
+
+        This helps debug what URLs agent SDKs are actually calling.'
+      operationId: catch_all_inference_api_inference__path__get__put__1
+      parameters:
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Catch All Inference Api Inference  Path  Get
         '422':
           description: Validation Error
           content:
@@ -19810,7 +19780,7 @@ paths:
 
 
         This helps debug what URLs agent SDKs are actually calling.'
-      operationId: catch_all_inference_api_inference__path__put__patch__3
+      operationId: catch_all_inference_api_inference__path__get__patch__2
       parameters:
       - name: path
         in: path
@@ -19826,7 +19796,7 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Catch All Inference Api Inference  Path  Put
+                title: Response Catch All Inference Api Inference  Path  Get
         '422':
           description: Validation Error
           content:
@@ -19839,7 +19809,7 @@ paths:
 
 
         This helps debug what URLs agent SDKs are actually calling.'
-      operationId: catch_all_inference_api_inference__path__put__post__4
+      operationId: catch_all_inference_api_inference__path__get__post__3
       parameters:
       - name: path
         in: path
@@ -19855,7 +19825,36 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Catch All Inference Api Inference  Path  Put
+                title: Response Catch All Inference Api Inference  Path  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      summary: Catch All Inference
+      description: 'Catch-all route to log unmatched inference requests.
+
+
+        This helps debug what URLs agent SDKs are actually calling.'
+      operationId: catch_all_inference_api_inference__path__get__delete__4
+      parameters:
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Catch All Inference Api Inference  Path  Get
         '422':
           description: Validation Error
           content:
@@ -22148,61 +22147,36 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
   /api/policy-optimization/online/{path}:
-    put:
-      tags:
-      - policy-optimization-online
-      summary: Policy Optimization Proxy
-      operationId: policy_optimization_proxy_api_policy_optimization_online__path__put
-      deprecated: true
-      parameters:
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    delete:
-      tags:
-      - policy-optimization-online
-      summary: Policy Optimization Proxy
-      operationId: policy_optimization_proxy_api_policy_optimization_online__path__put__delete__1
-      deprecated: true
-      parameters:
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
     get:
       tags:
       - policy-optimization-online
       summary: Policy Optimization Proxy
-      operationId: policy_optimization_proxy_api_policy_optimization_online__path__put__get__2
+      operationId: policy_optimization_proxy_api_policy_optimization_online__path__get
+      deprecated: true
+      parameters:
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - policy-optimization-online
+      summary: Policy Optimization Proxy
+      operationId: policy_optimization_proxy_api_policy_optimization_online__path__get__put__1
       deprecated: true
       parameters:
       - name: path
@@ -22227,7 +22201,7 @@ paths:
       tags:
       - policy-optimization-online
       summary: Policy Optimization Proxy
-      operationId: policy_optimization_proxy_api_policy_optimization_online__path__put__patch__3
+      operationId: policy_optimization_proxy_api_policy_optimization_online__path__get__patch__2
       deprecated: true
       parameters:
       - name: path
@@ -22252,7 +22226,32 @@ paths:
       tags:
       - policy-optimization-online
       summary: Policy Optimization Proxy
-      operationId: policy_optimization_proxy_api_policy_optimization_online__path__put__post__4
+      operationId: policy_optimization_proxy_api_policy_optimization_online__path__get__post__3
+      deprecated: true
+      parameters:
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - policy-optimization-online
+      summary: Policy Optimization Proxy
+      operationId: policy_optimization_proxy_api_policy_optimization_online__path__get__delete__4
       deprecated: true
       parameters:
       - name: path
@@ -36758,9 +36757,9 @@ components:
           type: integer
           title: Available Model File Count
           default: 0
-        available_reviewer_file_count:
+        available_verifier_file_count:
           type: integer
-          title: Available Reviewer File Count
+          title: Available Verifier File Count
           default: 0
         available_repository_count:
           type: integer
@@ -37939,7 +37938,7 @@ components:
           minLength: 1
           title: Pool Id
           description: Concrete backing pool for the reusable RuntimeImageRelease
-            row. Defaults to the shared Managed Research pool.
+            row. Defaults to the shared SMR pool.
           default: default
         release_metadata:
           additionalProperties: true
@@ -39857,7 +39856,7 @@ components:
           type: object
           title: Actor Image Overrides
           description: Optional per-role runtime image release overrides keyed by
-            orchestrator, worker, reviewer, evaluator, or judge.
+            orchestrator, worker, verifier, evaluator, or judge.
         image_override:
           anyOf:
           - $ref: '#/components/schemas/SmrActorImageBindingRequest'
@@ -39947,7 +39946,8 @@ components:
       - provider
       - funding_source
       title: SmrProviderKeySetRequest
-      description: 'Set a Managed Research provider API key in Infisical.
+      description: 'Set a provider API key for SMR, stored in Infisical (control-plane
+        bridge).
 
 
         Spec:
@@ -47011,7 +47011,7 @@ components:
         entitlements:
           $ref: '#/components/schemas/BillingEntitlementSnapshot'
         usage_summary:
-          $ref: '#/components/schemas/UsageSummaryResponse'
+          $ref: '#/components/schemas/app__api__v1__routes_usage_overview__UsageSummaryResponse'
         spend_summary:
           $ref: '#/components/schemas/SpendSummaryResponse'
         sources:
@@ -47233,81 +47233,32 @@ components:
             used: 2400
     UsageSummaryResponse:
       properties:
-        total_nominal_usd:
+        org_id:
+          type: string
+          title: Org Id
+        date_range:
+          type: string
+          title: Date Range
+        total_cost_cents:
+          type: integer
+          title: Total Cost Cents
+        total_cost_dollars:
           type: number
-          title: Total Nominal Usd
-        total_cost_usd:
+          title: Total Cost Dollars
+        gpu_events_count:
+          type: integer
+          title: Gpu Events Count
+        total_gpu_seconds:
           type: number
-          title: Total Cost Usd
-        total_charged_usd:
-          type: number
-          title: Total Charged Usd
-        total_internal_cost_usd:
-          type: number
-          title: Total Internal Cost Usd
-        by_type:
-          items:
-            $ref: '#/components/schemas/UsageByTypeResponse'
-          type: array
-          title: By Type
-        by_job:
-          items:
-            additionalProperties:
-              type: string
-            type: object
-          type: array
-          title: By Job
-        by_project:
-          items:
-            $ref: '#/components/schemas/UsageByProjectResponse'
-          type: array
-          title: By Project
-        by_source_type:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Source Type
-        by_source_subtype:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Source Subtype
-        by_source_provider:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Source Provider
-        by_funding_lane:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Funding Lane
-        by_execution_path:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Execution Path
-        by_actor:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Actor
-        by_billing_route:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Billing Route
-        by_pricing_policy:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Pricing Policy
+          title: Total Gpu Seconds
       type: object
       required:
-      - total_nominal_usd
-      - total_cost_usd
-      - total_charged_usd
-      - total_internal_cost_usd
+      - org_id
+      - date_range
+      - total_cost_cents
+      - total_cost_dollars
+      - gpu_events_count
+      - total_gpu_seconds
       title: UsageSummaryResponse
     UsageType:
       type: string
@@ -47673,35 +47624,6 @@ components:
       required:
       - commit_sha
       title: WorkspaceConfirmPushRequest
-    app__api__v1__admin__UsageSummaryResponse:
-      properties:
-        org_id:
-          type: string
-          title: Org Id
-        date_range:
-          type: string
-          title: Date Range
-        total_cost_cents:
-          type: integer
-          title: Total Cost Cents
-        total_cost_dollars:
-          type: number
-          title: Total Cost Dollars
-        gpu_events_count:
-          type: integer
-          title: Gpu Events Count
-        total_gpu_seconds:
-          type: number
-          title: Total Gpu Seconds
-      type: object
-      required:
-      - org_id
-      - date_range
-      - total_cost_cents
-      - total_cost_dollars
-      - gpu_events_count
-      - total_gpu_seconds
-      title: UsageSummaryResponse
     app__api__v1__routes_balance__UsageSummaryResponse:
       properties:
         org_id:
@@ -47741,6 +47663,84 @@ components:
       - status
       title: HealthResponse
       description: Health check response model.
+    app__api__v1__routes_usage_overview__UsageSummaryResponse:
+      properties:
+        total_nominal_usd:
+          type: number
+          title: Total Nominal Usd
+        total_cost_usd:
+          type: number
+          title: Total Cost Usd
+        total_charged_usd:
+          type: number
+          title: Total Charged Usd
+        total_internal_cost_usd:
+          type: number
+          title: Total Internal Cost Usd
+        by_type:
+          items:
+            $ref: '#/components/schemas/UsageByTypeResponse'
+          type: array
+          title: By Type
+        by_job:
+          items:
+            additionalProperties:
+              type: string
+            type: object
+          type: array
+          title: By Job
+        by_project:
+          items:
+            $ref: '#/components/schemas/UsageByProjectResponse'
+          type: array
+          title: By Project
+        by_source_type:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Source Type
+        by_source_subtype:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Source Subtype
+        by_source_provider:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Source Provider
+        by_funding_lane:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Funding Lane
+        by_execution_path:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Execution Path
+        by_actor:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Actor
+        by_billing_route:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Billing Route
+        by_pricing_policy:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Pricing Policy
+      type: object
+      required:
+      - total_nominal_usd
+      - total_cost_usd
+      - total_charged_usd
+      - total_internal_cost_usd
+      title: UsageSummaryResponse
     app__routes__api__rlms__generation__SessionTraceInput:
       properties:
         session_id:
