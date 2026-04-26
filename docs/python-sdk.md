@@ -3,7 +3,7 @@
 `ManagedResearchClient` is the canonical Python entrypoint:
 
 ```python
-from managed_research import ManagedResearchClient
+from managed_research import ManagedResearchClient, ProjectSelector
 
 client = ManagedResearchClient(api_key="sk_...")
 ```
@@ -35,7 +35,7 @@ run = project.runs.start(
 )
 ```
 
-## One-Off Default Project Flow
+## Misc Default Project Flow
 
 ```python
 run = client.runs.start(
@@ -47,6 +47,8 @@ run = client.runs.start(
 ```
 
 This route resolves the caller's default miscellaneous project automatically.
+Pass `project_id=` or `project=ProjectSelector.from_project_id(...)` to route a
+run to a specific existing project instead.
 
 ## Launch Controls
 

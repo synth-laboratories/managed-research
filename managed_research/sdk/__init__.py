@@ -61,6 +61,17 @@ from managed_research.models.run_observability import (
     ActorSnapshot,
     CandidatePublicationOutcome,
     CandidatePublicationView,
+    ManagedResearchRunContract,
+    ManagedResearchRunContractArtifacts,
+    ManagedResearchRunContractContainerEvalPackages,
+    ManagedResearchRunContractDiagnostics,
+    ManagedResearchRunContractExecutionRoute,
+    ManagedResearchRunContractFinalization,
+    ManagedResearchRunContractIncidents,
+    ManagedResearchRunContractLifecycle,
+    ManagedResearchRunContractRecovery,
+    ManagedResearchRunContractTasks,
+    ManagedResearchRunContractTrainedModels,
     RunAnomaly,
     RunAnomalyKind,
     RunLifecycleDispatch,
@@ -153,6 +164,11 @@ from managed_research.models.types import (
     SmrProjectSetupStatus,
     SmrRunnableProjectRequest,
 )
+from managed_research.models.work_products import (
+    ManagedResearchContainerEvalPackage,
+    ManagedResearchRunWorkProduct,
+    ManagedResearchWorkProductExport,
+)
 from managed_research.sdk.approvals import ApprovalsAPI
 from managed_research.sdk.client import (
     ACTIVE_RUN_STATES,
@@ -180,9 +196,10 @@ from managed_research.sdk.prs import PrsAPI
 from managed_research.sdk.readiness import ReadinessAPI
 from managed_research.sdk.repos import ReposAPI
 from managed_research.sdk.repositories import RepositoriesAPI
-from managed_research.sdk.runs import RunHandle, RunsAPI
+from managed_research.sdk.runs import MISC_PROJECT_ID, ProjectSelector, RunHandle, RunsAPI
 from managed_research.sdk.setup import SetupAPI
 from managed_research.sdk.usage import UsageAPI
+from managed_research.sdk.work_products import WorkProductsAPI
 from managed_research.sdk.workspace_inputs import WorkspaceInputsAPI
 
 __all__ = [
@@ -228,6 +245,18 @@ __all__ = [
     "ManagedResearchProjectClient",
     "ManagedResearchProject",
     "ManagedResearchRun",
+    "ManagedResearchRunContract",
+    "ManagedResearchRunContractArtifacts",
+    "ManagedResearchRunContractContainerEvalPackages",
+    "ManagedResearchRunContractDiagnostics",
+    "ManagedResearchRunContractExecutionRoute",
+    "ManagedResearchRunContractFinalization",
+    "ManagedResearchRunContractIncidents",
+    "ManagedResearchRunContractLifecycle",
+    "ManagedResearchRunContractRecovery",
+    "ManagedResearchRunContractTasks",
+    "ManagedResearchRunContractTrainedModels",
+    "ManagedResearchRunWorkProduct",
     "ManagedResearchRunControlAck",
     "ManagedResearchRunControlEnqueueStatus",
     "ManagedResearchRunLivePhase",
@@ -339,6 +368,9 @@ __all__ = [
     "TaskSnapshot",
     "UsageAPI",
     "WorkspaceInputsAPI",
+    "WorkProductsAPI",
+    "ManagedResearchContainerEvalPackage",
+    "ManagedResearchWorkProductExport",
     "first_id",
 ]
 
@@ -348,6 +380,12 @@ __all__ = [
     "ProjectsAPI",
     "RunsAPI",
     "RunHandle",
+    "ProjectSelector",
+    "MISC_PROJECT_ID",
+    "WorkProductsAPI",
+    "ManagedResearchRunWorkProduct",
+    "ManagedResearchContainerEvalPackage",
+    "ManagedResearchWorkProductExport",
     "LaunchPreflight",
     "ProjectReadiness",
     "ProjectSetupAuthority",

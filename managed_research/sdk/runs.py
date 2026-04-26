@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -20,6 +21,7 @@ from managed_research.models.run_diagnostics import (
     SmrRunTraces,
 )
 from managed_research.models.run_observability import (
+    ManagedResearchRunContract,
     RunObservabilitySnapshot,
     RunObservationCursor,
 )
@@ -44,6 +46,52 @@ from managed_research.models.smr_providers import (
 from managed_research.models.smr_work_modes import SmrWorkMode
 from managed_research.models.types import RunArtifact, RunArtifactManifest
 from managed_research.sdk._base import _ClientNamespace
+from managed_research.sdk.config import DEFAULT_MISC_PROJECT_ALIAS
+
+
+MISC_PROJECT_ID = DEFAULT_MISC_PROJECT_ALIAS
+
+
+@dataclass(frozen=True, slots=True)
+class ProjectSelector:
+    """Explicit run launch project selector.
+
+    The backend accepts real project ids plus the default Misc aliases. Project names
+    should be resolved by callers before launch so a typo cannot silently create the
+    wrong routing decision.
+    """
+
+    project_id: str = MISC_PROJECT_ID
+
+    def __post_init__(self) -> None:
+        if not str(self.project_id or "").strip():
+            raise ValueError("project_id is required")
+
+    @classmethod
+    def misc(cls) -> "ProjectSelector":
+        return cls(MISC_PROJECT_ID)
+
+    @classmethod
+    def from_project_id(cls, project_id: str) -> "ProjectSelector":
+        return cls(str(project_id or "").strip())
+
+
+def _resolve_project_selector(
+    project_id: str | None = None,
+    *,
+    project: ProjectSelector | str | None = None,
+) -> ProjectSelector:
+    if project_id is not None and project is not None:
+        raise ValueError("pass either project_id or project, not both")
+    if isinstance(project, ProjectSelector):
+        return project
+    if project is not None:
+        if not isinstance(project, str):
+            raise TypeError("project must be a ProjectSelector or project id string")
+        return ProjectSelector.from_project_id(project)
+    if project_id is not None:
+        return ProjectSelector.from_project_id(project_id)
+    return ProjectSelector.misc()
 
 
 class RunHandle:
@@ -82,21 +130,38 @@ class RunHandle:
         deadline = time.monotonic() + timeout if timeout is not None else None
         while True:
             try:
-                run = self.get()
+                contract = self.contract()
             except httpx.TransportError as exc:
                 raise SmrApiError(f"Network error while polling run {self.run_id}: {exc}") from exc
-            if run.state.is_terminal:
-                if raise_if_failed and run.state.value in {"failed", "blocked"}:
-                    msg = (
-                        run.stop_reason_message
-                        or run.stop_reason
-                        or f"run {self.run_id} ended in state {run.state.value}"
+            if contract.terminal:
+                if raise_if_failed and contract.state.value in {"failed", "blocked"}:
+                    msg = self.explain_blocker() or (
+                        f"run {self.run_id} ended in state {contract.state.value}"
                     )
                     raise SmrApiError(msg, status_code=None)
-                return run
+                return self.get()
             if deadline is not None and time.monotonic() >= deadline:
                 raise TimeoutError(f"run {self.run_id} did not complete within {timeout}s")
             time.sleep(poll_interval)
+
+    def contract(self) -> ManagedResearchRunContract:
+        return self._client.get_run_contract(self.project_id, self.run_id)
+
+    def wait_terminal(
+        self,
+        *,
+        timeout: float | None = None,
+        poll_interval: float = 10.0,
+    ) -> ManagedResearchRunContract:
+        return self._client.runs.wait_for_run_terminal(
+            self.project_id,
+            self.run_id,
+            timeout=timeout,
+            poll_interval=poll_interval,
+        )
+
+    def explain_blocker(self) -> str | None:
+        return self._client.runs.explain_run_blocker(self.project_id, self.run_id)
 
     @property
     def host_kind(self) -> SmrHostKind | None:
@@ -209,6 +274,46 @@ class RunHandle:
 
     def traces(self) -> SmrRunTraces:
         return self._client.get_project_run_traces(self.project_id, self.run_id)
+
+    def actor_inventory(self) -> dict[str, Any]:
+        return self._client.get_project_run_actor_trace_index(self.project_id, self.run_id)
+
+    def actor_trace(self, actor_key: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.get_project_run_actor_trace(
+            self.project_id,
+            self.run_id,
+            actor_key,
+            **kwargs,
+        )
+
+    def actor_raw_traces(self, actor_key: str) -> list[dict[str, Any]]:
+        return self._client.get_project_run_actor_raw_traces(
+            self.project_id,
+            self.run_id,
+            actor_key,
+        )
+
+    def raw_trace_events(self, artifact_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.get_project_run_raw_trace_events(
+            self.project_id,
+            self.run_id,
+            artifact_id,
+            **kwargs,
+        )
+
+    def download_raw_trace(
+        self,
+        artifact_id: str,
+        destination: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return self._client.download_project_run_raw_trace(
+            self.project_id,
+            self.run_id,
+            artifact_id,
+            destination,
+            **kwargs,
+        )
 
     def actor_usage(self) -> SmrRunActorUsage:
         return self._client.get_project_run_actor_usage(self.project_id, self.run_id)
@@ -393,27 +498,43 @@ class RunsAPI(_ClientNamespace):
     def _handle(self, project_id: str, run_id: str) -> RunHandle:
         return RunHandle(self._client, project_id, run_id)
 
-    def trigger(self, project_id: str, **kwargs: Any) -> dict[str, Any]:
-        return self._client.trigger_run(project_id, **kwargs)
+    def launch_preflight(
+        self,
+        project_id: str | None = None,
+        *,
+        project: ProjectSelector | str | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        selector = _resolve_project_selector(project_id, project=project)
+        return self._client.get_launch_preflight(selector.project_id, **kwargs)
+
+    def trigger(
+        self,
+        project_id: str | None = None,
+        *,
+        project: ProjectSelector | str | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        selector = _resolve_project_selector(project_id, project=project)
+        return self._client.trigger_run(selector.project_id, **kwargs)
 
     def start(
         self,
         objective: str,
         *,
         project_id: str | None = None,
+        project: ProjectSelector | str | None = None,
         **kwargs: Any,
     ) -> RunHandle:
         objective_text = str(objective or "").strip()
         if not objective_text:
             raise ValueError("objective is required")
+        selector = _resolve_project_selector(project_id, project=project)
         initial_runtime_messages = list(kwargs.pop("initial_runtime_messages", ()) or ())
         initial_runtime_messages.append({"body": objective_text, "mode": "queue"})
         payload = dict(kwargs)
         payload["initial_runtime_messages"] = initial_runtime_messages
-        if project_id is None:
-            wire = self._client.trigger_one_off_run(**payload)
-        else:
-            wire = self._client.trigger_run(project_id, **payload)
+        wire = self._client.trigger_run(selector.project_id, **payload)
         run = ManagedResearchRun.from_wire(wire)
         return RunHandle(self._client, run.project_id, run.run_id)
 
@@ -422,9 +543,10 @@ class RunsAPI(_ClientNamespace):
         objective: str,
         *,
         project_id: str | None = None,
+        project: ProjectSelector | str | None = None,
         **kwargs: Any,
     ) -> RunHandle:
-        return self.start(objective, project_id=project_id, **kwargs)
+        return self.start(objective, project_id=project_id, project=project, **kwargs)
 
     def list(
         self, project_id: str, *, active_only: bool = False, **kwargs: Any
@@ -466,6 +588,7 @@ class RunsAPI(_ClientNamespace):
         project_id: str,
         run_id: str,
         *,
+        detail_level: str = "full",
         event_limit: int = 100,
         actor_limit: int = 25,
         task_limit: int = 50,
@@ -476,6 +599,7 @@ class RunsAPI(_ClientNamespace):
         return self._client.get_run_observability_snapshot(
             project_id,
             run_id,
+            detail_level=detail_level,
             event_limit=event_limit,
             actor_limit=actor_limit,
             task_limit=task_limit,
@@ -484,12 +608,82 @@ class RunsAPI(_ClientNamespace):
             message_limit=message_limit,
         )
 
+    def get_run_contract(
+        self,
+        project_id: str,
+        run_id: str,
+    ) -> ManagedResearchRunContract:
+        return self._client.get_run_contract(project_id, run_id)
+
+    def wait_for_run_terminal(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        timeout: float | None = None,
+        poll_interval: float = 10.0,
+    ) -> ManagedResearchRunContract:
+        if poll_interval <= 0:
+            raise ValueError("poll_interval must be greater than 0")
+        if timeout is not None and timeout < 0:
+            raise ValueError("timeout must be non-negative when provided")
+        deadline = time.monotonic() + timeout if timeout is not None else None
+        while True:
+            contract = self.get_run_contract(project_id, run_id)
+            if contract.terminal:
+                return contract
+            if deadline is not None and time.monotonic() >= deadline:
+                blocker = self.explain_run_blocker(project_id, run_id)
+                suffix = f": {blocker}" if blocker else ""
+                raise TimeoutError(f"run {run_id} did not complete within {timeout}s{suffix}")
+            time.sleep(poll_interval)
+
+    def explain_run_blocker(self, project_id: str, run_id: str) -> str | None:
+        contract = self.get_run_contract(project_id, run_id)
+        invariant = next(
+            iter(contract.diagnostics.lifecycle_invariants),
+            None,
+        )
+        if invariant is not None:
+            detail = str(invariant.get("detail") or "").strip()
+            code = str(invariant.get("code") or "").strip()
+            return detail or code or "run lifecycle invariant failed"
+        failure = contract.diagnostics.failure_classification
+        if failure is not None:
+            code = str(failure.get("code") or "").strip()
+            detail = str(failure.get("detail") or "").strip()
+            route = failure.get("route")
+            model = str(route.get("model") or "").strip() if isinstance(route, dict) else ""
+            suffix = f" model={model}" if model else ""
+            if detail:
+                return detail
+            if code:
+                return f"{code}{suffix}"
+            return f"run failure{suffix}"
+        if contract.incidents.unresolved:
+            return (
+                f"{contract.incidents.unresolved} unresolved incident(s); "
+                f"recovery={contract.recovery.status}"
+            )
+        if contract.recovery.status not in {"none", "closed"}:
+            reason = f": {contract.recovery.reason}" if contract.recovery.reason else ""
+            return f"recovery {contract.recovery.status}{reason}"
+        if contract.finalization.status in {"required", "in_review", "blocked"}:
+            reason = f": {contract.finalization.reason}" if contract.finalization.reason else ""
+            return f"finalization {contract.finalization.status}{reason}"
+        if contract.tasks.nonterminal:
+            return f"{contract.tasks.nonterminal} nonterminal task(s)"
+        if contract.artifacts.readiness == "not_ready":
+            return "terminal artifacts are not ready"
+        return None
+
     def poll_observability_snapshot(
         self,
         project_id: str,
         run_id: str,
         *,
         cursor: RunObservationCursor | dict[str, Any] | None = None,
+        detail_level: str = "full",
         event_limit: int = 100,
         actor_limit: int = 25,
         task_limit: int = 50,
@@ -501,6 +695,7 @@ class RunsAPI(_ClientNamespace):
             project_id,
             run_id,
             cursor=cursor,
+            detail_level=detail_level,
             event_limit=event_limit,
             actor_limit=actor_limit,
             task_limit=task_limit,
@@ -785,6 +980,65 @@ class RunsAPI(_ClientNamespace):
             **kwargs,
         )
 
+    def actor_inventory(self, project_id: str, run_id: str) -> dict[str, Any]:
+        return self._client.get_project_run_actor_trace_index(project_id, run_id)
+
+    def actor_raw_traces(
+        self,
+        project_id: str,
+        run_id: str,
+        actor_key: str,
+    ) -> list[dict[str, Any]]:
+        return self._client.get_project_run_actor_raw_traces(
+            project_id,
+            run_id,
+            actor_key,
+        )
+
+    def raw_trace_events(
+        self,
+        project_id: str,
+        run_id: str,
+        artifact_id: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return self._client.get_project_run_raw_trace_events(
+            project_id,
+            run_id,
+            artifact_id,
+            **kwargs,
+        )
+
+    def raw_trace_download_url(
+        self,
+        project_id: str,
+        run_id: str,
+        artifact_id: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return self._client.create_project_run_raw_trace_download_url(
+            project_id,
+            run_id,
+            artifact_id,
+            **kwargs,
+        )
+
+    def download_raw_trace(
+        self,
+        project_id: str,
+        run_id: str,
+        artifact_id: str,
+        destination: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return self._client.download_project_run_raw_trace(
+            project_id,
+            run_id,
+            artifact_id,
+            destination,
+            **kwargs,
+        )
+
     def cost_summary(self, run_id: str) -> SmrRunCostSummary:
         return self._client.get_run_cost_summary(run_id)
 
@@ -888,4 +1142,4 @@ class RunsAPI(_ClientNamespace):
             current_cursor = next_cursor
 
 
-__all__ = ["RunHandle", "RunsAPI"]
+__all__ = ["MISC_PROJECT_ID", "ProjectSelector", "RunHandle", "RunsAPI"]

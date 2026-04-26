@@ -316,6 +316,62 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.list_project_outputs(project_id)
 
+    def _tool_list_run_work_products(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.list_run_work_products(project_id, run_id)
+
+    def _tool_get_run_work_product(self, args: JSONDict) -> Any:
+        work_product_id = require_string(args, "work_product_id")
+        with self._client_from_args(args) as client:
+            return client.get_run_work_product(work_product_id)
+
+    def _tool_export_run_work_product(self, args: JSONDict) -> Any:
+        work_product_id = require_string(args, "work_product_id")
+        destination = args.get("destination")
+        if not isinstance(destination, dict):
+            raise ValueError("destination must be an object")
+        with self._client_from_args(args) as client:
+            return client.export_run_work_product(
+                work_product_id,
+                destination=destination,
+                idempotency_key=optional_string(args, "idempotency_key"),
+            )
+
+    def _tool_explain_work_product_blocker(self, args: JSONDict) -> Any:
+        work_product_id = require_string(args, "work_product_id")
+        with self._client_from_args(args) as client:
+            return client.work_products.explain_blocker(work_product_id)
+
+    def _tool_upload_container_eval_package(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        manifest = args.get("manifest")
+        metadata = args.get("metadata")
+        if manifest is not None and not isinstance(manifest, dict):
+            raise ValueError("manifest must be an object")
+        if metadata is not None and not isinstance(metadata, dict):
+            raise ValueError("metadata must be an object")
+        with self._client_from_args(args) as client:
+            return client.work_products.upload_container_eval_package(
+                project_id,
+                run_id,
+                kind=require_string(args, "kind"),
+                name=require_string(args, "name"),
+                version=optional_string(args, "version"),
+                artifact_id=optional_string(args, "artifact_id"),
+                storage_uri=optional_string(args, "storage_uri"),
+                archive_size_bytes=optional_int(args, "archive_size_bytes"),
+                manifest=manifest or {},
+                metadata=metadata or {},
+            )
+
+    def _tool_validate_container_eval_package(self, args: JSONDict) -> Any:
+        package_id = require_string(args, "package_id")
+        with self._client_from_args(args) as client:
+            return client.work_products.validate_container_eval_package(package_id)
+
     def _tool_results_prs_list(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
@@ -971,6 +1027,13 @@ class ManagedResearchMcpServer:
             result = client.runs.get(run_id, project_id=project_id)
             return asdict(result) if is_dataclass(result) else result
 
+    def _tool_get_run_contract(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            result = client.runs.get_run_contract(project_id, run_id)
+            return asdict(result) if is_dataclass(result) else result
+
     def _tool_get_run_primary_parent(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
         with self._client_from_args(args) as client:
@@ -1025,6 +1088,55 @@ class ManagedResearchMcpServer:
                 limit=optional_int(args, "limit"),
                 include_live=optional_bool(args, "include_live"),
                 include_traces=optional_bool(args, "include_traces"),
+            )
+
+    def _tool_list_run_actor_traces(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        actor_key = optional_string(args, "actor_key")
+        with self._client_from_args(args) as client:
+            if actor_key:
+                return client.get_project_run_actor_raw_traces(project_id, run_id, actor_key)
+            return client.get_project_run_actor_trace_index(project_id, run_id)
+
+    def _tool_get_raw_trace_events(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        artifact_id = require_string(args, "artifact_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_run_raw_trace_events(
+                project_id,
+                run_id,
+                artifact_id,
+                cursor=optional_string(args, "cursor"),
+                limit=optional_int(args, "limit"),
+                redaction_mode=optional_string(args, "redaction_mode"),
+                reconstruct=optional_bool(args, "reconstruct"),
+                category=args.get("category"),
+                method=args.get("method"),
+            )
+
+    def _tool_download_raw_trace(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        artifact_id = require_string(args, "artifact_id")
+        if not optional_bool(args, "confirm_raw_download"):
+            raise ValueError("confirm_raw_download=true is required for raw trace downloads")
+        destination = optional_string(args, "destination")
+        with self._client_from_args(args) as client:
+            if destination:
+                return client.download_project_run_raw_trace(
+                    project_id,
+                    run_id,
+                    artifact_id,
+                    destination,
+                    expires_in=optional_int(args, "expires_in"),
+                )
+            return client.create_project_run_raw_trace_download_url(
+                project_id,
+                run_id,
+                artifact_id,
+                expires_in=optional_int(args, "expires_in"),
             )
 
     def _tool_get_run_actor_usage(self, args: JSONDict) -> Any:

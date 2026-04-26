@@ -10,15 +10,15 @@ uv add managed-research
 export SYNTH_API_KEY="sk_..."
 ```
 
-## 2. Start A One-Off Run
+## 2. Start A Misc Project Run
 
 Use this when you want the fastest path: one objective, one hosted worker, one
-durable run.
+durable run in the caller's Miscellaneous project.
 
 ```python
 import os
 
-from managed_research import ManagedResearchClient
+from managed_research import ManagedResearchClient, ProjectSelector
 
 client = ManagedResearchClient(api_key=os.environ["SYNTH_API_KEY"])
 
@@ -32,6 +32,10 @@ run = client.runs.start(
 print("project:", run.project_id)
 print("run:", run.run_id)
 ```
+
+Pass `project_id=` or `project=ProjectSelector.from_project_id(...)` when the run
+belongs to a specific existing project. If no project is provided, the SDK uses
+the Miscellaneous project.
 
 ## 3. Wait And Inspect
 

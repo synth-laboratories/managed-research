@@ -25,7 +25,7 @@ export SYNTH_API_KEY="sk_..."
 ```python
 import os
 
-from managed_research import ManagedResearchClient
+from managed_research import ManagedResearchClient, ProjectSelector
 
 client = ManagedResearchClient(api_key=os.environ["SYNTH_API_KEY"])
 
@@ -46,7 +46,10 @@ print("artifacts:", [artifact.title for artifact in run.artifacts()])
 ## Main Ideas
 
 - Use `ManagedResearchClient` as the Python entrypoint.
-- Use `client.runs.start(...)` for one-off runs.
+- Use `client.runs.start(...)` for runs that default to the caller's
+  Miscellaneous project.
+- Pass `project_id=` or `project=ProjectSelector.from_project_id(...)` when a
+  run belongs to a specific existing project.
 - Use `client.projects.create(...)` and `client.project(project_id)` for durable
   project-scoped work.
 - Run preflight before launch when you want structured launch blockers.

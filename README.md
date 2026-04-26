@@ -25,7 +25,7 @@ export SYNTH_API_KEY="sk_..."
 ```python
 import os
 
-from managed_research import ManagedResearchClient
+from managed_research import ManagedResearchClient, ProjectSelector
 
 client = ManagedResearchClient(api_key=os.environ["SYNTH_API_KEY"])
 
@@ -42,6 +42,11 @@ result = run.wait(timeout=60 * 60, poll_interval=15)
 print("state:", result.state.value)
 print("artifacts:", [artifact.title for artifact in run.artifacts()])
 ```
+
+`client.runs.start(...)`, `client.runs.launch(...)`, and `client.runs.trigger(...)`
+take `project_id=` or `project=ProjectSelector.from_project_id(...)` when a run
+belongs to an existing project. If no project is provided, the SDK routes the run
+to the caller's Miscellaneous project.
 
 For project-scoped work:
 
