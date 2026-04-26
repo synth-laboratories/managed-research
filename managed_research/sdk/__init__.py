@@ -38,6 +38,12 @@ from managed_research.models.local_execution_profile import (
     local_execution_payload,
     local_execution_profile_payload,
 )
+from managed_research.models.open_research_visual import (
+    OPEN_RESEARCH_VISUAL_SCHEMA_VERSION,
+    OpenResearchVisualClaim,
+    OpenResearchVisualManifest,
+    is_open_research_visual_manifest,
+)
 from managed_research.models.project import CreateRunnableResult, ManagedResearchProject
 from managed_research.models.run_control import (
     ManagedResearchRunControlAck,
@@ -167,6 +173,7 @@ from managed_research.models.types import (
 from managed_research.models.work_products import (
     ManagedResearchContainerEvalPackage,
     ManagedResearchRunWorkProduct,
+    ManagedResearchWorkProductArtifactLink,
     ManagedResearchWorkProductExport,
 )
 from managed_research.sdk.approvals import ApprovalsAPI
@@ -215,6 +222,9 @@ __all__ = [
     "OPENAI_TRANSPORT_MODE_AUTO",
     "OPENAI_TRANSPORT_MODE_BACKEND_BFF",
     "OPENAI_TRANSPORT_MODE_DIRECT_HP",
+    "OPEN_RESEARCH_VISUAL_SCHEMA_VERSION",
+    "OpenResearchVisualClaim",
+    "OpenResearchVisualManifest",
     "BillingEntitlementAsset",
     "BillingEntitlementProfile",
     "BillingEntitlementSnapshot",
@@ -257,6 +267,7 @@ __all__ = [
     "ManagedResearchRunContractTasks",
     "ManagedResearchRunContractTrainedModels",
     "ManagedResearchRunWorkProduct",
+    "ManagedResearchWorkProductArtifactLink",
     "ManagedResearchRunControlAck",
     "ManagedResearchRunControlEnqueueStatus",
     "ManagedResearchRunLivePhase",
@@ -385,6 +396,7 @@ __all__ = [
     "WorkProductsAPI",
     "ManagedResearchRunWorkProduct",
     "ManagedResearchContainerEvalPackage",
+    "ManagedResearchWorkProductArtifactLink",
     "ManagedResearchWorkProductExport",
     "LaunchPreflight",
     "ProjectReadiness",
@@ -405,4 +417,5 @@ __all__ = [
     "CheckpointScope",
     "SmrControlClient",
     "first_id",
+    "is_open_research_visual_manifest",
 ]

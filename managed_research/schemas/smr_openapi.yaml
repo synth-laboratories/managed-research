@@ -2825,6 +2825,15 @@ paths:
           - type: string
           - type: 'null'
           title: Token
+      - name: source
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: run_latest
+          title: Source
       responses:
         '200':
           description: Successful Response
@@ -4113,6 +4122,326 @@ paths:
                   $ref: '#/components/schemas/TrainedModelResponse'
                 title: Response List Trained Models For Run Smr Runs  Run Id  Trained
                   Models Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/work-products:
+    get:
+      tags:
+      - smr
+      - work_products
+      summary: List Run Work Products
+      operationId: list_run_work_products_smr_projects__project_id__runs__run_id__work_products_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RunWorkProductResponse'
+                title: Response List Run Work Products Smr Projects  Project Id  Runs  Run
+                  Id  Work Products Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/work-products/{work_product_id}:
+    get:
+      tags:
+      - smr
+      - work_products
+      summary: Get Run Work Product
+      operationId: get_run_work_product_smr_work_products__work_product_id__get
+      parameters:
+      - name: work_product_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Work Product Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunWorkProductResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/work-products/{work_product_id}/content:
+    get:
+      tags:
+      - smr
+      - work_products
+      summary: Get Run Work Product Content
+      operationId: get_run_work_product_content_smr_work_products__work_product_id__content_get
+      parameters:
+      - name: work_product_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Work Product Id
+      - name: disposition
+        in: query
+        required: false
+        schema:
+          type: string
+          pattern: ^(inline|attachment)$
+          default: inline
+          title: Disposition
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/work-products/{work_product_id}/exports:
+    post:
+      tags:
+      - smr
+      - work_products
+      summary: Export Run Work Product
+      operationId: export_run_work_product_smr_work_products__work_product_id__exports_post
+      parameters:
+      - name: work_product_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Work Product Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkProductExportBody'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkProductExportResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/work-product-exports/{export_id}:
+    get:
+      tags:
+      - smr
+      - work_products
+      summary: Get Work Product Export
+      operationId: get_work_product_export_smr_work_product_exports__export_id__get
+      parameters:
+      - name: export_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Export Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkProductExportResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/container-eval-packages:
+    post:
+      tags:
+      - smr
+      - work_products
+      summary: Upload Container Eval Package
+      operationId: upload_container_eval_package_smr_projects__project_id__runs__run_id__container_eval_packages_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContainerEvalPackageBody'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContainerEvalPackageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - smr
+      - work_products
+      summary: List Container Eval Packages
+      operationId: list_container_eval_packages_smr_projects__project_id__runs__run_id__container_eval_packages_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContainerEvalPackageResponse'
+                title: Response List Container Eval Packages Smr Projects  Project
+                  Id  Runs  Run Id  Container Eval Packages Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/container-eval-packages/{package_id}:
+    get:
+      tags:
+      - smr
+      - work_products
+      summary: Get Container Eval Package
+      operationId: get_container_eval_package_smr_container_eval_packages__package_id__get
+      parameters:
+      - name: package_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Package Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContainerEvalPackageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/container-eval-packages/{package_id}/validate:
+    post:
+      tags:
+      - smr
+      - work_products
+      summary: Validate Container Eval Package
+      operationId: validate_container_eval_package_smr_container_eval_packages__package_id__validate_post
+      parameters:
+      - name: package_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Package Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContainerEvalPackageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/container-eval-packages/{package_id}/exports:
+    post:
+      tags:
+      - smr
+      - work_products
+      summary: Export Container Eval Package
+      operationId: export_container_eval_package_smr_container_eval_packages__package_id__exports_post
+      parameters:
+      - name: package_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Package Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkProductExportBody'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkProductExportResponse'
         '422':
           description: Validation Error
           content:
@@ -6533,7 +6862,7 @@ paths:
         run.
 
 
-        See `specifications/daily/mar05_2026/checkpoint.txt`.'
+        See `old/specifications/daily/mar05_2026/checkpoint.txt`.'
       operationId: create_run_checkpoint_smr_runs__run_id__checkpoints_post
       parameters:
       - name: run_id
@@ -6570,7 +6899,7 @@ paths:
       description: 'List retained checkpoints for a run from the checkpoint catalog.
 
 
-        See `specifications/daily/mar05_2026/checkpoint.txt`.'
+        See `old/specifications/daily/mar05_2026/checkpoint.txt`.'
       operationId: list_run_checkpoints_smr_runs__run_id__checkpoints_get
       parameters:
       - name: run_id
@@ -6604,7 +6933,7 @@ paths:
       description: 'Queue a checkpoint restore request for the selected run.
 
 
-        See `specifications/daily/mar05_2026/checkpoint.txt`.'
+        See `old/specifications/daily/mar05_2026/checkpoint.txt`.'
       operationId: restore_run_checkpoint_smr_runs__run_id__restore_post
       parameters:
       - name: run_id
@@ -7295,7 +7624,7 @@ paths:
         project run.
 
 
-        See `specifications/daily/mar05_2026/checkpoint.txt`.'
+        See `old/specifications/daily/mar05_2026/checkpoint.txt`.'
       operationId: create_project_run_checkpoint_smr_projects__project_id__runs__run_id__checkpoints_post
       parameters:
       - name: project_id
@@ -7339,7 +7668,7 @@ paths:
         catalog.
 
 
-        See `specifications/daily/mar05_2026/checkpoint.txt`.'
+        See `old/specifications/daily/mar05_2026/checkpoint.txt`.'
       operationId: list_project_run_checkpoints_smr_projects__project_id__runs__run_id__checkpoints_get
       parameters:
       - name: project_id
@@ -7379,7 +7708,7 @@ paths:
       description: 'Queue a checkpoint restore request for the selected project run.
 
 
-        See `specifications/daily/mar05_2026/checkpoint.txt`.'
+        See `old/specifications/daily/mar05_2026/checkpoint.txt`.'
       operationId: restore_project_run_checkpoint_smr_projects__project_id__runs__run_id__restore_post
       parameters:
       - name: project_id
@@ -8795,12 +9124,6 @@ paths:
         schema:
           type: string
           title: Project Id
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SmrWorkspaceInputFilesUploadRequest'
       responses:
         '200':
           description: Successful Response
@@ -9609,6 +9932,17 @@ paths:
         schema:
           type: string
           title: Run Id
+      - name: include_runtime_details
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Include launch blockers and live actor lease details. Default
+            false keeps task polling on the lightweight path.
+          default: false
+          title: Include Runtime Details
+        description: Include launch blockers and live actor lease details. Default
+          false keeps task polling on the lightweight path.
       responses:
         '200':
           description: Successful Response
@@ -9645,6 +9979,17 @@ paths:
         schema:
           type: string
           title: Run Id
+      - name: include_runtime_details
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Include launch blockers and live actor lease details. Default
+            false keeps task polling on the lightweight path.
+          default: false
+          title: Include Runtime Details
+        description: Include launch blockers and live actor lease details. Default
+          false keeps task polling on the lightweight path.
       responses:
         '200':
           description: Successful Response
@@ -10538,6 +10883,16 @@ paths:
           - type: string
           - type: 'null'
           title: Latest Runtime Event Id
+      - name: detail_level
+        in: query
+        required: false
+        schema:
+          enum:
+          - hot
+          - full
+          type: string
+          default: hot
+          title: Detail Level
       - name: event_limit
         in: query
         required: false
@@ -12309,6 +12664,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/actors/trace-index:
+    get:
+      tags:
+      - smr
+      summary: Get Project Run Actor Trace Index
+      operationId: get_project_run_actor_trace_index_smr_projects__project_id__runs__run_id__actors_trace_index_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrActorTraceIndexResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /smr/projects/{project_id}/runs/{run_id}/actors/{actor_key}/logs:
     get:
       tags:
@@ -12398,6 +12785,265 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SmrActorLogListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/actors/{actor_key}/trace:
+    get:
+      tags:
+      - smr
+      summary: Get Project Run Actor Trace
+      operationId: get_project_run_actor_trace_smr_projects__project_id__runs__run_id__actors__actor_key__trace_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: actor_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Actor Key
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cursor
+      - name: live_cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Live Cursor
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 200
+          title: Limit
+      - name: include_live
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: true
+          title: Include Live
+      - name: include_traces
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: true
+          title: Include Traces
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrActorTraceResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/actors/{actor_key}/traces:
+    get:
+      tags:
+      - smr
+      summary: Get Project Run Actor Raw Traces
+      operationId: get_project_run_actor_raw_traces_smr_projects__project_id__runs__run_id__actors__actor_key__traces_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: actor_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Actor Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SmrActorTraceArtifactRefResponse'
+                title: Response Get Project Run Actor Raw Traces Smr Projects  Project
+                  Id  Runs  Run Id  Actors  Actor Key  Traces Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/traces/{artifact_id}/events:
+    get:
+      tags:
+      - smr
+      summary: Get Project Run Raw Trace Events
+      operationId: get_project_run_raw_trace_events_smr_projects__project_id__runs__run_id__traces__artifact_id__events_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: artifact_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Artifact Id
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cursor
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      - name: redaction_mode
+        in: query
+        required: false
+        schema:
+          enum:
+          - summary
+          - safe
+          - raw
+          type: string
+          default: summary
+          title: Redaction Mode
+      - name: reconstruct
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Reconstruct
+      - name: category
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+          - type: 'null'
+          title: Category
+      - name: method
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+          - type: 'null'
+          title: Method
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrRawTraceEventsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/traces/{artifact_id}/download-url:
+    post:
+      tags:
+      - smr
+      summary: Create Project Run Raw Trace Download Url
+      operationId: create_project_run_raw_trace_download_url_smr_projects__project_id__runs__run_id__traces__artifact_id__download_url_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: artifact_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Artifact Id
+      - name: expires_in
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 3600
+          minimum: 60
+          default: 900
+          title: Expires In
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrRawTraceDownloadUrlResponse'
         '422':
           description: Validation Error
           content:
@@ -14829,7 +15475,7 @@ paths:
 
         Checkpoint artifacts also upsert the run checkpoint catalog described in
 
-        `specifications/daily/mar05_2026/checkpoint.txt`.'
+        `old/specifications/daily/mar05_2026/checkpoint.txt`.'
       operationId: worker_upload_artifact_smr_internal_runs__run_id__artifacts_upload_post
       parameters:
       - name: run_id
@@ -14878,7 +15524,7 @@ paths:
         when applicable.
 
 
-        See `specifications/daily/mar05_2026/checkpoint.txt`.'
+        See `old/specifications/daily/mar05_2026/checkpoint.txt`.'
       operationId: worker_create_artifact_smr_internal_runs__run_id__artifacts_post
       parameters:
       - name: run_id
@@ -16800,7 +17446,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Responses Response Id
-      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__get
+      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__delete
       responses:
         '200':
           description: Successful Response
@@ -16811,7 +17457,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Responses Response Id
-      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__get__delete__1
+      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__delete__delete__1
       responses:
         '200':
           description: Successful Response
@@ -16883,7 +17529,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__post
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__delete
       responses:
         '200':
           description: Successful Response
@@ -16894,7 +17540,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__post__post__1
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__delete__post__1
       responses:
         '200':
           description: Successful Response
@@ -16905,7 +17551,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__post__delete__2
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__delete__delete__2
       responses:
         '200':
           description: Successful Response
@@ -16940,7 +17586,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id Items Item Id
-      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__get
+      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__delete
       responses:
         '200':
           description: Successful Response
@@ -16951,7 +17597,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id Items Item Id
-      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__get__delete__1
+      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__delete__delete__1
       responses:
         '200':
           description: Successful Response
@@ -16959,131 +17605,11 @@ paths:
             application/json:
               schema: {}
   /s/{route_token}/{path}:
-    get:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    put:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get__put__1
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    patch:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get__patch__2
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    post:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get__post__3
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
     delete:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get__delete__4
+      operationId: synthtunnel_gateway_s__route_token___path__delete
       parameters:
       - name: route_token
         in: path
@@ -17113,7 +17639,127 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get__options__5
+      operationId: synthtunnel_gateway_s__route_token___path__delete__options__1
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__delete__get__2
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__delete__patch__3
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__delete__post__4
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__delete__put__5
       parameters:
       - name: route_token
         in: path
@@ -17872,7 +18518,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UsageSummaryResponse'
+                $ref: '#/components/schemas/app__api__v1__admin__UsageSummaryResponse'
         '422':
           description: Validation Error
           content:
@@ -19716,13 +20362,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
   /api/inference/{path}:
-    get:
+    delete:
       summary: Catch All Inference
       description: 'Catch-all route to log unmatched inference requests.
 
 
         This helps debug what URLs agent SDKs are actually calling.'
-      operationId: catch_all_inference_api_inference__path__get
+      operationId: catch_all_inference_api_inference__path__delete
       parameters:
       - name: path
         in: path
@@ -19738,20 +20384,20 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Catch All Inference Api Inference  Path  Get
+                title: Response Catch All Inference Api Inference  Path  Delete
         '422':
           description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-    put:
+    get:
       summary: Catch All Inference
       description: 'Catch-all route to log unmatched inference requests.
 
 
         This helps debug what URLs agent SDKs are actually calling.'
-      operationId: catch_all_inference_api_inference__path__get__put__1
+      operationId: catch_all_inference_api_inference__path__delete__get__1
       parameters:
       - name: path
         in: path
@@ -19767,7 +20413,7 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Catch All Inference Api Inference  Path  Get
+                title: Response Catch All Inference Api Inference  Path  Delete
         '422':
           description: Validation Error
           content:
@@ -19780,7 +20426,7 @@ paths:
 
 
         This helps debug what URLs agent SDKs are actually calling.'
-      operationId: catch_all_inference_api_inference__path__get__patch__2
+      operationId: catch_all_inference_api_inference__path__delete__patch__2
       parameters:
       - name: path
         in: path
@@ -19796,7 +20442,7 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Catch All Inference Api Inference  Path  Get
+                title: Response Catch All Inference Api Inference  Path  Delete
         '422':
           description: Validation Error
           content:
@@ -19809,7 +20455,7 @@ paths:
 
 
         This helps debug what URLs agent SDKs are actually calling.'
-      operationId: catch_all_inference_api_inference__path__get__post__3
+      operationId: catch_all_inference_api_inference__path__delete__post__3
       parameters:
       - name: path
         in: path
@@ -19825,20 +20471,20 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Catch All Inference Api Inference  Path  Get
+                title: Response Catch All Inference Api Inference  Path  Delete
         '422':
           description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-    delete:
+    put:
       summary: Catch All Inference
       description: 'Catch-all route to log unmatched inference requests.
 
 
         This helps debug what URLs agent SDKs are actually calling.'
-      operationId: catch_all_inference_api_inference__path__get__delete__4
+      operationId: catch_all_inference_api_inference__path__delete__put__4
       parameters:
       - name: path
         in: path
@@ -19854,7 +20500,7 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Catch All Inference Api Inference  Path  Get
+                title: Response Catch All Inference Api Inference  Path  Delete
         '422':
           description: Validation Error
           content:
@@ -22147,11 +22793,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
   /api/policy-optimization/online/{path}:
-    get:
+    delete:
       tags:
       - policy-optimization-online
       summary: Policy Optimization Proxy
-      operationId: policy_optimization_proxy_api_policy_optimization_online__path__get
+      operationId: policy_optimization_proxy_api_policy_optimization_online__path__delete
       deprecated: true
       parameters:
       - name: path
@@ -22172,11 +22818,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-    put:
+    get:
       tags:
       - policy-optimization-online
       summary: Policy Optimization Proxy
-      operationId: policy_optimization_proxy_api_policy_optimization_online__path__get__put__1
+      operationId: policy_optimization_proxy_api_policy_optimization_online__path__delete__get__1
       deprecated: true
       parameters:
       - name: path
@@ -22201,7 +22847,7 @@ paths:
       tags:
       - policy-optimization-online
       summary: Policy Optimization Proxy
-      operationId: policy_optimization_proxy_api_policy_optimization_online__path__get__patch__2
+      operationId: policy_optimization_proxy_api_policy_optimization_online__path__delete__patch__2
       deprecated: true
       parameters:
       - name: path
@@ -22226,7 +22872,7 @@ paths:
       tags:
       - policy-optimization-online
       summary: Policy Optimization Proxy
-      operationId: policy_optimization_proxy_api_policy_optimization_online__path__get__post__3
+      operationId: policy_optimization_proxy_api_policy_optimization_online__path__delete__post__3
       deprecated: true
       parameters:
       - name: path
@@ -22247,11 +22893,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-    delete:
+    put:
       tags:
       - policy-optimization-online
       summary: Policy Optimization Proxy
-      operationId: policy_optimization_proxy_api_policy_optimization_online__path__get__delete__4
+      operationId: policy_optimization_proxy_api_policy_optimization_online__path__delete__put__4
       deprecated: true
       parameters:
       - name: path
@@ -24007,138 +24653,6 @@ paths:
           content:
             application/json:
               schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /api/v1/credentials:
-    get:
-      tags:
-      - credentials
-      summary: List Credentials
-      description: List credentials for the authenticated org (values are redacted).
-      operationId: list_credentials_api_v1_credentials_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/CredentialResponse'
-                type: array
-                title: Response List Credentials Api V1 Credentials Get
-    post:
-      tags:
-      - credentials
-      summary: Create Credential
-      description: Create a new credential for the authenticated org.
-      operationId: create_credential_api_v1_credentials_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateCredentialRequest'
-        required: true
-      responses:
-        '201':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CredentialResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /api/v1/credentials/{credential_id}:
-    delete:
-      tags:
-      - credentials
-      summary: Delete Credential
-      description: Soft-delete (deactivate) a credential.
-      operationId: delete_credential_api_v1_credentials__credential_id__delete
-      parameters:
-      - name: credential_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Credential Id
-      responses:
-        '204':
-          description: Successful Response
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    put:
-      tags:
-      - credentials
-      summary: Rotate Credential
-      description: Rotate (update) a credential's value.
-      operationId: rotate_credential_api_v1_credentials__credential_id__put
-      parameters:
-      - name: credential_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Credential Id
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateCredentialRequest'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CredentialResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /api/v1/credentials/resolve:
-    post:
-      tags:
-      - credentials
-      summary: Resolve Credential
-      description: Resolve a credential by org_id + name + type. Internal use only.
-      operationId: resolve_credential_api_v1_credentials_resolve_post
-      parameters:
-      - name: X-Internal-Service-Token
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Internal-Service-Token
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ResolveCredentialRequest'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResolvedCredentialResponse'
         '422':
           description: Validation Error
           content:
@@ -26521,7 +27035,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthResponse'
+                $ref: '#/components/schemas/app__routes__internal__graph_rollout__models__HealthResponse'
   /graph/rollout:
     post:
       tags:
@@ -28061,6 +28575,136 @@ components:
       - provider
       - container_url
       title: ContainerDeploymentInfo
+    ContainerEvalPackageBody:
+      properties:
+        kind:
+          type: string
+          title: Kind
+        name:
+          type: string
+          title: Name
+        version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Version
+        artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artifact Id
+        storage_uri:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Storage Uri
+        archive_size_bytes:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Archive Size Bytes
+        manifest:
+          additionalProperties: true
+          type: object
+          title: Manifest
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      type: object
+      required:
+      - kind
+      - name
+      title: ContainerEvalPackageBody
+    ContainerEvalPackageResponse:
+      properties:
+        package_id:
+          type: string
+          title: Package Id
+        work_product_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Work Product Id
+        org_id:
+          type: string
+          title: Org Id
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          type: string
+          title: Run Id
+        kind:
+          type: string
+          title: Kind
+        name:
+          type: string
+          title: Name
+        version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Version
+        status:
+          type: string
+          title: Status
+        validation_status:
+          type: string
+          title: Validation Status
+        artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artifact Id
+        storage_uri:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Storage Uri
+        archive_size_bytes:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Archive Size Bytes
+        manifest:
+          additionalProperties: true
+          type: object
+          title: Manifest
+        validation:
+          additionalProperties: true
+          type: object
+          title: Validation
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created At
+        updated_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated At
+        deleted_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Deleted At
+      type: object
+      required:
+      - package_id
+      - org_id
+      - project_id
+      - run_id
+      - kind
+      - name
+      - status
+      - validation_status
+      title: ContainerEvalPackageResponse
     ContainerResponse:
       properties:
         id:
@@ -28183,31 +28827,6 @@ components:
       type: object
       title: ContainerUpdate
       description: Request body for updating a hosted container.
-    CreateCredentialRequest:
-      properties:
-        credential_name:
-          type: string
-          maxLength: 128
-          minLength: 1
-          title: Credential Name
-        credential_type:
-          $ref: '#/components/schemas/CredentialType'
-        credential_value:
-          type: string
-          minLength: 1
-          title: Credential Value
-        metadata:
-          anyOf:
-          - additionalProperties: true
-            type: object
-          - type: 'null'
-          title: Metadata
-      type: object
-      required:
-      - credential_name
-      - credential_type
-      - credential_value
-      title: CreateCredentialRequest
     CreateLeaseRequest:
       properties:
         client_instance_id:
@@ -28344,58 +28963,6 @@ components:
       - subdomain
       title: CreateTunnelRequest
       description: Request payload for creating a managed tunnel.
-    CredentialResponse:
-      properties:
-        id:
-          type: string
-          title: Id
-        credential_name:
-          type: string
-          title: Credential Name
-        credential_type:
-          type: string
-          title: Credential Type
-        is_active:
-          type: boolean
-          title: Is Active
-        metadata:
-          anyOf:
-          - additionalProperties: true
-            type: object
-          - type: 'null'
-          title: Metadata
-        created_at:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Created At
-      type: object
-      required:
-      - id
-      - credential_name
-      - credential_type
-      - is_active
-      title: CredentialResponse
-    CredentialType:
-      type: string
-      enum:
-      - API_KEY
-      - ENVIRONMENT_API_KEY
-      - HUGGINGFACE_API_KEY
-      - OAUTH_TOKEN
-      - BEARER_TOKEN
-      - AWS_CREDENTIALS
-      - DATABASE_CONNECTION
-      - LEARNING_JWT_KEY
-      - CLOUD_STORAGE
-      - OPENAI_API_KEY
-      - ANTHROPIC_API_KEY
-      - GOOGLE_API_KEY
-      - DOCKER_REGISTRY
-      - GITHUB_PAT
-      - OTHER
-      title: CredentialType
-      description: Credential type enum.
     CreditsBalanceResponse:
       properties:
         org_id:
@@ -29772,7 +30339,7 @@ components:
           title: Job Id
           description: GraphGen or GEPA job ID (must be a verifier graph)
         session_trace:
-          $ref: '#/components/schemas/SessionTraceInput'
+          $ref: '#/components/schemas/app__routes__api__graphgen__routes__SessionTraceInput'
           description: V3 session trace to evaluate (must include event_ids for reward
             linking)
         context:
@@ -30893,19 +31460,6 @@ components:
           title: Detail
       type: object
       title: HTTPValidationError
-    HealthResponse:
-      properties:
-        status:
-          type: string
-          title: Status
-          default: ok
-        version:
-          type: string
-          title: Version
-          default: 1.0.0
-      type: object
-      title: HealthResponse
-      description: Health check response.
     HeartbeatRequest:
       properties:
         connected_to_edge:
@@ -32953,38 +33507,6 @@ components:
       - released_at
       title: ReleaseResponse
       description: Response for lease release.
-    ResolveCredentialRequest:
-      properties:
-        org_id:
-          type: string
-          title: Org Id
-        credential_name:
-          type: string
-          title: Credential Name
-        credential_type:
-          type: string
-          title: Credential Type
-      type: object
-      required:
-      - org_id
-      - credential_name
-      - credential_type
-      title: ResolveCredentialRequest
-    ResolvedCredentialResponse:
-      properties:
-        credential_value:
-          type: string
-          title: Credential Value
-        metadata:
-          anyOf:
-          - additionalProperties: true
-            type: object
-          - type: 'null'
-          title: Metadata
-      type: object
-      required:
-      - credential_value
-      title: ResolvedCredentialResponse
     RlmCompletionsRequest:
       properties:
         job_id:
@@ -33344,6 +33866,103 @@ components:
       - noop
       - terminal_sync
       title: RunLifecycleEnqueueStatus
+    RunWorkProductResponse:
+      properties:
+        work_product_id:
+          type: string
+          title: Work Product Id
+        org_id:
+          type: string
+          title: Org Id
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          type: string
+          title: Run Id
+        kind:
+          type: string
+          title: Kind
+        title:
+          type: string
+          title: Title
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+        status:
+          type: string
+          title: Status
+        readiness:
+          type: string
+          title: Readiness
+        subtype_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subtype Kind
+        subtype_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subtype Id
+        artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artifact Id
+        artifact_links:
+          items:
+            $ref: '#/components/schemas/WorkProductArtifactLinkResponse'
+          type: array
+          title: Artifact Links
+        content_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Content Url
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        blocker:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Blocker
+        latest_export_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Latest Export Id
+        created_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created At
+        updated_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated At
+        deleted_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Deleted At
+      type: object
+      required:
+      - work_product_id
+      - org_id
+      - project_id
+      - run_id
+      - kind
+      - title
+      - status
+      - readiness
+      title: RunWorkProductResponse
     RuntimeIntent:
       properties:
         kind:
@@ -33647,37 +34266,6 @@ components:
       - events
       title: SessionTimeStepInput
       description: V3-compatible timestep input.
-    SessionTraceInput:
-      properties:
-        session_id:
-          type: string
-          title: Session Id
-        session_time_steps:
-          items:
-            $ref: '#/components/schemas/SessionTimeStepInput'
-          type: array
-          title: Session Time Steps
-        metadata:
-          anyOf:
-          - additionalProperties: true
-            type: object
-          - type: 'null'
-          title: Metadata
-      additionalProperties: true
-      type: object
-      required:
-      - session_id
-      - session_time_steps
-      title: SessionTraceInput
-      description: 'Session trace input - supports both v3 and v4 formats.
-
-
-        V3 format: session_id + session_time_steps (list of timesteps with events)
-
-        V4 format: trace_id + event_history (list of LLM call events)
-
-
-        V4 traces are automatically converted to v3 format for processing.'
     Severity:
       type: string
       enum:
@@ -34205,6 +34793,276 @@ components:
       - engineer
       - researcher
       title: SmrActorSubtype
+    SmrActorTraceArtifactRefResponse:
+      properties:
+        trace_id:
+          type: string
+          title: Trace Id
+        artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artifact Id
+        artifact_uri:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artifact Uri
+        artifact_content_path:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artifact Content Path
+        task_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Id
+        task_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Key
+        participant_session_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Participant Session Id
+        participant_role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Participant Role
+        turn_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Turn Id
+        event_count:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Event Count
+        storage_status:
+          type: string
+          title: Storage Status
+          default: unverified
+        retention_class:
+          type: string
+          title: Retention Class
+          default: default
+        schema_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Schema Version
+        size_bytes:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Size Bytes
+        digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Digest
+        s3_bucket:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: S3 Bucket
+        s3_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: S3 Key
+        source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source
+      type: object
+      required:
+      - trace_id
+      title: SmrActorTraceArtifactRefResponse
+    SmrActorTraceIndexActorResponse:
+      properties:
+        actor_id:
+          type: string
+          title: Actor Id
+        actor_key:
+          type: string
+          title: Actor Key
+        actor_type:
+          type: string
+          title: Actor Type
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+        task_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Id
+        task_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Key
+        participant_session_ids:
+          items:
+            type: string
+          type: array
+          title: Participant Session Ids
+        thread_ids:
+          items:
+            type: string
+          type: array
+          title: Thread Ids
+        turn_ids:
+          items:
+            type: string
+          type: array
+          title: Turn Ids
+        raw_trace_artifacts:
+          items:
+            $ref: '#/components/schemas/SmrActorTraceArtifactRefResponse'
+          type: array
+          title: Raw Trace Artifacts
+        raw_trace_artifact_count:
+          type: integer
+          title: Raw Trace Artifact Count
+          default: 0
+        transcript_event_count:
+          type: integer
+          title: Transcript Event Count
+          default: 0
+        transcript_event_counts_by_kind:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Transcript Event Counts By Kind
+        has_raw_input:
+          type: boolean
+          title: Has Raw Input
+          default: false
+        has_raw_output:
+          type: boolean
+          title: Has Raw Output
+          default: false
+        has_tool_calls:
+          type: boolean
+          title: Has Tool Calls
+          default: false
+        has_shell_output:
+          type: boolean
+          title: Has Shell Output
+          default: false
+        diagnostics:
+          items:
+            type: string
+          type: array
+          title: Diagnostics
+      type: object
+      required:
+      - actor_id
+      - actor_key
+      - actor_type
+      title: SmrActorTraceIndexActorResponse
+    SmrActorTraceIndexResponse:
+      properties:
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          type: string
+          title: Run Id
+        actor_count:
+          type: integer
+          title: Actor Count
+        actors:
+          items:
+            $ref: '#/components/schemas/SmrActorTraceIndexActorResponse'
+          type: array
+          title: Actors
+      type: object
+      required:
+      - project_id
+      - run_id
+      - actor_count
+      title: SmrActorTraceIndexResponse
+    SmrActorTraceResponse:
+      properties:
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          type: string
+          title: Run Id
+        actor_id:
+          type: string
+          title: Actor Id
+        actor_key:
+          type: string
+          title: Actor Key
+        actor_type:
+          type: string
+          title: Actor Type
+        participant_session_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Participant Session Id
+        transcript_session_ids:
+          items:
+            type: string
+          type: array
+          title: Transcript Session Ids
+        participant_role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Participant Role
+        events:
+          items:
+            $ref: '#/components/schemas/SmrTranscriptEventResponse'
+          type: array
+          title: Events
+        live_events:
+          items:
+            $ref: '#/components/schemas/SmrTranscriptEventResponse'
+          type: array
+          title: Live Events
+        traces:
+          items:
+            $ref: '#/components/schemas/SmrRunTraceItemResponse'
+          type: array
+          title: Traces
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
+        live_resume_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Live Resume Cursor
+        next_live_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Live Cursor
+      type: object
+      required:
+      - project_id
+      - run_id
+      - actor_id
+      - actor_key
+      - actor_type
+      title: SmrActorTraceResponse
     SmrActorType:
       type: string
       enum:
@@ -34307,6 +35165,7 @@ components:
       - gpt-5.3-codex
       - gpt-5.3-codex-spark
       - gpt-5.4
+      - gpt-5.5
       - gpt-5.4-mini
       - gpt-5.4-nano
       - gpt-oss-120b
@@ -39762,9 +40621,9 @@ components:
           - type: 'null'
           description: Override one shared agent model for this run. Shared top-level
             values are 'anthropic/claude-haiku-4-5-20251001', 'anthropic/claude-sonnet-4-6',
-            'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-oss-120b', 'moonshotai/kimi-k2.6',
-            'x-ai/grok-4.1-fast'. Use actor_model_overrides for actor-specific model
-            selection.
+            'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5.5', 'gpt-oss-120b',
+            'moonshotai/kimi-k2.6', 'x-ai/grok-4.1-fast'. Use actor_model_overrides
+            for actor-specific model selection.
         agent_harness:
           anyOf:
           - type: string
@@ -40063,6 +40922,83 @@ components:
       - metadata
       - created_at
       title: SmrQuestionResponse
+    SmrRawTraceDownloadUrlResponse:
+      properties:
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          type: string
+          title: Run Id
+        artifact_id:
+          type: string
+          title: Artifact Id
+        url:
+          type: string
+          title: Url
+        expires_in:
+          type: integer
+          title: Expires In
+        uri:
+          type: string
+          title: Uri
+        content_type:
+          type: string
+          title: Content Type
+          default: application/gzip
+      type: object
+      required:
+      - project_id
+      - run_id
+      - artifact_id
+      - url
+      - expires_in
+      - uri
+      title: SmrRawTraceDownloadUrlResponse
+    SmrRawTraceEventsResponse:
+      properties:
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          type: string
+          title: Run Id
+        artifact_id:
+          type: string
+          title: Artifact Id
+        redaction_mode:
+          type: string
+          title: Redaction Mode
+        reconstruction:
+          type: boolean
+          title: Reconstruction
+          default: false
+        start_offset:
+          type: integer
+          title: Start Offset
+          default: 0
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
+        event_count:
+          type: integer
+          title: Event Count
+          default: 0
+        events:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Events
+      type: object
+      required:
+      - project_id
+      - run_id
+      - artifact_id
+      - redaction_mode
+      title: SmrRawTraceEventsResponse
     SmrReadinessCheck:
       properties:
         id:
@@ -40772,6 +41708,424 @@ components:
       - metadata
       - created_at
       title: SmrRunCheckpointStatusResponse
+    SmrRunContractArtifactsResponse:
+      properties:
+        readiness:
+          type: string
+          title: Readiness
+      type: object
+      required:
+      - readiness
+      title: SmrRunContractArtifactsResponse
+    SmrRunContractContainerEvalPackageItemResponse:
+      properties:
+        package_id:
+          type: string
+          title: Package Id
+        work_product_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Work Product Id
+        kind:
+          type: string
+          title: Kind
+        name:
+          type: string
+          title: Name
+        version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Version
+        status:
+          type: string
+          title: Status
+        validation_status:
+          type: string
+          title: Validation Status
+        artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artifact Id
+      type: object
+      required:
+      - package_id
+      - kind
+      - name
+      - status
+      - validation_status
+      title: SmrRunContractContainerEvalPackageItemResponse
+    SmrRunContractContainerEvalPackagesResponse:
+      properties:
+        total:
+          type: integer
+          title: Total
+          default: 0
+        valid:
+          type: integer
+          title: Valid
+          default: 0
+        invalid:
+          type: integer
+          title: Invalid
+          default: 0
+        imported:
+          type: integer
+          title: Imported
+          default: 0
+        packages:
+          items:
+            $ref: '#/components/schemas/SmrRunContractContainerEvalPackageItemResponse'
+          type: array
+          title: Packages
+      type: object
+      title: SmrRunContractContainerEvalPackagesResponse
+    SmrRunContractDiagnosticsResponse:
+      properties:
+        lifecycle_invariants:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Lifecycle Invariants
+        resource_wait:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Resource Wait
+        failure_classification:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Failure Classification
+      type: object
+      title: SmrRunContractDiagnosticsResponse
+    SmrRunContractExecutionRouteResponse:
+      properties:
+        route:
+          type: string
+          title: Route
+        model:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model
+        pool_required:
+          type: boolean
+          title: Pool Required
+          default: false
+        pool_account_claimed:
+          type: boolean
+          title: Pool Account Claimed
+          default: false
+        active_actor_claims:
+          type: integer
+          title: Active Actor Claims
+          default: 0
+        route_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Route Reason
+      type: object
+      required:
+      - route
+      title: SmrRunContractExecutionRouteResponse
+    SmrRunContractFinalizationResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+      type: object
+      required:
+      - status
+      title: SmrRunContractFinalizationResponse
+    SmrRunContractIncidentsResponse:
+      properties:
+        unresolved:
+          type: integer
+          title: Unresolved
+          default: 0
+      type: object
+      title: SmrRunContractIncidentsResponse
+    SmrRunContractLifecycleResponse:
+      properties:
+        phase:
+          type: string
+          title: Phase
+      type: object
+      required:
+      - phase
+      title: SmrRunContractLifecycleResponse
+    SmrRunContractRecoveryResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+        next_retry_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Next Retry At
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+      type: object
+      required:
+      - status
+      title: SmrRunContractRecoveryResponse
+    SmrRunContractResponse:
+      properties:
+        schema_version:
+          type: string
+          title: Schema Version
+          default: managed_research.run_contract.v1
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          type: string
+          title: Run Id
+        state:
+          type: string
+          title: State
+        terminal:
+          type: boolean
+          title: Terminal
+        terminal_outcome:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Terminal Outcome
+        lifecycle:
+          $ref: '#/components/schemas/SmrRunContractLifecycleResponse'
+        finalization:
+          $ref: '#/components/schemas/SmrRunContractFinalizationResponse'
+        recovery:
+          $ref: '#/components/schemas/SmrRunContractRecoveryResponse'
+        tasks:
+          $ref: '#/components/schemas/SmrRunContractTasksResponse'
+        artifacts:
+          $ref: '#/components/schemas/SmrRunContractArtifactsResponse'
+        execution_route:
+          $ref: '#/components/schemas/SmrRunContractExecutionRouteResponse'
+        work_products:
+          $ref: '#/components/schemas/SmrRunContractWorkProductsResponse'
+        trained_models:
+          $ref: '#/components/schemas/SmrRunContractTrainedModelsResponse'
+        container_eval_packages:
+          $ref: '#/components/schemas/SmrRunContractContainerEvalPackagesResponse'
+        incidents:
+          $ref: '#/components/schemas/SmrRunContractIncidentsResponse'
+        diagnostics:
+          $ref: '#/components/schemas/SmrRunContractDiagnosticsResponse'
+      type: object
+      required:
+      - project_id
+      - run_id
+      - state
+      - terminal
+      - lifecycle
+      - finalization
+      - recovery
+      - tasks
+      - artifacts
+      - execution_route
+      - incidents
+      - diagnostics
+      title: SmrRunContractResponse
+    SmrRunContractTasksResponse:
+      properties:
+        total:
+          type: integer
+          title: Total
+          default: 0
+        terminal:
+          type: integer
+          title: Terminal
+          default: 0
+        nonterminal:
+          type: integer
+          title: Nonterminal
+          default: 0
+      type: object
+      title: SmrRunContractTasksResponse
+    SmrRunContractTrainedModelItemResponse:
+      properties:
+        model_id:
+          type: string
+          title: Model Id
+        work_product_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Work Product Id
+        provider:
+          type: string
+          title: Provider
+          default: tinker
+        base_model:
+          type: string
+          title: Base Model
+        method:
+          type: string
+          title: Method
+        status:
+          type: string
+          title: Status
+        export_status:
+          type: string
+          title: Export Status
+          default: not_exported
+        metrics:
+          additionalProperties: true
+          type: object
+          title: Metrics
+      type: object
+      required:
+      - model_id
+      - base_model
+      - method
+      - status
+      title: SmrRunContractTrainedModelItemResponse
+    SmrRunContractTrainedModelsResponse:
+      properties:
+        total:
+          type: integer
+          title: Total
+          default: 0
+        registered:
+          type: integer
+          title: Registered
+          default: 0
+        exported:
+          type: integer
+          title: Exported
+          default: 0
+        evaluated:
+          type: integer
+          title: Evaluated
+          default: 0
+        failed:
+          type: integer
+          title: Failed
+          default: 0
+        models:
+          items:
+            $ref: '#/components/schemas/SmrRunContractTrainedModelItemResponse'
+          type: array
+          title: Models
+      type: object
+      title: SmrRunContractTrainedModelsResponse
+    SmrRunContractWorkProductItemResponse:
+      properties:
+        work_product_id:
+          type: string
+          title: Work Product Id
+        kind:
+          type: string
+          title: Kind
+        title:
+          type: string
+          title: Title
+        status:
+          type: string
+          title: Status
+        readiness:
+          type: string
+          title: Readiness
+        subtype_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subtype Kind
+        subtype_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subtype Id
+        artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artifact Id
+        artifact_links:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Artifact Links
+        detail_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Detail Url
+        content_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Content Url
+        supported_export_destinations:
+          items:
+            type: string
+          type: array
+          title: Supported Export Destinations
+        latest_export_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Latest Export Id
+        blocker:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Blocker
+      type: object
+      required:
+      - work_product_id
+      - kind
+      - title
+      - status
+      - readiness
+      title: SmrRunContractWorkProductItemResponse
+    SmrRunContractWorkProductsResponse:
+      properties:
+        total:
+          type: integer
+          title: Total
+          default: 0
+        ready:
+          type: integer
+          title: Ready
+          default: 0
+        blocked:
+          type: integer
+          title: Blocked
+          default: 0
+        failed:
+          type: integer
+          title: Failed
+          default: 0
+        items:
+          items:
+            $ref: '#/components/schemas/SmrRunContractWorkProductItemResponse'
+          type: array
+          title: Items
+      type: object
+      title: SmrRunContractWorkProductsResponse
     SmrRunCostTotals:
       properties:
         total_cents:
@@ -40859,6 +42213,91 @@ components:
       - tasks
       - execution_results
       title: SmrRunDataInfraResponse
+    SmrRunDurableCheckpointAncestryResponse:
+      properties:
+        source_checkpoint_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Checkpoint Id
+        source_checkpoint_record_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Checkpoint Record Id
+        checkpoint_ref:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Checkpoint Ref
+      type: object
+      title: SmrRunDurableCheckpointAncestryResponse
+    SmrRunDurableLineageResponse:
+      properties:
+        run_source_ref:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Run Source Ref
+        run_workspace_snapshot_ref:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Run Workspace Snapshot Ref
+        project_code_state_ref:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Project Code State Ref
+        checkpoint_ancestry:
+          $ref: '#/components/schemas/SmrRunDurableCheckpointAncestryResponse'
+        run_record_artifact_ref:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Run Record Artifact Ref
+        trace_summary:
+          $ref: '#/components/schemas/SmrRunDurableTraceSummaryResponse'
+        evidence_status:
+          type: string
+          enum:
+          - complete
+          - partial
+          - legacy_unresolved
+          title: Evidence Status
+          default: legacy_unresolved
+        missing_codes:
+          items:
+            type: string
+          type: array
+          title: Missing Codes
+      type: object
+      title: SmrRunDurableLineageResponse
+    SmrRunDurableTraceSummaryResponse:
+      properties:
+        raw_session_artifact_count:
+          type: integer
+          title: Raw Session Artifact Count
+          default: 0
+        durable_ref_count:
+          type: integer
+          title: Durable Ref Count
+          default: 0
+        missing_ref_count:
+          type: integer
+          title: Missing Ref Count
+          default: 0
+        non_durable_ref_count:
+          type: integer
+          title: Non Durable Ref Count
+          default: 0
+      type: object
+      title: SmrRunDurableTraceSummaryResponse
     SmrRunExecutionResultArtifactResponse:
       properties:
         artifact_id:
@@ -40911,6 +42350,7 @@ components:
           - adapter_bundle
           - rollout_bundle
           - training_summary
+          - execution_result
           - none
           title: Result Kind
           default: none
@@ -41779,6 +43219,8 @@ components:
           - type: string
           - type: 'null'
           title: Completion Classifier
+        run_contract:
+          $ref: '#/components/schemas/SmrRunContractResponse'
         candidate_publication:
           $ref: '#/components/schemas/CandidatePublicationResponse'
         actors:
@@ -41819,6 +43261,7 @@ components:
       - run
       - lifecycle
       - run_state
+      - run_contract
       - candidate_publication
       - actors
       - tasks
@@ -42122,6 +43565,8 @@ components:
           title: Current Milestone Id
         lineage:
           $ref: '#/components/schemas/SmrRunLineageResponse'
+        durable_lineage:
+          $ref: '#/components/schemas/SmrRunDurableLineageResponse'
         candidate_publication:
           $ref: '#/components/schemas/CandidatePublicationResponse'
         authority_diagnostics:
@@ -44973,6 +46418,17 @@ components:
             type: string
           type: array
           title: Source Entry Ids
+        artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artifact Id
+        artifact_links:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Artifact Links
       type: object
       required:
       - project_id
@@ -45831,39 +47287,6 @@ components:
       required:
       - rollup_kind
       title: SmrWorkerUpsertUsageRollupRequest
-    SmrWorkspaceInputFileItem:
-      properties:
-        path:
-          type: string
-          minLength: 1
-          title: Path
-        content:
-          type: string
-          title: Content
-        content_type:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Content Type
-        encoding:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Encoding
-      type: object
-      required:
-      - path
-      - content
-      title: SmrWorkspaceInputFileItem
-    SmrWorkspaceInputFilesUploadRequest:
-      properties:
-        files:
-          items:
-            $ref: '#/components/schemas/SmrWorkspaceInputFileItem'
-          type: array
-          title: Files
-      type: object
-      title: SmrWorkspaceInputFilesUploadRequest
     SmrWorkspaceInputSourceRepoRequest:
       properties:
         url:
@@ -46193,6 +47616,11 @@ components:
         model_id:
           type: string
           title: Model Id
+        work_product_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Work Product Id
         org_id:
           type: string
           title: Org Id
@@ -46501,16 +47929,6 @@ components:
       - org_id
       - access_tier
       title: UpdateAccessControlRequest
-    UpdateCredentialRequest:
-      properties:
-        credential_value:
-          type: string
-          minLength: 1
-          title: Credential Value
-      type: object
-      required:
-      - credential_value
-      title: UpdateCredentialRequest
     UpdateLimitRequest:
       properties:
         limit_value:
@@ -47231,35 +48649,6 @@ components:
             limit: 50000
             remaining: 47600
             used: 2400
-    UsageSummaryResponse:
-      properties:
-        org_id:
-          type: string
-          title: Org Id
-        date_range:
-          type: string
-          title: Date Range
-        total_cost_cents:
-          type: integer
-          title: Total Cost Cents
-        total_cost_dollars:
-          type: number
-          title: Total Cost Dollars
-        gpu_events_count:
-          type: integer
-          title: Gpu Events Count
-        total_gpu_seconds:
-          type: number
-          title: Total Gpu Seconds
-      type: object
-      required:
-      - org_id
-      - date_range
-      - total_cost_cents
-      - total_cost_dollars
-      - gpu_events_count
-      - total_gpu_seconds
-      title: UsageSummaryResponse
     UsageType:
       type: string
       enum:
@@ -47610,6 +48999,118 @@ components:
       - org_id
       - amount_cents
       title: WebhookAddCreditsRequest
+    WorkProductArtifactLinkResponse:
+      properties:
+        work_product_artifact_id:
+          type: string
+          title: Work Product Artifact Id
+        work_product_id:
+          type: string
+          title: Work Product Id
+        artifact_id:
+          type: string
+          title: Artifact Id
+        role:
+          type: string
+          title: Role
+        label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Label
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created At
+        updated_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated At
+      type: object
+      required:
+      - work_product_artifact_id
+      - work_product_id
+      - artifact_id
+      - role
+      title: WorkProductArtifactLinkResponse
+    WorkProductExportBody:
+      properties:
+        destination:
+          additionalProperties: true
+          type: object
+          title: Destination
+        idempotency_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Idempotency Key
+      type: object
+      required:
+      - destination
+      title: WorkProductExportBody
+    WorkProductExportResponse:
+      properties:
+        export_id:
+          type: string
+          title: Export Id
+        work_product_id:
+          type: string
+          title: Work Product Id
+        org_id:
+          type: string
+          title: Org Id
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          type: string
+          title: Run Id
+        destination_kind:
+          type: string
+          title: Destination Kind
+        destination_summary:
+          additionalProperties: true
+          type: object
+          title: Destination Summary
+        idempotency_key:
+          type: string
+          title: Idempotency Key
+        status:
+          type: string
+          title: Status
+        error:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Error
+        created_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created At
+        updated_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated At
+      type: object
+      required:
+      - export_id
+      - work_product_id
+      - org_id
+      - project_id
+      - run_id
+      - destination_kind
+      - idempotency_key
+      - status
+      title: WorkProductExportResponse
     WorkspaceConfirmPushRequest:
       properties:
         commit_sha:
@@ -47624,6 +49125,35 @@ components:
       required:
       - commit_sha
       title: WorkspaceConfirmPushRequest
+    app__api__v1__admin__UsageSummaryResponse:
+      properties:
+        org_id:
+          type: string
+          title: Org Id
+        date_range:
+          type: string
+          title: Date Range
+        total_cost_cents:
+          type: integer
+          title: Total Cost Cents
+        total_cost_dollars:
+          type: number
+          title: Total Cost Dollars
+        gpu_events_count:
+          type: integer
+          title: Gpu Events Count
+        total_gpu_seconds:
+          type: number
+          title: Total Gpu Seconds
+      type: object
+      required:
+      - org_id
+      - date_range
+      - total_cost_cents
+      - total_cost_dollars
+      - gpu_events_count
+      - total_gpu_seconds
+      title: UsageSummaryResponse
     app__api__v1__routes_balance__UsageSummaryResponse:
       properties:
         org_id:
@@ -47741,6 +49271,37 @@ components:
       - total_charged_usd
       - total_internal_cost_usd
       title: UsageSummaryResponse
+    app__routes__api__graphgen__routes__SessionTraceInput:
+      properties:
+        session_id:
+          type: string
+          title: Session Id
+        session_time_steps:
+          items:
+            $ref: '#/components/schemas/SessionTimeStepInput'
+          type: array
+          title: Session Time Steps
+        metadata:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Metadata
+      additionalProperties: true
+      type: object
+      required:
+      - session_id
+      - session_time_steps
+      title: SessionTraceInput
+      description: 'Session trace input - supports both v3 and v4 formats.
+
+
+        V3 format: session_id + session_time_steps (list of timesteps with events)
+
+        V4 format: trace_id + event_history (list of LLM call events)
+
+
+        V4 traces are automatically converted to v3 format for processing.'
     app__routes__api__rlms__generation__SessionTraceInput:
       properties:
         session_id:
@@ -47764,6 +49325,19 @@ components:
       - session_time_steps
       title: SessionTraceInput
       description: V3-compatible session trace input.
+    app__routes__internal__graph_rollout__models__HealthResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+          default: ok
+        version:
+          type: string
+          title: Version
+          default: 1.0.0
+      type: object
+      title: HealthResponse
+      description: Health check response.
   securitySchemes:
     HTTPBearer:
       type: http

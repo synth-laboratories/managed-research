@@ -20,6 +20,12 @@
       "public": true
     },
     {
+      "id": "gpt-5.5",
+      "display_group": "standard_codex",
+      "launch_lane": "openai_chatgpt",
+      "public": true
+    },
+    {
       "id": "gpt-5.4-mini",
       "display_group": "standard_codex",
       "launch_lane": "openai_chatgpt",
