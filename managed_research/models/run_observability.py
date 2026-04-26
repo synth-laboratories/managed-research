@@ -657,6 +657,55 @@ class ManagedResearchRunContractExecutionRoute:
 
 
 @dataclass(frozen=True)
+class ManagedResearchRunWorkProductArtifactLink:
+    work_product_artifact_id: str
+    work_product_id: str
+    artifact_id: str
+    role: str
+    label: str | None = None
+    metadata: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchRunWorkProductArtifactLink:
+        mapping = _require_mapping(
+            payload,
+            label="run_contract.work_products.items.artifact_links",
+        )
+        return cls(
+            work_product_artifact_id=_require_string(
+                mapping,
+                "work_product_artifact_id",
+                label=(
+                    "run_contract.work_products.items.artifact_links."
+                    "work_product_artifact_id"
+                ),
+            ),
+            work_product_id=_require_string(
+                mapping,
+                "work_product_id",
+                label="run_contract.work_products.items.artifact_links.work_product_id",
+            ),
+            artifact_id=_require_string(
+                mapping,
+                "artifact_id",
+                label="run_contract.work_products.items.artifact_links.artifact_id",
+            ),
+            role=_require_string(
+                mapping,
+                "role",
+                label="run_contract.work_products.items.artifact_links.role",
+            ),
+            label=_optional_string(mapping, "label"),
+            metadata=dict(
+                _require_mapping(
+                    mapping.get("metadata", {}),
+                    label="run_contract.work_products.items.artifact_links.metadata",
+                )
+            ),
+        )
+
+
+@dataclass(frozen=True)
 class ManagedResearchRunWorkProduct:
     work_product_id: str
     kind: str
@@ -666,7 +715,11 @@ class ManagedResearchRunWorkProduct:
     subtype_kind: str | None = None
     subtype_id: str | None = None
     artifact_id: str | None = None
+    artifact_links: list[ManagedResearchRunWorkProductArtifactLink] = field(
+        default_factory=list
+    )
     detail_url: str | None = None
+    content_url: str | None = None
     supported_export_destinations: list[str] = field(default_factory=list)
     latest_export_id: str | None = None
     blocker: dict[str, object] | None = None
@@ -685,6 +738,21 @@ class ManagedResearchRunWorkProduct:
                 "must be an array when provided"
             )
         blocker = mapping.get("blocker")
+        artifact_links = mapping.get("artifact_links")
+        if artifact_links is None:
+            normalized_artifact_links: list[
+                ManagedResearchRunWorkProductArtifactLink
+            ] = []
+        elif isinstance(artifact_links, list):
+            normalized_artifact_links = [
+                ManagedResearchRunWorkProductArtifactLink.from_wire(item)
+                for item in artifact_links
+            ]
+        else:
+            raise ValueError(
+                "run_contract.work_products.items.artifact_links must be an array "
+                "when provided"
+            )
         return cls(
             work_product_id=_require_string(
                 mapping,
@@ -714,7 +782,9 @@ class ManagedResearchRunWorkProduct:
             subtype_kind=_optional_string(mapping, "subtype_kind"),
             subtype_id=_optional_string(mapping, "subtype_id"),
             artifact_id=_optional_string(mapping, "artifact_id"),
+            artifact_links=normalized_artifact_links,
             detail_url=_optional_string(mapping, "detail_url"),
+            content_url=_optional_string(mapping, "content_url"),
             supported_export_destinations=normalized_destinations,
             latest_export_id=_optional_string(mapping, "latest_export_id"),
             blocker=dict(_require_mapping(blocker, label="work_product.blocker"))
@@ -1135,6 +1205,7 @@ __all__ = [
     "ManagedResearchRunContractTasks",
     "ManagedResearchRunContractTrainedModels",
     "ManagedResearchRunWorkProduct",
+    "ManagedResearchRunWorkProductArtifactLink",
     "ManagedResearchRunWorkProducts",
     "ManagedResearchContainerEvalPackage",
     "ManagedResearchTrainedModel",

@@ -11,6 +11,30 @@ def _as_dict(value: Mapping[str, object] | None) -> dict[str, object]:
 
 
 @dataclass(frozen=True)
+class ManagedResearchWorkProductArtifactLink:
+    work_product_artifact_id: str
+    work_product_id: str
+    artifact_id: str
+    role: str
+    label: str | None = None
+    metadata: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_wire(
+        cls,
+        payload: Mapping[str, object],
+    ) -> ManagedResearchWorkProductArtifactLink:
+        return cls(
+            work_product_artifact_id=str(payload["work_product_artifact_id"]),
+            work_product_id=str(payload["work_product_id"]),
+            artifact_id=str(payload["artifact_id"]),
+            role=str(payload["role"]),
+            label=str(payload["label"]) if payload.get("label") else None,
+            metadata=_as_dict(payload.get("metadata")),  # type: ignore[arg-type]
+        )
+
+
+@dataclass(frozen=True)
 class ManagedResearchRunWorkProduct:
     work_product_id: str
     org_id: str
@@ -24,6 +48,10 @@ class ManagedResearchRunWorkProduct:
     subtype_kind: str | None = None
     subtype_id: str | None = None
     artifact_id: str | None = None
+    artifact_links: list[ManagedResearchWorkProductArtifactLink] = field(
+        default_factory=list
+    )
+    content_url: str | None = None
     metadata: dict[str, object] = field(default_factory=dict)
     blocker: dict[str, object] | None = None
     latest_export_id: str | None = None
@@ -45,6 +73,14 @@ class ManagedResearchRunWorkProduct:
             else None,
             subtype_id=str(payload["subtype_id"]) if payload.get("subtype_id") else None,
             artifact_id=str(payload["artifact_id"]) if payload.get("artifact_id") else None,
+            artifact_links=[
+                ManagedResearchWorkProductArtifactLink.from_wire(item)
+                for item in payload.get("artifact_links", [])
+                if isinstance(item, Mapping)
+            ],
+            content_url=str(payload["content_url"])
+            if payload.get("content_url")
+            else None,
             metadata=_as_dict(payload.get("metadata")),  # type: ignore[arg-type]
             blocker=_as_dict(payload.get("blocker")) if payload.get("blocker") else None,  # type: ignore[arg-type]
             latest_export_id=str(payload["latest_export_id"])
@@ -160,5 +196,6 @@ __all__ = [
     "ManagedResearchContainerEvalPackage",
     "ManagedResearchRunWorkProduct",
     "ManagedResearchTrainedModel",
+    "ManagedResearchWorkProductArtifactLink",
     "ManagedResearchWorkProductExport",
 ]
