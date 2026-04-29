@@ -111,11 +111,14 @@ from managed_research.models.run_state import (
     RunState,
 )
 from managed_research.models.run_timeline import (
+    SmrAuthorityReadouts,
     SmrBranchMode,
     SmrLogicalTimeline,
     SmrLogicalTimelineNode,
     SmrRunBranchRequest,
     SmrRunBranchResponse,
+    SmrRunEventLog,
+    SmrRunEventLogEntry,
 )
 from managed_research.models.runtime_intent import (
     RuntimeIntent,
@@ -332,6 +335,7 @@ __all__ = [
     "SmrReviewerSubtype",
     "SmrRoleBindings",
     "SmrRunCostTotals",
+    "SmrAuthorityReadouts",
     "SmrRunActorLogEvent",
     "SmrRunActorLogs",
     "SmrRunActorUsage",
@@ -348,6 +352,8 @@ __all__ = [
     "SmrToolProvider",
     "SmrLogicalTimeline",
     "SmrLogicalTimelineNode",
+    "SmrRunEventLog",
+    "SmrRunEventLogEntry",
     "SmrActorUsageSummary",
     "SmrRunParticipant",
     "SmrRunParticipants",

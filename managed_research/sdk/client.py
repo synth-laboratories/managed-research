@@ -42,10 +42,12 @@ from managed_research.models.run_observability import (
 )
 from managed_research.models.run_state import ManagedResearchRun
 from managed_research.models.run_timeline import (
+    SmrAuthorityReadouts,
     SmrBranchMode,
     SmrLogicalTimeline,
     SmrRunBranchRequest,
     SmrRunBranchResponse,
+    SmrRunEventLog,
 )
 from managed_research.models.runtime_intent import (
     RuntimeIntent,
@@ -3063,6 +3065,68 @@ class ManagedResearchClient:
             label="get_run_logical_timeline",
         )
         return SmrLogicalTimeline.from_wire(payload)
+
+    def get_project_run_event_log(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        sources: list[str] | None = None,
+        event_kinds: list[str] | None = None,
+        statuses: list[str] | None = None,
+        limit: int | None = None,
+    ) -> SmrRunEventLog:
+        payload = _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/runs/{run_id}/event-log",
+                params=build_query_params(
+                    sources=sources,
+                    event_kinds=event_kinds,
+                    statuses=statuses,
+                    limit=limit,
+                ),
+            ),
+            label="get_project_run_event_log",
+        )
+        return SmrRunEventLog.from_wire(payload)
+
+    def get_run_authority_readouts(
+        self,
+        run_id: str,
+        *,
+        include_runtime_authority: bool = False,
+    ) -> SmrAuthorityReadouts:
+        payload = _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/runs/{run_id}/authority-readouts",
+                params=build_query_params(
+                    include_runtime_authority=include_runtime_authority
+                ),
+            ),
+            label="get_run_authority_readouts",
+        )
+        return SmrAuthorityReadouts.from_wire(payload)
+
+    def get_project_run_authority_readouts(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        include_runtime_authority: bool = False,
+    ) -> SmrAuthorityReadouts:
+        payload = _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/runs/{run_id}/authority-readouts",
+                params=build_query_params(
+                    include_runtime_authority=include_runtime_authority
+                ),
+            ),
+            label="get_project_run_authority_readouts",
+        )
+        return SmrAuthorityReadouts.from_wire(payload)
 
     def get_run_traces(self, run_id: str) -> SmrRunTraces:
         payload = _coerce_dict(

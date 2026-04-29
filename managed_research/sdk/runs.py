@@ -27,9 +27,11 @@ from managed_research.models.run_observability import (
 )
 from managed_research.models.run_state import ManagedResearchRun
 from managed_research.models.run_timeline import (
+    SmrAuthorityReadouts,
     SmrBranchMode,
     SmrLogicalTimeline,
     SmrRunBranchResponse,
+    SmrRunEventLog,
 )
 from managed_research.models.runtime_intent import (
     RuntimeIntent,
@@ -47,7 +49,6 @@ from managed_research.models.smr_work_modes import SmrWorkMode
 from managed_research.models.types import RunArtifact, RunArtifactManifest
 from managed_research.sdk._base import _ClientNamespace
 from managed_research.sdk.config import DEFAULT_MISC_PROJECT_ALIAS
-
 
 MISC_PROJECT_ID = DEFAULT_MISC_PROJECT_ALIAS
 
@@ -68,11 +69,11 @@ class ProjectSelector:
             raise ValueError("project_id is required")
 
     @classmethod
-    def misc(cls) -> "ProjectSelector":
+    def misc(cls) -> ProjectSelector:
         return cls(MISC_PROJECT_ID)
 
     @classmethod
-    def from_project_id(cls, project_id: str) -> "ProjectSelector":
+    def from_project_id(cls, project_id: str) -> ProjectSelector:
         return cls(str(project_id or "").strip())
 
 
@@ -271,6 +272,34 @@ class RunHandle:
 
     def timeline(self) -> SmrLogicalTimeline:
         return self._client.get_run_logical_timeline(self.project_id, self.run_id)
+
+    def event_log(
+        self,
+        *,
+        sources: list[str] | None = None,
+        event_kinds: list[str] | None = None,
+        statuses: list[str] | None = None,
+        limit: int | None = None,
+    ) -> SmrRunEventLog:
+        return self._client.get_project_run_event_log(
+            self.project_id,
+            self.run_id,
+            sources=sources,
+            event_kinds=event_kinds,
+            statuses=statuses,
+            limit=limit,
+        )
+
+    def authority_readouts(
+        self,
+        *,
+        include_runtime_authority: bool = False,
+    ) -> SmrAuthorityReadouts:
+        return self._client.get_project_run_authority_readouts(
+            self.project_id,
+            self.run_id,
+            include_runtime_authority=include_runtime_authority,
+        )
 
     def traces(self) -> SmrRunTraces:
         return self._client.get_project_run_traces(self.project_id, self.run_id)
@@ -916,6 +945,43 @@ class RunsAPI(_ClientNamespace):
 
     def get_logical_timeline(self, project_id: str, run_id: str) -> SmrLogicalTimeline:
         return self._client.get_run_logical_timeline(project_id, run_id)
+
+    def get_event_log(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        sources: list[str] | None = None,
+        event_kinds: list[str] | None = None,
+        statuses: list[str] | None = None,
+        limit: int | None = None,
+    ) -> SmrRunEventLog:
+        return self._client.get_project_run_event_log(
+            project_id,
+            run_id,
+            sources=sources,
+            event_kinds=event_kinds,
+            statuses=statuses,
+            limit=limit,
+        )
+
+    def get_authority_readouts(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+        include_runtime_authority: bool = False,
+    ) -> SmrAuthorityReadouts:
+        if project_id:
+            return self._client.get_project_run_authority_readouts(
+                project_id,
+                run_id,
+                include_runtime_authority=include_runtime_authority,
+            )
+        return self._client.get_run_authority_readouts(
+            run_id,
+            include_runtime_authority=include_runtime_authority,
+        )
 
     def get_traces(
         self,
