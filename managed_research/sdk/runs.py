@@ -48,7 +48,6 @@ from managed_research.models.types import RunArtifact, RunArtifactManifest
 from managed_research.sdk._base import _ClientNamespace
 from managed_research.sdk.config import DEFAULT_MISC_PROJECT_ALIAS
 
-
 MISC_PROJECT_ID = DEFAULT_MISC_PROJECT_ALIAS
 
 
@@ -68,11 +67,11 @@ class ProjectSelector:
             raise ValueError("project_id is required")
 
     @classmethod
-    def misc(cls) -> "ProjectSelector":
+    def misc(cls) -> ProjectSelector:
         return cls(MISC_PROJECT_ID)
 
     @classmethod
-    def from_project_id(cls, project_id: str) -> "ProjectSelector":
+    def from_project_id(cls, project_id: str) -> ProjectSelector:
         return cls(str(project_id or "").strip())
 
 

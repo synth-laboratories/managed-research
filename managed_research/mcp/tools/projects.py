@@ -5,12 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 from managed_research.mcp.registry import ToolDefinition, tool_schema
-from managed_research.mcp.tools.smr_policy_schemas import run_policy_input_schema
 from managed_research.models.smr_actor_models import (
     SMR_ACTOR_SUBTYPE_VALUES,
     SMR_ACTOR_TYPE_VALUES,
 )
-from managed_research.models.smr_agent_kinds import SMR_AGENT_KIND_VALUES
 from managed_research.models.smr_agent_models import SMR_AGENT_MODEL_VALUES
 from managed_research.models.smr_credential_providers import (
     SMR_CREDENTIAL_PROVIDER_VALUES,
@@ -19,9 +17,7 @@ from managed_research.models.smr_environment_kinds import (
     SMR_ENVIRONMENT_KIND_VALUES,
 )
 from managed_research.models.smr_funding_sources import SMR_FUNDING_SOURCE_VALUES
-from managed_research.models.smr_host_kinds import SMR_HOST_KIND_VALUES
 from managed_research.models.smr_runtime_kinds import SMR_RUNTIME_KIND_VALUES
-from managed_research.models.smr_work_modes import SMR_WORK_MODE_VALUES
 
 
 def _actor_model_assignment_schema(*, field_label: str) -> dict[str, Any]:
