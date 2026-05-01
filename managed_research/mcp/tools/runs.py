@@ -327,6 +327,24 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_get_run,
         ),
         ToolDefinition(
+            name="smr_get_run_contract",
+            description=(
+                "Fetch the strict run_contract for a run. Use this for terminality, "
+                "finalization, recovery, incident, artifact, and lifecycle-invariant status."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Managed research project id.",
+                    },
+                    "run_id": {"type": "string", "description": "Run id."},
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_get_run_contract,
+        ),
+        ToolDefinition(
             name="smr_get_run_logical_timeline",
             description=(
                 "Read the operator-facing logical timeline for a run. "
@@ -361,6 +379,167 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_get_run_traces,
         ),
         ToolDefinition(
+            name="smr_get_run_actor_trace",
+            description=(
+                "Read privileged actor-scoped trace activity for one run actor. "
+                "Returns persisted transcript events, optional live transcript events "
+                "after live_cursor, and completed raw-session trace artifact references "
+                "when available."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Managed research project id.",
+                    },
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "actor_key": {
+                        "type": "string",
+                        "description": "Stable actor key, for example orchestrator-1.",
+                    },
+                    "cursor": {
+                        "type": "string",
+                        "description": "Persisted transcript pagination cursor.",
+                    },
+                    "live_cursor": {
+                        "type": "string",
+                        "description": "Redis live cursor returned by a previous response.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum transcript events to inspect per source.",
+                    },
+                    "include_live": {
+                        "type": "boolean",
+                        "description": "Whether to include live events after live_cursor.",
+                    },
+                    "include_traces": {
+                        "type": "boolean",
+                        "description": "Whether to include completed raw trace artifact references.",
+                    },
+                },
+                required=["project_id", "run_id", "actor_key"],
+            ),
+            handler=server._tool_get_run_actor_trace,
+        ),
+        ToolDefinition(
+            name="smr_list_run_actor_traces",
+            description=(
+                "List privileged actor trace subjects for a run, or list raw trace "
+                "artifacts for one actor when actor_key is supplied. This is the "
+                "entrypoint for browsing actor-level debug traces."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Managed research project id.",
+                    },
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "actor_key": {
+                        "type": "string",
+                        "description": "Optional actor key to return only that actor's raw trace artifact refs.",
+                    },
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_list_run_actor_traces,
+        ),
+        ToolDefinition(
+            name="smr_get_raw_trace_events",
+            description=(
+                "Page raw trace events for a privileged run trace artifact. Defaults "
+                "to summary redaction; use safe for short excerpts or raw only when "
+                "explicitly needed for internal debugging."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Managed research project id.",
+                    },
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "artifact_id": {
+                        "type": "string",
+                        "description": "raw_session_events artifact id.",
+                    },
+                    "cursor": {
+                        "type": "string",
+                        "description": "Pagination cursor returned by the previous page.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum raw events to return.",
+                    },
+                    "redaction_mode": {
+                        "type": "string",
+                        "enum": ["summary", "safe", "raw"],
+                        "description": "Raw event redaction mode.",
+                    },
+                    "reconstruct": {
+                        "type": "boolean",
+                        "description": "Attach normalized input/output/tool/shell reconstruction hints.",
+                    },
+                    "category": {
+                        "anyOf": [
+                            {"type": "string"},
+                            {"type": "array", "items": {"type": "string"}},
+                        ],
+                        "description": "Optional category filter, string or list.",
+                    },
+                    "method": {
+                        "anyOf": [
+                            {"type": "string"},
+                            {"type": "array", "items": {"type": "string"}},
+                        ],
+                        "description": "Optional method/tool filter, string or list.",
+                    },
+                },
+                required=["project_id", "run_id", "artifact_id"],
+            ),
+            handler=server._tool_get_raw_trace_events,
+        ),
+        ToolDefinition(
+            name="smr_download_raw_trace",
+            description=(
+                "Create a short-lived privileged raw trace download URL, or download "
+                "it to destination. Requires confirm_raw_download=true so large or "
+                "sensitive blobs are not fetched accidentally."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Managed research project id.",
+                    },
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "artifact_id": {
+                        "type": "string",
+                        "description": "raw_session_events artifact id.",
+                    },
+                    "confirm_raw_download": {
+                        "type": "boolean",
+                        "description": "Must be true to create or fetch a raw download.",
+                    },
+                    "destination": {
+                        "type": "string",
+                        "description": "Optional local destination path. Omit to return only a presigned URL.",
+                    },
+                    "expires_in": {
+                        "type": "integer",
+                        "description": "URL TTL in seconds, between 60 and 3600.",
+                    },
+                },
+                required=[
+                    "project_id",
+                    "run_id",
+                    "artifact_id",
+                    "confirm_raw_download",
+                ],
+            ),
+            handler=server._tool_download_raw_trace,
+        ),
+        ToolDefinition(
             name="smr_get_run_actor_usage",
             description=(
                 "Read actor-centric usage for a run. "
@@ -377,6 +556,62 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                 required=["run_id"],
             ),
             handler=server._tool_get_run_actor_usage,
+        ),
+        ToolDefinition(
+            name="smr_list_run_participants",
+            description=(
+                "List participant sessions for a run from actor/session records, including whether usage recording is present or missing."
+            ),
+            input_schema=tool_schema(
+                {
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
+                },
+                required=["run_id"],
+            ),
+            handler=server._tool_list_run_participants,
+        ),
+        ToolDefinition(
+            name="smr_get_run_artifact_progress",
+            description="Read live required/optional artifact progress for a run.",
+            input_schema=tool_schema(
+                {
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
+                },
+                required=["run_id"],
+            ),
+            handler=server._tool_get_run_artifact_progress,
+        ),
+        ToolDefinition(
+            name="smr_list_run_actor_logs",
+            description="List redacted exec stdout/stderr actor log events for a run.",
+            input_schema=tool_schema(
+                {
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
+                    "actor_id": {"type": "string", "description": "Optional actor id filter."},
+                    "turn_id": {"type": "string", "description": "Optional turn id filter."},
+                    "kind": {
+                        "type": "string",
+                        "description": "Optional kind filter: exec.stdout, exec.stderr, stdout, or stderr.",
+                    },
+                    "since": {"type": "string", "description": "Optional ISO-8601 lower bound."},
+                    "cursor": {"type": "string", "description": "Optional pagination cursor."},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 500},
+                },
+                required=["run_id"],
+            ),
+            handler=server._tool_list_run_actor_logs,
         ),
         ToolDefinition(
             name="smr_get_run_primary_parent",

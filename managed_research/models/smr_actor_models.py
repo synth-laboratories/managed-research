@@ -23,6 +23,10 @@ class SmrActorSubtype(StrEnum):
     MAIN = "main"
     ENGINEER = "engineer"
     RESEARCHER = "researcher"
+    TASK_COMPLETION = "task_completion"
+    RUN_COMPLETION = "run_completion"
+    SAFETY = "safety"
+    OBJECTIVE = "objective"
 
 
 class SmrOrchestratorSubtype(StrEnum):
@@ -31,6 +35,10 @@ class SmrOrchestratorSubtype(StrEnum):
 
 class SmrReviewerSubtype(StrEnum):
     MAIN = "main"
+    TASK_COMPLETION = "task_completion"
+    RUN_COMPLETION = "run_completion"
+    SAFETY = "safety"
+    OBJECTIVE = "objective"
 
 
 class SmrWorkerSubtype(StrEnum):
@@ -43,9 +51,7 @@ SMR_ACTOR_SUBTYPE_VALUES: tuple[str, ...] = tuple(item.value for item in SmrActo
 SMR_ORCHESTRATOR_SUBTYPE_VALUES: tuple[str, ...] = tuple(
     item.value for item in SmrOrchestratorSubtype
 )
-SMR_REVIEWER_SUBTYPE_VALUES: tuple[str, ...] = tuple(
-    item.value for item in SmrReviewerSubtype
-)
+SMR_REVIEWER_SUBTYPE_VALUES: tuple[str, ...] = tuple(item.value for item in SmrReviewerSubtype)
 SMR_WORKER_SUBTYPE_VALUES: tuple[str, ...] = tuple(item.value for item in SmrWorkerSubtype)
 SMR_ACTOR_SUBTYPE_VALUES_BY_TYPE: dict[str, tuple[str, ...]] = {
     SmrActorType.ORCHESTRATOR.value: SMR_ORCHESTRATOR_SUBTYPE_VALUES,
@@ -73,6 +79,26 @@ SMR_ACTOR_MODEL_POLICY: tuple[dict[str, Any], ...] = (
     {
         "actor_type": SmrActorType.REVIEWER.value,
         "actor_subtype": SmrReviewerSubtype.MAIN.value,
+        "permitted_models": list(SMR_SHARED_TOP_LEVEL_AGENT_MODEL_VALUES),
+    },
+    {
+        "actor_type": SmrActorType.REVIEWER.value,
+        "actor_subtype": SmrReviewerSubtype.TASK_COMPLETION.value,
+        "permitted_models": list(SMR_SHARED_TOP_LEVEL_AGENT_MODEL_VALUES),
+    },
+    {
+        "actor_type": SmrActorType.REVIEWER.value,
+        "actor_subtype": SmrReviewerSubtype.RUN_COMPLETION.value,
+        "permitted_models": list(SMR_SHARED_TOP_LEVEL_AGENT_MODEL_VALUES),
+    },
+    {
+        "actor_type": SmrActorType.REVIEWER.value,
+        "actor_subtype": SmrReviewerSubtype.SAFETY.value,
+        "permitted_models": list(SMR_SHARED_TOP_LEVEL_AGENT_MODEL_VALUES),
+    },
+    {
+        "actor_type": SmrActorType.REVIEWER.value,
+        "actor_subtype": SmrReviewerSubtype.OBJECTIVE.value,
         "permitted_models": list(SMR_SHARED_TOP_LEVEL_AGENT_MODEL_VALUES),
     },
     {
@@ -128,7 +154,6 @@ def coerce_smr_actor_type(
         ) from exc
 
 
-
 def coerce_smr_actor_subtype(
     value: SmrActorSubtype | str | None,
     *,
@@ -143,9 +168,7 @@ def coerce_smr_actor_subtype(
         subtype = SmrActorSubtype(normalized)
     except ValueError as exc:
         allowed = SMR_ACTOR_SUBTYPE_VALUES_BY_TYPE[resolved_actor_type.value]
-        raise ValueError(
-            f"{field_name} must be one of: {', '.join(allowed)}"
-        ) from exc
+        raise ValueError(f"{field_name} must be one of: {', '.join(allowed)}") from exc
     if subtype.value not in SMR_ACTOR_SUBTYPE_VALUES_BY_TYPE[resolved_actor_type.value]:
         raise ValueError(
             f"{field_name} '{subtype.value}' is not valid for actor_type '{resolved_actor_type.value}'"
@@ -153,8 +176,9 @@ def coerce_smr_actor_subtype(
     return subtype
 
 
-
-def _permitted_models_for_actor(actor_type: SmrActorType, actor_subtype: SmrActorSubtype) -> tuple[str, ...]:
+def _permitted_models_for_actor(
+    actor_type: SmrActorType, actor_subtype: SmrActorSubtype
+) -> tuple[str, ...]:
     for entry in SMR_ACTOR_MODEL_POLICY:
         if (
             entry["actor_type"] == actor_type.value
@@ -162,9 +186,8 @@ def _permitted_models_for_actor(actor_type: SmrActorType, actor_subtype: SmrActo
         ):
             return tuple(str(item) for item in entry.get("permitted_models") or ())
     raise ValueError(
-            f"No Managed Research actor model policy entry exists for {actor_type.value}:{actor_subtype.value}"
+        f"No Managed Research actor model policy entry exists for {actor_type.value}:{actor_subtype.value}"
     )
-
 
 
 def validate_shared_top_level_agent_model(
@@ -180,7 +203,6 @@ def validate_shared_top_level_agent_model(
             f"{field_name} '{model.value}' is not allowed for shared top-level selection; allowed values are: {', '.join(SMR_SHARED_TOP_LEVEL_AGENT_MODEL_VALUES)}"
         )
     return model
-
 
 
 def coerce_smr_actor_model_assignment(
@@ -223,7 +245,6 @@ def coerce_smr_actor_model_assignment(
             f"{field_name}.agent_model '{assignment.agent_model.value}' is not permitted for {assignment.actor_type.value}:{assignment.actor_subtype.value}; allowed values are: {', '.join(permitted)}"
         )
     return assignment
-
 
 
 def normalize_actor_model_assignments(

@@ -12,8 +12,8 @@ from managed_research.models.smr_network_topology import (
     coerce_smr_network_topology,
 )
 from managed_research.models.smr_providers import (
-    ProviderBinding,
     ActorResourceCapability,
+    ProviderBinding,
     UsageLimit,
     coerce_provider_bindings,
     coerce_usage_limit,
@@ -108,6 +108,14 @@ def _optional_object_dict(payload: object, *, label: str = "metadata") -> dict[s
     return dict(_require_mapping(payload, label=label))
 
 
+def _optional_object_tuple(payload: object, *, label: str) -> tuple[dict[str, object], ...]:
+    if payload is None:
+        return ()
+    if not isinstance(payload, list):
+        raise ValueError(f"{label} must be an array when provided")
+    return tuple(dict(_require_mapping(item, label=f"{label}[]")) for item in payload)
+
+
 def _parse_state(value: str | None) -> RunState:
     if not value:
         return RunState.UNKNOWN
@@ -173,6 +181,8 @@ class ManagedResearchRun:
     project_kind: str | None = None
     terminal_outcome: ManagedResearchRunTerminalOutcome | None = None
     live_phase: ManagedResearchRunLivePhase = ManagedResearchRunLivePhase.UNKNOWN
+    current_phase: str = "unknown"
+    phase_history: tuple[dict[str, object], ...] = field(default_factory=tuple)
     state_reason: str | None = None
     state_authority: str = "backend_public_run_state_projection.v1"
     work_completed: bool = False
@@ -210,6 +220,11 @@ class ManagedResearchRun:
             state=_parse_state(_require_string(mapping, "state", label="run.state")),
             terminal_outcome=_parse_terminal_outcome(_optional_string(mapping, "terminal_outcome")),
             live_phase=_parse_live_phase(_optional_string(mapping, "live_phase")),
+            current_phase=_optional_string(mapping, "current_phase") or "unknown",
+            phase_history=_optional_object_tuple(
+                mapping.get("phase_history"),
+                label="run.phase_history",
+            ),
             state_reason=_optional_string(mapping, "state_reason"),
             state_authority=(
                 _optional_string(mapping, "state_authority")

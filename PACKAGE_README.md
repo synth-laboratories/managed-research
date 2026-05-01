@@ -1,15 +1,20 @@
-# managed-research
+# Managed Research
 
-Managed Research lets you start hosted AI workers from Python or MCP and inspect
-their work as durable runs. It is for repo and research tasks where you want
-logs, checkpoints, artifacts, approvals, usage, and final outputs instead of an
-untraceable chat transcript.
+Hosted AI workers for durable repo and research runs.
 
-## Install
+**Documentation:** https://docs.usesynth.ai/managed-research/intro
+
+Use Managed Research when you want a repeatable run instead of an untraceable
+chat transcript: attach repositories and context, launch work from Python or
+MCP, and read back logs, checkpoints, artifacts, PRs, usage, and final reports.
+
+## Installation
 
 ```bash
 uv add managed-research
 ```
+
+Set an API key:
 
 ```bash
 export SYNTH_API_KEY="sk_..."
@@ -20,7 +25,7 @@ export SYNTH_API_KEY="sk_..."
 ```python
 import os
 
-from managed_research import ManagedResearchClient
+from managed_research import ManagedResearchClient, ProjectSelector
 
 client = ManagedResearchClient(api_key=os.environ["SYNTH_API_KEY"])
 
@@ -38,33 +43,41 @@ print("state:", result.state.value)
 print("artifacts:", [artifact.title for artifact in run.artifacts()])
 ```
 
-`ManagedResearchClient` is the canonical entrypoint. `SmrControlClient`
-remains available as a compatibility alias for one release.
-
 ## Main Ideas
 
-- Use `client.runs.start(...)` for a one-off run on the default project.
+- Use `ManagedResearchClient` as the Python entrypoint.
+- Use `client.runs.start(...)` for runs that default to the caller's
+  Miscellaneous project.
+- Pass `project_id=` or `project=ProjectSelector.from_project_id(...)` when a
+  run belongs to a specific existing project.
 - Use `client.projects.create(...)` and `client.project(project_id)` for durable
   project-scoped work.
-- Attach repositories, files, datasets, credentials, notes, and knowledge before
-  starting a run.
-- Use preflight when you want launch blockers as structured data before spending
-  runtime.
-- Inspect runs through messages, timeline, traces, checkpoints, artifacts,
+- Run preflight before launch when you want structured launch blockers.
+- Inspect runs through messages, timelines, traces, checkpoints, artifacts,
   usage, questions, approvals, and actor/task counts.
-- Use `agent_harness="codex"` or `agent_harness="opencode_sdk"` when you want
-  to pin the harness explicitly.
+- Use MCP from Codex or Claude Code when you want an agent-native interface.
 
-## OpenCode Harness
+## MCP
 
-OpenCode is a first-class harness option with this initial model palette:
+Hosted:
 
-- `anthropic/claude-sonnet-4-6`
-- `anthropic/claude-haiku-4-5-20251001`
-- `x-ai/grok-4.1-fast`
+```bash
+codex mcp add managed-research --url https://api.usesynth.ai/mcp
+claude mcp add --transport http managed-research https://api.usesynth.ai/mcp
+```
 
-For deeper examples, see:
+Local stdio:
 
-- [`docs/quickstart.md`](./docs/quickstart.md)
-- [`docs/python-sdk.md`](./docs/python-sdk.md)
-- [`docs/mcp.md`](./docs/mcp.md)
+```bash
+uv tool install managed-research
+managed-research-mcp
+```
+
+## Links
+
+- [Quickstart](https://docs.usesynth.ai/managed-research/quickstart)
+- [MCP quickstart](https://docs.usesynth.ai/managed-research/mcp-quickstart)
+- [Python SDK quickstart](https://docs.usesynth.ai/managed-research/sdk-quickstart)
+- [Launch fields](https://docs.usesynth.ai/managed-research/launch-fields)
+- [Models and harnesses](https://docs.usesynth.ai/managed-research/models-and-harnesses)
+- [Runs and evidence](https://docs.usesynth.ai/managed-research/runs-and-evidence)

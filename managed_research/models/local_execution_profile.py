@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 import json
 import os
 import tomllib
-from typing import Any, Mapping
-
+from collections.abc import Mapping
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 LEGACY_LOCAL_EXECUTION_PROFILE_SCHEMA_VERSION = "2026-04-14-local-execution-profile-v2"
 LOCAL_EXECUTION_PROFILE_SCHEMA_VERSION = "2026-04-15-local-execution-profile-v3"
@@ -68,10 +68,7 @@ def _repo_ref_from_url(value: str) -> str:
         return ""
     if "://" in normalized:
         path = normalized.split("://", 1)[1]
-        if "/" in path:
-            path = path.split("/", 1)[1]
-        else:
-            path = ""
+        path = path.split("/", 1)[1] if "/" in path else ""
     elif normalized.startswith("git@") and ":" in normalized:
         path = normalized.split(":", 1)[1].strip()
     else:
@@ -104,7 +101,7 @@ class LocalExecutionProfile:
     capabilities: dict[str, bool]
 
     @classmethod
-    def from_wire(cls, payload: Mapping[str, Any]) -> "LocalExecutionProfile":
+    def from_wire(cls, payload: Mapping[str, Any]) -> LocalExecutionProfile:
         schema_version = _required_string(payload, "schema_version")
         if schema_version == LEGACY_LOCAL_EXECUTION_PROFILE_SCHEMA_VERSION:
             source_binding_kind = SOURCE_BINDING_KIND_TOOL_REPO
@@ -214,7 +211,7 @@ class LocalPublicationReadiness:
     project_connected: bool
 
     @classmethod
-    def from_wire(cls, payload: Mapping[str, Any]) -> "LocalPublicationReadiness":
+    def from_wire(cls, payload: Mapping[str, Any]) -> LocalPublicationReadiness:
         return cls(
             ready=bool(payload.get("ready")),
             status=_required_string(payload, "status"),
@@ -237,7 +234,7 @@ class LocalProductSourceMirror:
     default_branch: str | None
 
     @classmethod
-    def from_wire(cls, payload: Mapping[str, Any]) -> "LocalProductSourceMirror":
+    def from_wire(cls, payload: Mapping[str, Any]) -> LocalProductSourceMirror:
         return cls(
             product=_required_string(payload, "product"),
             source_kind=_required_string(payload, "source_kind"),
@@ -260,7 +257,7 @@ class LocalEvalContract:
     task_env: dict[str, str]
 
     @classmethod
-    def from_wire(cls, payload: Mapping[str, Any]) -> "LocalEvalContract":
+    def from_wire(cls, payload: Mapping[str, Any]) -> LocalEvalContract:
         mirrors_payload = payload.get("product_source_mirrors")
         if mirrors_payload is None:
             mirrors = {}

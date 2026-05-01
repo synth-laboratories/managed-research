@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import pytest
-
 from managed_research.sdk.client import (
     OPENAI_TRANSPORT_MODE_AUTO,
     OPENAI_TRANSPORT_MODE_BACKEND_BFF,
