@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from managed_research.mcp.registry import ToolDefinition, tool_schema
+from managed_research.mcp.objective_tools import RunObjectiveScopeToolOperation
 from managed_research.mcp.tools.smr_policy_schemas import run_policy_input_schema
 from managed_research.models.run_control import ManagedResearchActorControlAction
 from managed_research.models.runtime_intent import (
@@ -178,9 +179,18 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "type": "object",
                         "description": "Optional Phase 3 run resource bindings for external repos and credential refs.",
                     },
+                    "primary_objective_id": {
+                        "type": "string",
+                        "description": "Optional existing project objective id to bind as this run's primary objective.",
+                    },
+                    "primary_objective_kind": {
+                        "type": "string",
+                        "enum": ["open_ended_question", "directed_effort_outcome"],
+                        "description": "Optional discriminator for primary_objective_id.",
+                    },
                     "primary_parent_ref": {
                         "type": "object",
-                        "description": "Optional existing project-scoped parent objective binding.",
+                        "description": "Compatibility object for existing project-scoped parent objective binding.",
                     },
                     "primary_parent": {
                         "type": "object",
@@ -277,9 +287,18 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "type": "object",
                         "description": "Optional Phase 3 run resource bindings for external repos and credential refs.",
                     },
+                    "primary_objective_id": {
+                        "type": "string",
+                        "description": "Optional existing project objective id to bind as this run's primary objective.",
+                    },
+                    "primary_objective_kind": {
+                        "type": "string",
+                        "enum": ["open_ended_question", "directed_effort_outcome"],
+                        "description": "Optional discriminator for primary_objective_id.",
+                    },
                     "primary_parent_ref": {
                         "type": "object",
-                        "description": "Optional existing project-scoped parent objective binding.",
+                        "description": "Compatibility object for existing project-scoped parent objective binding.",
                     },
                     "primary_parent": {
                         "type": "object",
@@ -748,6 +767,31 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                 required=["run_id"],
             ),
             handler=server._tool_get_run_primary_parent,
+        ),
+        ToolDefinition(
+            name="smr_run_objective_scopes",
+            description=(
+                "List or register which project objectives are in scope, primary, "
+                "supporting, reviewer, blocker, or out of scope for a run."
+            ),
+            input_schema=tool_schema(
+                {
+                    "operation": {
+                        "type": "string",
+                        "enum": [
+                            operation.value
+                            for operation in RunObjectiveScopeToolOperation
+                        ],
+                    },
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "payload": {
+                        "type": "object",
+                        "description": "Scope registration payload.",
+                    },
+                },
+                required=["operation", "run_id"],
+            ),
+            handler=server._tool_run_objective_scopes,
         ),
         ToolDefinition(
             name="smr_stop_run",

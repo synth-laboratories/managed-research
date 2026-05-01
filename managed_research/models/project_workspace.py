@@ -19,6 +19,16 @@ class ProjectWorkspaceActorControlStatus(StrEnum):
     UNKNOWN = "unknown"
 
 
+class ProjectWorkspaceObjectiveStatus(StrEnum):
+    ACTIVE = "active"
+    PAUSED = "paused"
+    BLOCKED = "blocked"
+    REVIEW_PENDING = "review_pending"
+    COMPLETE = "complete"
+    FAILED = "failed"
+    WITHDRAWN = "withdrawn"
+
+
 def _require_mapping(payload: object, *, label: str) -> Mapping[str, object]:
     if not isinstance(payload, Mapping):
         raise ValueError(f"{label} must be an object")
@@ -94,6 +104,13 @@ def _actor_control_status(
         return ProjectWorkspaceActorControlStatus(value)
     except ValueError as exc:
         raise ValueError(f"{key} has unknown actor control status {value!r}") from exc
+
+
+def _objective_status(
+    payload: Mapping[str, object], key: str
+) -> ProjectWorkspaceObjectiveStatus:
+    value = _optional_string(payload, key) or ProjectWorkspaceObjectiveStatus.ACTIVE.value
+    return ProjectWorkspaceObjectiveStatus(value)
 
 
 @dataclass(frozen=True)
@@ -366,12 +383,23 @@ class ProjectWorkspaceObjective:
     objective_kind: str
     title: str
     body: str
+    status: ProjectWorkspaceObjectiveStatus
     evaluation_state: str
     truth_status: ProjectWorkspaceTruthStatus
     updated_at: str
     review_summary: str | None = None
     reviewed_at: str | None = None
     run_id: str | None = None
+    progress_count: int = 0
+    achievement_count: int = 0
+    percent_complete: float | None = None
+    active_task_count: int = 0
+    pending_claim_count: int = 0
+    related_run_count: int = 0
+    budget_max_cost_cents: int | None = None
+    budget_spent_cost_cents: int | None = None
+    budget_max_tokens: int | None = None
+    budget_spent_tokens: int | None = None
     linked_artifact_ids: list[str] = field(default_factory=list)
     linked_entry_ids: list[str] = field(default_factory=list)
 
@@ -385,6 +413,7 @@ class ProjectWorkspaceObjective:
             ),
             title=_require_string(mapping, "title", label="objective.title"),
             body=_require_string(mapping, "body", label="objective.body"),
+            status=_objective_status(mapping, "status"),
             evaluation_state=_require_string(
                 mapping, "evaluation_state", label="objective.evaluation_state"
             ),
@@ -393,6 +422,36 @@ class ProjectWorkspaceObjective:
             review_summary=_optional_string(mapping, "review_summary"),
             reviewed_at=_optional_string(mapping, "reviewed_at"),
             run_id=_optional_string(mapping, "run_id"),
+            progress_count=_int_value(mapping, "progress_count"),
+            achievement_count=_int_value(mapping, "achievement_count"),
+            percent_complete=(
+                float(mapping["percent_complete"])
+                if mapping.get("percent_complete") is not None
+                else None
+            ),
+            active_task_count=_int_value(mapping, "active_task_count"),
+            pending_claim_count=_int_value(mapping, "pending_claim_count"),
+            related_run_count=_int_value(mapping, "related_run_count"),
+            budget_max_cost_cents=(
+                _int_value(mapping, "budget_max_cost_cents")
+                if mapping.get("budget_max_cost_cents") is not None
+                else None
+            ),
+            budget_spent_cost_cents=(
+                _int_value(mapping, "budget_spent_cost_cents")
+                if mapping.get("budget_spent_cost_cents") is not None
+                else None
+            ),
+            budget_max_tokens=(
+                _int_value(mapping, "budget_max_tokens")
+                if mapping.get("budget_max_tokens") is not None
+                else None
+            ),
+            budget_spent_tokens=(
+                _int_value(mapping, "budget_spent_tokens")
+                if mapping.get("budget_spent_tokens") is not None
+                else None
+            ),
             linked_artifact_ids=_string_list(
                 mapping.get("linked_artifact_ids"), label="objective.linked_artifact_ids"
             ),
@@ -657,6 +716,7 @@ __all__ = [
     "ProjectWorkspaceLaunchRisk",
     "ProjectWorkspaceLinks",
     "ProjectWorkspaceObjective",
+    "ProjectWorkspaceObjectiveStatus",
     "ProjectWorkspaceProjection",
     "ProjectWorkspaceReport",
     "ProjectWorkspaceReviewItem",

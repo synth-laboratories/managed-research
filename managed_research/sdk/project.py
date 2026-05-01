@@ -305,6 +305,29 @@ class _BoundProjectSetupAPI:
             self._client.prepare_project_setup_authority(self.project_id)
         )
 
+    def start_onboarding(self) -> dict[str, Any]:
+        return self._client.start_project_onboarding(self.project_id)
+
+    def complete_onboarding_step(
+        self,
+        *,
+        step: str,
+        status: str,
+        detail: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._client.complete_project_onboarding_step(
+            self.project_id,
+            step=step,
+            status=status,
+            detail=detail,
+        )
+
+    def dry_run_onboarding(self) -> dict[str, Any]:
+        return self._client.run_project_onboarding_dry_run(self.project_id)
+
+    def get_onboarding_status(self) -> dict[str, Any]:
+        return self._client.get_project_onboarding_status(self.project_id)
+
 
 @dataclass
 class _BoundProjectModelsAPI:
@@ -443,6 +466,121 @@ class _BoundProjectRunsAPI:
 
 
 @dataclass
+class _BoundProjectObjectivesAPI:
+    _client: Any
+    project_id: str
+
+    def list(
+        self,
+        *,
+        kind: str | None = None,
+        run_id: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_objectives(
+            self.project_id,
+            kind=kind,
+            run_id=run_id,
+            limit=limit,
+        )
+
+    def create(self, *, kind: str, **payload: Any) -> dict[str, Any]:
+        return self._client.create_objective(
+            self.project_id,
+            {"kind": kind, **payload},
+        )
+
+    def get(self, objective_id: str, *, kind: str | None = None) -> dict[str, Any]:
+        return self._client.get_objective(self.project_id, objective_id, kind=kind)
+
+    def patch(
+        self,
+        objective_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.patch_objective(
+            self.project_id,
+            objective_id,
+            payload,
+            kind=kind,
+        )
+
+    def pause(self, objective_id: str, *, kind: str | None = None) -> dict[str, Any]:
+        return self._client.pause_objective(self.project_id, objective_id, kind=kind)
+
+    def resume(self, objective_id: str, *, kind: str | None = None) -> dict[str, Any]:
+        return self._client.resume_objective(self.project_id, objective_id, kind=kind)
+
+    def withdraw(self, objective_id: str, *, kind: str | None = None) -> dict[str, Any]:
+        return self._client.withdraw_objective(self.project_id, objective_id, kind=kind)
+
+    def progress(self, objective_id: str, *, kind: str | None = None) -> dict[str, Any]:
+        return self._client.get_objective_progress(
+            self.project_id,
+            objective_id,
+            kind=kind,
+        )
+
+    def tasks(
+        self,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_objective_tasks(
+            self.project_id,
+            objective_id,
+            kind=kind,
+            limit=limit,
+        )
+
+    def claims(
+        self,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_objective_claims(
+            self.project_id,
+            objective_id,
+            kind=kind,
+            limit=limit,
+        )
+
+    def create_claim(
+        self,
+        objective_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.create_objective_claim(
+            self.project_id,
+            objective_id,
+            payload,
+            kind=kind,
+        )
+
+    def request_review(
+        self,
+        objective_id: str,
+        payload: Mapping[str, Any] | dict[str, Any] | None = None,
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.request_objective_review(
+            self.project_id,
+            objective_id,
+            payload,
+            kind=kind,
+        )
+
+
+@dataclass
 class _BoundProjectChangeSetsAPI:
     _client: Any
     project_id: str
@@ -520,6 +658,11 @@ class ManagedResearchProjectClient:
         repr=False,
     )
     _runs_api: _BoundProjectRunsAPI | None = field(
+        init=False,
+        default=None,
+        repr=False,
+    )
+    _objectives_api: _BoundProjectObjectivesAPI | None = field(
         init=False,
         default=None,
         repr=False,
@@ -605,6 +748,15 @@ class ManagedResearchProjectClient:
         if self._runs_api is None:
             self._runs_api = _BoundProjectRunsAPI(self._client, self.project_id)
         return self._runs_api
+
+    @property
+    def objectives(self) -> _BoundProjectObjectivesAPI:
+        if self._objectives_api is None:
+            self._objectives_api = _BoundProjectObjectivesAPI(
+                self._client,
+                self.project_id,
+            )
+        return self._objectives_api
 
     @property
     def changesets(self) -> _BoundProjectChangeSetsAPI:

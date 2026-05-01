@@ -16,6 +16,14 @@ from managed_research.mcp.registry import (
     call_tool,
     list_tool_payload,
 )
+from managed_research.mcp.objective_tools import (
+    CompatObjectiveToolOperation,
+    compat_objective_tool_operation_from_wire,
+    ObjectiveToolOperation,
+    objective_tool_operation_from_wire,
+    RunObjectiveScopeToolOperation,
+    run_objective_scope_tool_operation_from_wire,
+)
 from managed_research.mcp.request_models import (
     OneOffRunLaunchRequest,
     ProjectMutationRequest,
@@ -1078,6 +1086,21 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.get_run_primary_parent(run_id)
 
+    def _tool_run_objective_scopes(self, args: JSONDict) -> Any:
+        operation = run_objective_scope_tool_operation_from_wire(
+            require_string(args, "operation")
+        )
+        run_id = require_string(args, "run_id")
+        payload = args.get("payload")
+        if payload is not None and not isinstance(payload, dict):
+            raise ValueError("'payload' must be an object when provided")
+        with self._client_from_args(args) as client:
+            if operation is RunObjectiveScopeToolOperation.LIST:
+                return client.list_run_objective_scopes(run_id)
+            if operation is RunObjectiveScopeToolOperation.REGISTER:
+                return client.register_run_objective_scope(run_id, payload or {})
+        raise ValueError(f"Unsupported run objective-scope operation: {operation.value}")
+
     def _tool_stop_run(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
         project_id = optional_string(args, "project_id")
@@ -1524,64 +1547,130 @@ class ManagedResearchMcpServer:
             )
 
     def _tool_open_ended_questions(self, args: JSONDict) -> Any:
-        operation = require_string(args, "operation").strip().lower()
+        operation = compat_objective_tool_operation_from_wire(
+            require_string(args, "operation")
+        )
         project_id = require_string(args, "project_id")
         objective_id = optional_string(args, "objective_id")
         payload = args.get("payload")
         if payload is not None and not isinstance(payload, dict):
             raise ValueError("'payload' must be an object when provided")
         with self._client_from_args(args) as client:
-            if operation == "list":
+            if operation is CompatObjectiveToolOperation.LIST:
                 return client.list_open_ended_questions(
                     project_id, run_id=optional_string(args, "run_id")
                 )
-            if operation == "create":
+            if operation is CompatObjectiveToolOperation.CREATE:
                 return client.create_open_ended_question(project_id, payload or {})
-            if operation == "get":
+            if operation is CompatObjectiveToolOperation.GET:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for get")
                 return client.get_open_ended_question(project_id, objective_id)
-            if operation == "patch":
+            if operation is CompatObjectiveToolOperation.PATCH:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for patch")
-                return client.patch_open_ended_question(project_id, objective_id, payload or {})
-            if operation == "transition":
+                return client.patch_open_ended_question(
+                    project_id, objective_id, payload or {}
+                )
+            if operation is CompatObjectiveToolOperation.TRANSITION:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for transition")
                 return client.transition_open_ended_question(
                     project_id, objective_id, payload or {}
                 )
-        raise ValueError("'operation' must be list, create, get, patch, or transition")
+        raise ValueError(f"Unsupported open-ended-question operation: {operation.value}")
+
+    def _tool_objectives(self, args: JSONDict) -> Any:
+        operation = objective_tool_operation_from_wire(require_string(args, "operation"))
+        project_id = require_string(args, "project_id")
+        objective_id = optional_string(args, "objective_id")
+        kind = optional_string(args, "kind")
+        payload = args.get("payload")
+        if payload is not None and not isinstance(payload, dict):
+            raise ValueError("'payload' must be an object when provided")
+        with self._client_from_args(args) as client:
+            if operation is ObjectiveToolOperation.LIST:
+                return client.list_objectives(
+                    project_id,
+                    kind=kind,
+                    run_id=optional_string(args, "run_id"),
+                )
+            if operation is ObjectiveToolOperation.CREATE:
+                return client.create_objective(project_id, payload or {})
+            if objective_id is None:
+                raise ValueError("'objective_id' is required for this operation")
+            if operation is ObjectiveToolOperation.GET:
+                return client.get_objective(project_id, objective_id, kind=kind)
+            if operation is ObjectiveToolOperation.PATCH:
+                return client.patch_objective(
+                    project_id,
+                    objective_id,
+                    payload or {},
+                    kind=kind,
+                )
+            if operation is ObjectiveToolOperation.PAUSE:
+                return client.pause_objective(project_id, objective_id, kind=kind)
+            if operation is ObjectiveToolOperation.RESUME:
+                return client.resume_objective(project_id, objective_id, kind=kind)
+            if operation is ObjectiveToolOperation.WITHDRAW:
+                return client.withdraw_objective(project_id, objective_id, kind=kind)
+            if operation is ObjectiveToolOperation.PROGRESS:
+                return client.get_objective_progress(project_id, objective_id, kind=kind)
+            if operation is ObjectiveToolOperation.TASKS:
+                return client.list_objective_tasks(project_id, objective_id, kind=kind)
+            if operation is ObjectiveToolOperation.CLAIMS:
+                return client.list_objective_claims(project_id, objective_id, kind=kind)
+            if operation is ObjectiveToolOperation.CLAIM:
+                return client.create_objective_claim(
+                    project_id,
+                    objective_id,
+                    payload or {},
+                    kind=kind,
+                )
+            if operation is ObjectiveToolOperation.REQUEST_REVIEW:
+                return client.request_objective_review(
+                    project_id,
+                    objective_id,
+                    payload or {},
+                    kind=kind,
+                )
+        raise ValueError(f"Unsupported objective operation: {operation.value}")
 
     def _tool_directed_effort_outcomes(self, args: JSONDict) -> Any:
-        operation = require_string(args, "operation").strip().lower()
+        operation = compat_objective_tool_operation_from_wire(
+            require_string(args, "operation")
+        )
         project_id = require_string(args, "project_id")
         objective_id = optional_string(args, "objective_id")
         payload = args.get("payload")
         if payload is not None and not isinstance(payload, dict):
             raise ValueError("'payload' must be an object when provided")
         with self._client_from_args(args) as client:
-            if operation == "list":
+            if operation is CompatObjectiveToolOperation.LIST:
                 return client.list_directed_effort_outcomes(
                     project_id, run_id=optional_string(args, "run_id")
                 )
-            if operation == "create":
+            if operation is CompatObjectiveToolOperation.CREATE:
                 return client.create_directed_effort_outcome(project_id, payload or {})
-            if operation == "get":
+            if operation is CompatObjectiveToolOperation.GET:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for get")
                 return client.get_directed_effort_outcome(project_id, objective_id)
-            if operation == "patch":
+            if operation is CompatObjectiveToolOperation.PATCH:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for patch")
-                return client.patch_directed_effort_outcome(project_id, objective_id, payload or {})
-            if operation == "transition":
+                return client.patch_directed_effort_outcome(
+                    project_id, objective_id, payload or {}
+                )
+            if operation is CompatObjectiveToolOperation.TRANSITION:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for transition")
                 return client.transition_directed_effort_outcome(
                     project_id, objective_id, payload or {}
                 )
-        raise ValueError("'operation' must be list, create, get, patch, or transition")
+        raise ValueError(
+            f"Unsupported directed-effort-outcome operation: {operation.value}"
+        )
 
     def serve_stdio(self) -> None:
         framing = "jsonl"

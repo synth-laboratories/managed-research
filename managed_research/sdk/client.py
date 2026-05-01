@@ -317,6 +317,28 @@ def _normalized_roles_payload(
     return normalized.to_wire()
 
 
+def _primary_objective_ref_payload(
+    *,
+    primary_objective_id: str | None,
+    primary_objective_kind: str | None,
+    primary_parent_ref: Mapping[str, Any] | dict[str, Any] | None,
+    primary_parent: Mapping[str, Any] | dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    objective_id = str(primary_objective_id or "").strip()
+    objective_kind = str(primary_objective_kind or "").strip()
+    if not objective_id:
+        return None
+    if primary_parent_ref is not None or primary_parent is not None:
+        raise ValueError(
+            "primary_objective_id cannot be combined with primary_parent_ref "
+            "or primary_parent"
+        )
+    payload: dict[str, Any] = {"id": objective_id}
+    if objective_kind:
+        payload["kind"] = objective_kind
+    return payload
+
+
 def _build_project_run_payload(
     *,
     host_kind: SmrHostKind,
@@ -342,6 +364,8 @@ def _build_project_run_payload(
     run_policy: SmrRunPolicy | Mapping[str, Any] | dict[str, Any] | None = None,
     kickoff_contract: KickoffContract | Mapping[str, Any] | dict[str, Any] | None = None,
     resource_bindings: RunResourceBindings | Mapping[str, Any] | dict[str, Any] | None = None,
+    primary_objective_id: str | None = None,
+    primary_objective_kind: str | None = None,
     primary_parent_ref: Mapping[str, Any] | dict[str, Any] | None = None,
     primary_parent: Mapping[str, Any] | dict[str, Any] | None = None,
     idempotency_key_run_create: str | None = None,
@@ -483,8 +507,14 @@ def _build_project_run_payload(
             )
         if normalized_resource_bindings:
             payload["resource_bindings"] = normalized_resource_bindings
+    primary_objective_ref = _primary_objective_ref_payload(
+        primary_objective_id=primary_objective_id,
+        primary_objective_kind=primary_objective_kind,
+        primary_parent_ref=primary_parent_ref,
+        primary_parent=primary_parent,
+    )
     normalized_primary_parent_ref = _optional_mapping(
-        primary_parent_ref,
+        primary_objective_ref or primary_parent_ref,
         field_name="primary_parent_ref",
     )
     if normalized_primary_parent_ref:
@@ -2018,6 +2048,54 @@ class ManagedResearchClient:
     def prepare_project_setup_authority(self, project_id: str) -> dict[str, Any]:
         return self.prepare_project_setup(project_id)
 
+    def start_project_onboarding(self, project_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/onboarding/start",
+            ),
+            label="start_project_onboarding",
+        )
+
+    def complete_project_onboarding_step(
+        self,
+        project_id: str,
+        *,
+        step: str,
+        status: str,
+        detail: Mapping[str, Any] | dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/onboarding/complete_step",
+                json_body={
+                    "step": _require_non_empty_string(step, field_name="step"),
+                    "status": _require_non_empty_string(status, field_name="status"),
+                    "detail": dict(detail or {}),
+                },
+            ),
+            label="complete_project_onboarding_step",
+        )
+
+    def run_project_onboarding_dry_run(self, project_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/onboarding/dry_run",
+            ),
+            label="run_project_onboarding_dry_run",
+        )
+
+    def get_project_onboarding_status(self, project_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/onboarding/status",
+            ),
+            label="get_project_onboarding_status",
+        )
+
     def set_provider_key(
         self,
         project_id: str,
@@ -2219,6 +2297,8 @@ class ManagedResearchClient:
         run_policy: SmrRunPolicy | Mapping[str, Any] | dict[str, Any] | None = None,
         kickoff_contract: KickoffContract | Mapping[str, Any] | dict[str, Any] | None = None,
         resource_bindings: RunResourceBindings | Mapping[str, Any] | dict[str, Any] | None = None,
+        primary_objective_id: str | None = None,
+        primary_objective_kind: str | None = None,
         primary_parent_ref: Mapping[str, Any] | dict[str, Any] | None = None,
         primary_parent: Mapping[str, Any] | dict[str, Any] | None = None,
         idempotency_key_run_create: str | None = None,
@@ -2247,6 +2327,8 @@ class ManagedResearchClient:
             run_policy=run_policy,
             kickoff_contract=kickoff_contract,
             resource_bindings=resource_bindings,
+            primary_objective_id=primary_objective_id,
+            primary_objective_kind=primary_objective_kind,
             primary_parent_ref=primary_parent_ref,
             primary_parent=primary_parent,
             idempotency_key_run_create=idempotency_key_run_create,
@@ -2310,6 +2392,8 @@ class ManagedResearchClient:
         run_policy: SmrRunPolicy | Mapping[str, Any] | dict[str, Any] | None = None,
         kickoff_contract: KickoffContract | Mapping[str, Any] | dict[str, Any] | None = None,
         resource_bindings: RunResourceBindings | Mapping[str, Any] | dict[str, Any] | None = None,
+        primary_objective_id: str | None = None,
+        primary_objective_kind: str | None = None,
         primary_parent_ref: Mapping[str, Any] | dict[str, Any] | None = None,
         primary_parent: Mapping[str, Any] | dict[str, Any] | None = None,
         idempotency_key_run_create: str | None = None,
@@ -2338,6 +2422,8 @@ class ManagedResearchClient:
             run_policy=run_policy,
             kickoff_contract=kickoff_contract,
             resource_bindings=resource_bindings,
+            primary_objective_id=primary_objective_id,
+            primary_objective_kind=primary_objective_kind,
             primary_parent_ref=primary_parent_ref,
             primary_parent=primary_parent,
             idempotency_key_run_create=idempotency_key_run_create,
@@ -2522,6 +2608,26 @@ class ManagedResearchClient:
             label="get_run_primary_parent",
         )
 
+    def list_run_objective_scopes(self, run_id: str) -> list[dict[str, Any]]:
+        return _coerce_dict_list(
+            self._request_json("GET", f"/smr/runs/{run_id}/objective-scopes"),
+            label="list_run_objective_scopes",
+        )
+
+    def register_run_objective_scope(
+        self,
+        run_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "PUT",
+                f"/smr/runs/{run_id}/objective-scopes",
+                json_body=dict(payload),
+            ),
+            label="register_run_objective_scope",
+        )
+
     def list_run_primary_parent_milestones(
         self,
         run_id: str,
@@ -2616,6 +2722,205 @@ class ManagedResearchClient:
                 params=build_query_params(run_id=run_id, limit=limit),
             ),
             label="list_open_ended_questions",
+        )
+
+    def list_objectives(
+        self,
+        project_id: str,
+        *,
+        kind: str | None = None,
+        run_id: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return _coerce_dict_list(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/objectives",
+                params=build_query_params(kind=kind, run_id=run_id, limit=limit),
+            ),
+            label="list_objectives",
+        )
+
+    def create_objective(
+        self,
+        project_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/objectives",
+                json_body=dict(payload),
+            ),
+            label="create_objective",
+        )
+
+    def get_objective(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/objectives/{objective_id}",
+                params=build_query_params(kind=kind),
+            ),
+            label="get_objective",
+        )
+
+    def patch_objective(
+        self,
+        project_id: str,
+        objective_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "PATCH",
+                f"/smr/projects/{project_id}/objectives/{objective_id}",
+                params=build_query_params(kind=kind),
+                json_body=dict(payload),
+            ),
+            label="patch_objective",
+        )
+
+    def pause_objective(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/objectives/{objective_id}/pause",
+                params=build_query_params(kind=kind),
+            ),
+            label="pause_objective",
+        )
+
+    def resume_objective(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/objectives/{objective_id}/resume",
+                params=build_query_params(kind=kind),
+            ),
+            label="resume_objective",
+        )
+
+    def withdraw_objective(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/objectives/{objective_id}/withdraw",
+                params=build_query_params(kind=kind),
+            ),
+            label="withdraw_objective",
+        )
+
+    def get_objective_progress(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/objectives/{objective_id}/progress",
+                params=build_query_params(kind=kind),
+            ),
+            label="get_objective_progress",
+        )
+
+    def list_objective_tasks(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return _coerce_dict_list(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/objectives/{objective_id}/tasks",
+                params=build_query_params(kind=kind, limit=limit),
+            ),
+            label="list_objective_tasks",
+        )
+
+    def list_objective_claims(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return _coerce_dict_list(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/objectives/{objective_id}/claims",
+                params=build_query_params(kind=kind, limit=limit),
+            ),
+            label="list_objective_claims",
+        )
+
+    def create_objective_claim(
+        self,
+        project_id: str,
+        objective_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/objectives/{objective_id}/claims",
+                params=build_query_params(kind=kind),
+                json_body=dict(payload),
+            ),
+            label="create_objective_claim",
+        )
+
+    def request_objective_review(
+        self,
+        project_id: str,
+        objective_id: str,
+        payload: Mapping[str, Any] | dict[str, Any] | None = None,
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/objectives/{objective_id}/request-review",
+                params=build_query_params(kind=kind),
+                json_body=dict(payload or {}),
+            ),
+            label="request_objective_review",
         )
 
     def create_open_ended_question(

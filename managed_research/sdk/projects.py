@@ -190,6 +190,30 @@ class ProjectsAPI(_ClientNamespace):
             self._client.prepare_project_setup_authority(project_id)
         )
 
+    def start_onboarding(self, project_id: str) -> dict[str, Any]:
+        return self._client.start_project_onboarding(project_id)
+
+    def complete_onboarding_step(
+        self,
+        project_id: str,
+        *,
+        step: str,
+        status: str,
+        detail: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._client.complete_project_onboarding_step(
+            project_id,
+            step=step,
+            status=status,
+            detail=detail,
+        )
+
+    def dry_run_onboarding(self, project_id: str) -> dict[str, Any]:
+        return self._client.run_project_onboarding_dry_run(project_id)
+
+    def get_onboarding_status(self, project_id: str) -> dict[str, Any]:
+        return self._client.get_project_onboarding_status(project_id)
+
     def get_launch_preflight(self, project_id: str, **kwargs: Any) -> SmrLaunchPreflight:
         return SmrLaunchPreflight.from_wire(
             self._client.get_launch_preflight(project_id, **kwargs)
@@ -206,6 +230,51 @@ class ProjectsAPI(_ClientNamespace):
         return self._client.list_open_ended_questions(
             project_id, run_id=run_id, limit=limit
         )
+
+    def list_objectives(
+        self,
+        project_id: str,
+        *,
+        kind: str | None = None,
+        run_id: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_objectives(
+            project_id,
+            kind=kind,
+            run_id=run_id,
+            limit=limit,
+        )
+
+    def create_objective(self, project_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._client.create_objective(project_id, payload)
+
+    def get_objective(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.get_objective(project_id, objective_id, kind=kind)
+
+    def pause_objective(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.pause_objective(project_id, objective_id, kind=kind)
+
+    def resume_objective(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.resume_objective(project_id, objective_id, kind=kind)
 
     def create_open_ended_question(
         self, project_id: str, payload: dict[str, Any]

@@ -5,6 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 from managed_research.mcp.registry import ToolDefinition, tool_schema
+from managed_research.mcp.objective_tools import (
+    CompatObjectiveToolOperation,
+    ObjectiveToolOperation,
+)
 from managed_research.models.smr_actor_models import (
     SMR_ACTOR_SUBTYPE_VALUES,
     SMR_ACTOR_TYPE_VALUES,
@@ -697,7 +701,10 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
                 {
                     "operation": {
                         "type": "string",
-                        "enum": ["list", "create", "get", "patch", "transition"],
+                        "enum": [
+                            operation.value
+                            for operation in CompatObjectiveToolOperation
+                        ],
                     },
                     "project_id": {"type": "string", "description": "Managed research project id."},
                     "objective_id": {"type": "string", "description": "Parent objective id for get/patch/transition."},
@@ -709,13 +716,42 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_open_ended_questions,
         ),
         ToolDefinition(
+            name="smr_objectives",
+            description=(
+                "List, create, fetch, patch, pause, resume, withdraw, claim "
+                "progress, request review, or inspect tasks/progress for project objectives."
+            ),
+            input_schema=tool_schema(
+                {
+                    "operation": {
+                        "type": "string",
+                        "enum": [operation.value for operation in ObjectiveToolOperation],
+                    },
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "objective_id": {"type": "string", "description": "Objective id for item operations."},
+                    "kind": {
+                        "type": "string",
+                        "enum": ["open_ended_question", "directed_effort_outcome"],
+                        "description": "Optional objective kind discriminator.",
+                    },
+                    "run_id": {"type": "string", "description": "Optional run filter when listing."},
+                    "payload": {"type": "object", "description": "Create, patch, claim, or review payload."},
+                },
+                required=["operation", "project_id"],
+            ),
+            handler=server._tool_objectives,
+        ),
+        ToolDefinition(
             name="smr_directed_effort_outcomes",
             description="List, create, fetch, patch, or transition project-scoped directed effort outcomes.",
             input_schema=tool_schema(
                 {
                     "operation": {
                         "type": "string",
-                        "enum": ["list", "create", "get", "patch", "transition"],
+                        "enum": [
+                            operation.value
+                            for operation in CompatObjectiveToolOperation
+                        ],
                     },
                     "project_id": {"type": "string", "description": "Managed research project id."},
                     "objective_id": {"type": "string", "description": "Parent objective id for get/patch/transition."},
