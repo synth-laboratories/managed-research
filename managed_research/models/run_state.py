@@ -56,6 +56,7 @@ _TERMINAL_RUN_STATES = frozenset(
 
 
 class ManagedResearchRunTerminalOutcome(StrEnum):
+    DONE = "done"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     STOPPED = "stopped"
