@@ -33985,8 +33985,9 @@ components:
           description: Actor type. Supported values are orchestrator, reviewer, worker.
         actor_subtype:
           $ref: '#/components/schemas/SmrActorSubtype'
-          description: Actor subtype. Supported values are main, engineer, researcher;
-            valid combinations depend on actor_type.
+          description: Actor subtype. Supported values are main, engineer, researcher,
+            task_completion, run_completion, safety, objective; valid combinations
+            depend on actor_type.
         agent_model:
           $ref: '#/components/schemas/SmrAgentModel'
           description: Actor-scoped agent model override. Engineer-only models such
@@ -34204,6 +34205,10 @@ components:
       - main
       - engineer
       - researcher
+      - task_completion
+      - run_completion
+      - safety
+      - objective
       title: SmrActorSubtype
     SmrActorType:
       type: string
@@ -39799,7 +39804,9 @@ components:
           type: array
           title: Actor Model Overrides
           description: Deprecated compatibility input for actor-scoped model overrides
-            keyed by actor_type and actor_subtype. Prefer roles for new integrations.
+            keyed by actor_type and actor_subtype. Use this for reviewer subtype
+            selections such as reviewer:task_completion, reviewer:run_completion,
+            reviewer:safety, and reviewer:objective.
         roles:
           anyOf:
           - $ref: '#/components/schemas/SmrRoleBindingsRequest'
