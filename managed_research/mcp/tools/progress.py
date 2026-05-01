@@ -185,9 +185,18 @@ def build_progress_tools(server: Any) -> list[ToolDefinition]:
                         "type": "object",
                         "description": "Optional Phase 3 run resource bindings for external repos and credential refs.",
                     },
+                    "primary_objective_id": {
+                        "type": "string",
+                        "description": "Optional existing project objective id to bind as this run's primary objective.",
+                    },
+                    "primary_objective_kind": {
+                        "type": "string",
+                        "enum": ["open_ended_question", "directed_effort_outcome"],
+                        "description": "Optional discriminator for primary_objective_id.",
+                    },
                     "primary_parent_ref": {
                         "type": "object",
-                        "description": "Optional existing project-scoped parent objective binding.",
+                        "description": "Compatibility object for existing project-scoped parent objective binding.",
                     },
                     "primary_parent": {
                         "type": "object",

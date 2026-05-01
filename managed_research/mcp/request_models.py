@@ -292,6 +292,8 @@ class RunLaunchRequest:
     run_policy: dict[str, Any] | None = None
     kickoff_contract: dict[str, Any] | None = None
     resource_bindings: dict[str, Any] | None = None
+    primary_objective_id: str | None = None
+    primary_objective_kind: str | None = None
     primary_parent_ref: dict[str, Any] | None = None
     primary_parent: dict[str, Any] | None = None
     idempotency_key_run_create: str | None = None
@@ -324,6 +326,8 @@ class RunLaunchRequest:
             run_policy=optional_smr_run_policy(payload, "run_policy"),
             kickoff_contract=_optional_object(payload, "kickoff_contract"),
             resource_bindings=_optional_object(payload, "resource_bindings"),
+            primary_objective_id=optional_string(payload, "primary_objective_id"),
+            primary_objective_kind=optional_string(payload, "primary_objective_kind"),
             primary_parent_ref=_optional_object(payload, "primary_parent_ref"),
             primary_parent=_optional_object(payload, "primary_parent"),
             idempotency_key_run_create=optional_string(payload, "idempotency_key_run_create"),
@@ -352,6 +356,8 @@ class RunLaunchRequest:
             "run_policy": self.run_policy,
             "kickoff_contract": self.kickoff_contract,
             "resource_bindings": self.resource_bindings,
+            "primary_objective_id": self.primary_objective_id,
+            "primary_objective_kind": self.primary_objective_kind,
             "primary_parent_ref": self.primary_parent_ref,
             "primary_parent": self.primary_parent,
             "idempotency_key_run_create": self.idempotency_key_run_create,
@@ -381,6 +387,8 @@ class OneOffRunLaunchRequest:
     run_policy: dict[str, Any] | None = None
     kickoff_contract: dict[str, Any] | None = None
     resource_bindings: dict[str, Any] | None = None
+    primary_objective_id: str | None = None
+    primary_objective_kind: str | None = None
     primary_parent_ref: dict[str, Any] | None = None
     primary_parent: dict[str, Any] | None = None
     idempotency_key_run_create: str | None = None
@@ -412,6 +420,8 @@ class OneOffRunLaunchRequest:
             run_policy=optional_smr_run_policy(payload, "run_policy"),
             kickoff_contract=_optional_object(payload, "kickoff_contract"),
             resource_bindings=_optional_object(payload, "resource_bindings"),
+            primary_objective_id=optional_string(payload, "primary_objective_id"),
+            primary_objective_kind=optional_string(payload, "primary_objective_kind"),
             primary_parent_ref=_optional_object(payload, "primary_parent_ref"),
             primary_parent=_optional_object(payload, "primary_parent"),
             idempotency_key_run_create=optional_string(payload, "idempotency_key_run_create"),
@@ -440,6 +450,8 @@ class OneOffRunLaunchRequest:
             "run_policy": self.run_policy,
             "kickoff_contract": self.kickoff_contract,
             "resource_bindings": self.resource_bindings,
+            "primary_objective_id": self.primary_objective_id,
+            "primary_objective_kind": self.primary_objective_kind,
             "primary_parent_ref": self.primary_parent_ref,
             "primary_parent": self.primary_parent,
             "idempotency_key_run_create": self.idempotency_key_run_create,

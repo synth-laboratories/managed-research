@@ -19,6 +19,11 @@ Current typed namespace returns:
   - bound project launch preflight via `client.project(id).runs.preflight(...)`
   - typed run reads via `client.project(id).runs.get(run_id)`
   - trained-model result helpers via `client.project(id).models.*`
+  - `ProjectWorkspaceProjection` via `client.project(id).workspace()`, including
+    actor/event/context-pack/changeset/canon-change/next-action readouts
+  - review-gated project ChangeSets via `client.project(id).changesets.*`
+  - project-run actor controls via `client.project(id).runs.pause_actor(...)`,
+    `resume_actor(...)`, and `interrupt_actor(...)`
 - [`progress.py`](/Users/joshpurtell/Documents/GitHub/managed-research/managed_research/sdk/progress.py)
   - `ProjectSetupAuthority` via `get_project_setup_authority(...)`
   - `LaunchPreflight` via `get_launch_preflight(...)`

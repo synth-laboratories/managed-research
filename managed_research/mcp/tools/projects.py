@@ -5,6 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 from managed_research.mcp.registry import ToolDefinition, tool_schema
+from managed_research.mcp.objective_tools import (
+    CompatObjectiveToolOperation,
+    ObjectiveToolOperation,
+)
 from managed_research.models.smr_actor_models import (
     SMR_ACTOR_SUBTYPE_VALUES,
     SMR_ACTOR_TYPE_VALUES,
@@ -247,6 +251,126 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
                 required=["project_id"],
             ),
             handler=server._tool_get_project_status,
+        ),
+        ToolDefinition(
+            name="smr_get_project_workspace",
+            description=(
+                "Fetch the backend-owned project workspace projection: objectives, "
+                "runs, experiments, curated knowledge, review queue, reports, and "
+                "launch risks. Runs propose material; review or policy promotion "
+                "owns durable project truth."
+            ),
+            input_schema=tool_schema(
+                {"project_id": {"type": "string", "description": "Managed research project id."}},
+                required=["project_id"],
+            ),
+            handler=server._tool_get_project_workspace,
+        ),
+        ToolDefinition(
+            name="smr_list_project_changesets",
+            description="List review-gated project ChangeSets.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Managed research project id.",
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Optional ChangeSet status filter.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum ChangeSets to return.",
+                    },
+                },
+                required=["project_id"],
+            ),
+            handler=server._tool_list_project_changesets,
+        ),
+        ToolDefinition(
+            name="smr_create_project_changeset",
+            description=(
+                "Create a proposed project ChangeSet. This stages project "
+                "mutations for review and does not directly mutate canon."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Managed research project id.",
+                    },
+                    "title": {"type": "string"},
+                    "summary": {"type": "string"},
+                    "run_id": {"type": "string"},
+                    "source": {"type": "string"},
+                    "author_ref": {"type": "string"},
+                    "review_policy": {"type": "string"},
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "target_kind": {"type": "string"},
+                                "target_id": {"type": "string"},
+                                "operation": {"type": "string"},
+                                "proposed_payload": {"type": "object"},
+                                "evidence_refs": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                },
+                            },
+                            "required": ["target_kind", "operation"],
+                        },
+                    },
+                    "idempotency_key": {"type": "string"},
+                    "metadata": {"type": "object"},
+                },
+                required=["project_id", "title", "items"],
+            ),
+            handler=server._tool_create_project_changeset,
+        ),
+        ToolDefinition(
+            name="smr_get_project_changeset",
+            description="Fetch one review-gated project ChangeSet.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Managed research project id.",
+                    },
+                    "changeset_id": {"type": "string"},
+                },
+                required=["project_id", "changeset_id"],
+            ),
+            handler=server._tool_get_project_changeset,
+        ),
+        ToolDefinition(
+            name="smr_decide_project_changeset",
+            description="Accept, promote, reject, supersede, or invalidate a proposed project ChangeSet.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Managed research project id.",
+                    },
+                    "changeset_id": {"type": "string"},
+                    "decision": {
+                        "type": "string",
+                        "enum": [
+                            "accepted",
+                            "promoted",
+                            "rejected",
+                            "superseded",
+                            "invalidated",
+                        ],
+                    },
+                    "decided_by_ref": {"type": "string"},
+                    "decision_reason": {"type": "string"},
+                },
+                required=["project_id", "changeset_id", "decision", "decided_by_ref"],
+            ),
+            handler=server._tool_decide_project_changeset,
         ),
         ToolDefinition(
             name="smr_get_project_entitlement",
@@ -577,7 +701,10 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
                 {
                     "operation": {
                         "type": "string",
-                        "enum": ["list", "create", "get", "patch", "transition"],
+                        "enum": [
+                            operation.value
+                            for operation in CompatObjectiveToolOperation
+                        ],
                     },
                     "project_id": {"type": "string", "description": "Managed research project id."},
                     "objective_id": {"type": "string", "description": "Parent objective id for get/patch/transition."},
@@ -589,13 +716,42 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_open_ended_questions,
         ),
         ToolDefinition(
+            name="smr_objectives",
+            description=(
+                "List, create, fetch, patch, pause, resume, withdraw, claim "
+                "progress, request review, or inspect tasks/progress for project objectives."
+            ),
+            input_schema=tool_schema(
+                {
+                    "operation": {
+                        "type": "string",
+                        "enum": [operation.value for operation in ObjectiveToolOperation],
+                    },
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "objective_id": {"type": "string", "description": "Objective id for item operations."},
+                    "kind": {
+                        "type": "string",
+                        "enum": ["open_ended_question", "directed_effort_outcome"],
+                        "description": "Optional objective kind discriminator.",
+                    },
+                    "run_id": {"type": "string", "description": "Optional run filter when listing."},
+                    "payload": {"type": "object", "description": "Create, patch, claim, or review payload."},
+                },
+                required=["operation", "project_id"],
+            ),
+            handler=server._tool_objectives,
+        ),
+        ToolDefinition(
             name="smr_directed_effort_outcomes",
             description="List, create, fetch, patch, or transition project-scoped directed effort outcomes.",
             input_schema=tool_schema(
                 {
                     "operation": {
                         "type": "string",
-                        "enum": ["list", "create", "get", "patch", "transition"],
+                        "enum": [
+                            operation.value
+                            for operation in CompatObjectiveToolOperation
+                        ],
                     },
                     "project_id": {"type": "string", "description": "Managed research project id."},
                     "objective_id": {"type": "string", "description": "Parent objective id for get/patch/transition."},

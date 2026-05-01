@@ -62,6 +62,9 @@ print("output files:", [artifact.path for artifact in manifest.output_files])
 
 for artifact in run.artifacts():
     print(artifact.artifact_id, artifact.artifact_type, artifact.title)
+
+evidence = run.operator_evidence()
+print("evidence keys:", sorted(evidence.keys()))
 ```
 
 ## 4. Use A Project When Context Matters
