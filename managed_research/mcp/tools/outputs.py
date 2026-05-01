@@ -10,6 +10,15 @@ from managed_research.mcp.registry import ToolDefinition, tool_schema
 def build_output_tools(server: Any) -> list[ToolDefinition]:
     return [
         ToolDefinition(
+            name="smr_results_outputs_list",
+            description="List result output records for a project.",
+            input_schema=tool_schema(
+                {"project_id": {"type": "string"}},
+                required=["project_id"],
+            ),
+            handler=server._tool_results_outputs_list,
+        ),
+        ToolDefinition(
             name="smr_list_run_work_products",
             description=(
                 "List durable WorkProducts for a run: Models, Containers / Evals, "

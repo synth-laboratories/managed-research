@@ -1,6 +1,6 @@
 import pytest
 from managed_research.errors import SmrFundingLaneInvariantError, SmrLimitExceededError
-from managed_research.mcp.server import ManagedResearchMcpServer
+from managed_research.mcp.server import ManagedResearchMcpServer, RpcError
 from managed_research.models.runtime_intent import (
     RuntimeIntentReceipt,
     RuntimeIntentView,
@@ -279,15 +279,16 @@ def test_trigger_run_returns_structured_payload_on_limit_exceeded(monkeypatch) -
 
     monkeypatch.setattr(server, "_client_from_args", lambda args: _FakeClient())
 
-    out = server._tool_trigger_run(
-        {
-            "project_id": "proj_1",
-            "host_kind": "daytona",
-            "work_mode": "directed_effort",
-            "providers": [{"provider": "openrouter"}],
-        },
-    )
-    assert out == {
+    with pytest.raises(RpcError) as exc_info:
+        server._tool_trigger_run(
+            {
+                "project_id": "proj_1",
+                "host_kind": "daytona",
+                "work_mode": "directed_effort",
+                "providers": [{"provider": "openrouter"}],
+            },
+        )
+    assert exc_info.value.data == {
         "error": "smr_limit_exceeded",
         "detail": detail,
         "message": "limit hit",
@@ -321,15 +322,16 @@ def test_trigger_run_returns_structured_payload_on_routing_invariant(monkeypatch
 
     monkeypatch.setattr(server, "_client_from_args", lambda args: _FakeClient())
 
-    out = server._tool_trigger_run(
-        {
-            "project_id": "proj_1",
-            "host_kind": "daytona",
-            "work_mode": "directed_effort",
-            "providers": [{"provider": "openrouter"}],
-        },
-    )
-    assert out == {
+    with pytest.raises(RpcError) as exc_info:
+        server._tool_trigger_run(
+            {
+                "project_id": "proj_1",
+                "host_kind": "daytona",
+                "work_mode": "directed_effort",
+                "providers": [{"provider": "openrouter"}],
+            },
+        )
+    assert exc_info.value.data == {
         "error": "smr_free_tier_routing_violation",
         "detail": detail,
         "message": "routing",
@@ -365,15 +367,16 @@ def test_trigger_run_returns_structured_payload_on_insufficient_credits(monkeypa
 
     monkeypatch.setattr(server, "_client_from_args", lambda args: _FakeClient())
 
-    out = server._tool_trigger_run(
-        {
-            "project_id": "proj_1",
-            "host_kind": "daytona",
-            "work_mode": "directed_effort",
-            "providers": [{"provider": "openrouter"}],
-        },
-    )
-    assert out == {
+    with pytest.raises(RpcError) as exc_info:
+        server._tool_trigger_run(
+            {
+                "project_id": "proj_1",
+                "host_kind": "daytona",
+                "work_mode": "directed_effort",
+                "providers": [{"provider": "openrouter"}],
+            },
+        )
+    assert exc_info.value.data == {
         "error": "smr_insufficient_credits",
         "detail": detail,
         "message": "no credits",

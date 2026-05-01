@@ -374,7 +374,7 @@ __all__ = [
     "first_id",
 ]
 
-__all__ = [
+__all__ += [
     "ManagedResearchClient",
     "ManagedResearchProjectClient",
     "ProjectsAPI",

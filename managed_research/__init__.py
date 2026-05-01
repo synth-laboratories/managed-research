@@ -351,7 +351,7 @@ HostKind = SmrHostKind
 NetworkTopology = SmrNetworkTopology
 WorkMode = SmrWorkMode
 
-__all__ = [
+__all__ += [
     "ManagedResearchClient",
     "ManagedResearchError",
     "Project",
