@@ -22,11 +22,11 @@ from managed_research.models.smr_providers import (
     coerce_provider_bindings,
     coerce_usage_limit,
 )
-from managed_research.models.smr_run_policy import SmrRunPolicy, coerce_smr_run_policy
 from managed_research.models.smr_roles import (
     SmrRoleBindings,
     coerce_smr_role_bindings,
 )
+from managed_research.models.smr_run_policy import SmrRunPolicy, coerce_smr_run_policy
 from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
 
 

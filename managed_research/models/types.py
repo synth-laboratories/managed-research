@@ -14,16 +14,16 @@ from managed_research.models.smr_environment_kinds import (
     SmrEnvironmentKind,
     coerce_smr_environment_kind,
 )
-from managed_research.models.smr_providers import (
-    ProviderBinding,
-    ActorResourceCapability,
-    UsageLimit,
-    coerce_provider_bindings,
-    coerce_usage_limit,
-)
 from managed_research.models.smr_network_topology import (
     SmrNetworkTopology,
     coerce_smr_network_topology,
+)
+from managed_research.models.smr_providers import (
+    ActorResourceCapability,
+    ProviderBinding,
+    UsageLimit,
+    coerce_provider_bindings,
+    coerce_usage_limit,
 )
 from managed_research.models.smr_runtime_kinds import (
     SmrRuntimeKind,
