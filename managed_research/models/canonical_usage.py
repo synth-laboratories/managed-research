@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass
 
 from managed_research.models.types import (
     _float_value,
@@ -299,15 +298,15 @@ class OrgResourceUsage:
 
     @property
     def daily(self) -> OrgLimitItem | None:
-        return next((l for l in self.limits if l.window == "daily"), None)
+        return next((limit for limit in self.limits if limit.window == "daily"), None)
 
     @property
     def weekly(self) -> OrgLimitItem | None:
-        return next((l for l in self.limits if l.window == "weekly"), None)
+        return next((limit for limit in self.limits if limit.window == "weekly"), None)
 
     @property
     def monthly(self) -> OrgLimitItem | None:
-        return next((l for l in self.limits if l.window == "monthly"), None)
+        return next((limit for limit in self.limits if limit.window == "monthly"), None)
 
     @classmethod
     def from_wire(cls, payload: object) -> OrgResourceUsage:

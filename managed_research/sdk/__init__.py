@@ -45,7 +45,14 @@ from managed_research.models.run_control import (
 )
 from managed_research.models.run_diagnostics import (
     SmrActorUsageSummary,
+    SmrRunActorLogEvent,
+    SmrRunActorLogs,
     SmrRunActorUsage,
+    SmrRunArtifactProgress,
+    SmrRunCostSummary,
+    SmrRunMeterCost,
+    SmrRunParticipant,
+    SmrRunParticipants,
     SmrRunTraceItem,
     SmrRunTraces,
 )
@@ -54,6 +61,17 @@ from managed_research.models.run_observability import (
     ActorSnapshot,
     CandidatePublicationOutcome,
     CandidatePublicationView,
+    ManagedResearchRunContract,
+    ManagedResearchRunContractArtifacts,
+    ManagedResearchRunContractContainerEvalPackages,
+    ManagedResearchRunContractDiagnostics,
+    ManagedResearchRunContractExecutionRoute,
+    ManagedResearchRunContractFinalization,
+    ManagedResearchRunContractIncidents,
+    ManagedResearchRunContractLifecycle,
+    ManagedResearchRunContractRecovery,
+    ManagedResearchRunContractTasks,
+    ManagedResearchRunContractTrainedModels,
     RunAnomaly,
     RunAnomalyKind,
     RunLifecycleDispatch,
@@ -72,9 +90,9 @@ from managed_research.models.run_observability import (
 from managed_research.models.run_state import (
     ManagedResearchRun,
     ManagedResearchRunLivePhase,
-    RunState,
     ManagedResearchRunState,
     ManagedResearchRunTerminalOutcome,
+    RunState,
 )
 from managed_research.models.run_timeline import (
     SmrBranchMode,
@@ -99,11 +117,6 @@ from managed_research.models.smr_actor_models import (
     SmrReviewerSubtype,
     SmrWorkerSubtype,
 )
-from managed_research.models.smr_roles import (
-    RoleBinding,
-    SmrRoleBindings,
-    WorkerRolePalette,
-)
 from managed_research.models.smr_agent_harnesses import SmrAgentHarness
 from managed_research.models.smr_agent_kinds import SmrAgentKind
 from managed_research.models.smr_agent_models import SmrAgentModel
@@ -113,15 +126,20 @@ from managed_research.models.smr_funding_sources import SmrFundingSource
 from managed_research.models.smr_host_kinds import SmrHostKind
 from managed_research.models.smr_network_topology import SmrNetworkTopology
 from managed_research.models.smr_providers import (
+    ActorResourceCapability,
     OpenRouterConfig,
     Provider,
     ProviderBinding,
-    ActorResourceCapability,
     SynthAIConfig,
     TinkerConfig,
     UsageLimit,
 )
 from managed_research.models.smr_resource_kinds import SmrResourceKind
+from managed_research.models.smr_roles import (
+    RoleBinding,
+    SmrRoleBindings,
+    WorkerRolePalette,
+)
 from managed_research.models.smr_run_policy import (
     SmrRunPolicy,
     SmrRunPolicyAccess,
@@ -145,6 +163,11 @@ from managed_research.models.types import (
     SmrProjectSetupReason,
     SmrProjectSetupStatus,
     SmrRunnableProjectRequest,
+)
+from managed_research.models.work_products import (
+    ManagedResearchContainerEvalPackage,
+    ManagedResearchRunWorkProduct,
+    ManagedResearchWorkProductExport,
 )
 from managed_research.sdk.approvals import ApprovalsAPI
 from managed_research.sdk.client import (
@@ -173,9 +196,10 @@ from managed_research.sdk.prs import PrsAPI
 from managed_research.sdk.readiness import ReadinessAPI
 from managed_research.sdk.repos import ReposAPI
 from managed_research.sdk.repositories import RepositoriesAPI
-from managed_research.sdk.runs import RunHandle, RunsAPI
+from managed_research.sdk.runs import MISC_PROJECT_ID, ProjectSelector, RunHandle, RunsAPI
 from managed_research.sdk.setup import SetupAPI
 from managed_research.sdk.usage import UsageAPI
+from managed_research.sdk.work_products import WorkProductsAPI
 from managed_research.sdk.workspace_inputs import WorkspaceInputsAPI
 
 __all__ = [
@@ -221,6 +245,18 @@ __all__ = [
     "ManagedResearchProjectClient",
     "ManagedResearchProject",
     "ManagedResearchRun",
+    "ManagedResearchRunContract",
+    "ManagedResearchRunContractArtifacts",
+    "ManagedResearchRunContractContainerEvalPackages",
+    "ManagedResearchRunContractDiagnostics",
+    "ManagedResearchRunContractExecutionRoute",
+    "ManagedResearchRunContractFinalization",
+    "ManagedResearchRunContractIncidents",
+    "ManagedResearchRunContractLifecycle",
+    "ManagedResearchRunContractRecovery",
+    "ManagedResearchRunContractTasks",
+    "ManagedResearchRunContractTrainedModels",
+    "ManagedResearchRunWorkProduct",
     "ManagedResearchRunControlAck",
     "ManagedResearchRunControlEnqueueStatus",
     "ManagedResearchRunLivePhase",
@@ -282,7 +318,12 @@ __all__ = [
     "SmrRoleBindings",
     "SmrRunnableProjectRequest",
     "SmrRuntimeKind",
+    "SmrRunActorLogEvent",
+    "SmrRunActorLogs",
     "SmrRunActorUsage",
+    "SmrRunArtifactProgress",
+    "SmrRunCostSummary",
+    "SmrRunMeterCost",
     "SmrRunCostTotals",
     "SmrRunPolicy",
     "SmrRunPolicyAccess",
@@ -316,6 +357,8 @@ __all__ = [
     "SmrLogicalTimeline",
     "SmrLogicalTimelineNode",
     "SmrActorUsageSummary",
+    "SmrRunParticipant",
+    "SmrRunParticipants",
     "SemanticProgressSnapshot",
     "SmrRunBranchRequest",
     "SmrRunBranchResponse",
@@ -325,6 +368,9 @@ __all__ = [
     "TaskSnapshot",
     "UsageAPI",
     "WorkspaceInputsAPI",
+    "WorkProductsAPI",
+    "ManagedResearchContainerEvalPackage",
+    "ManagedResearchWorkProductExport",
     "first_id",
 ]
 
@@ -334,6 +380,12 @@ __all__ = [
     "ProjectsAPI",
     "RunsAPI",
     "RunHandle",
+    "ProjectSelector",
+    "MISC_PROJECT_ID",
+    "WorkProductsAPI",
+    "ManagedResearchRunWorkProduct",
+    "ManagedResearchContainerEvalPackage",
+    "ManagedResearchWorkProductExport",
     "LaunchPreflight",
     "ProjectReadiness",
     "ProjectSetupAuthority",

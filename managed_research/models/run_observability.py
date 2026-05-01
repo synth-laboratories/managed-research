@@ -55,6 +55,20 @@ def _optional_bool(payload: Mapping[str, object], key: str) -> bool | None:
     return value
 
 
+def _require_bool(payload: Mapping[str, object], key: str, *, label: str) -> bool:
+    value = _optional_bool(payload, key)
+    if value is None:
+        raise ValueError(f"{label} is required")
+    return value
+
+
+def _require_int(payload: Mapping[str, object], key: str, *, label: str) -> int:
+    value = _optional_int(payload, key)
+    if value is None:
+        raise ValueError(f"{label} is required")
+    return value
+
+
 def _optional_object_dict(payload: object) -> dict[str, object]:
     if payload is None:
         return {}
@@ -146,7 +160,9 @@ class RunLifecycleLocalExecution:
         return cls(
             slot_id=_require_string(mapping, "slot_id", label="local_execution.slot_id"),
             runtime_id=_require_string(mapping, "runtime_id", label="local_execution.runtime_id"),
-            dispatch_pool=_require_string(mapping, "dispatch_pool", label="local_execution.dispatch_pool"),
+            dispatch_pool=_require_string(
+                mapping, "dispatch_pool", label="local_execution.dispatch_pool"
+            ),
             host_kind=_require_string(mapping, "host_kind", label="local_execution.host_kind"),
             requires_hosted_capacity=bool(mapping.get("requires_hosted_capacity") or False),
         )
@@ -207,9 +223,13 @@ class RunLifecycleView:
         mapping = _require_mapping(payload, label="run lifecycle")
         failure = mapping.get("failure")
         return cls(
-            authority_phase=_require_string(mapping, "authority_phase", label="lifecycle.authority_phase"),
+            authority_phase=_require_string(
+                mapping, "authority_phase", label="lifecycle.authority_phase"
+            ),
             bootstrap_phase=_optional_string(mapping, "bootstrap_phase"),
-            terminal_phase=_require_string(mapping, "terminal_phase", label="lifecycle.terminal_phase"),
+            terminal_phase=_require_string(
+                mapping, "terminal_phase", label="lifecycle.terminal_phase"
+            ),
             terminal_outcome=_optional_string(mapping, "terminal_outcome"),
             dispatch=RunLifecycleDispatch.from_wire(mapping.get("dispatch")),
             failure=RunLifecycleFailure.from_wire(failure) if failure is not None else None,
@@ -300,12 +320,21 @@ class ActorCollectionSnapshot:
         mapping = _require_mapping(payload, label="actor collection")
         return cls(
             total_count=_optional_int(mapping, "total_count") or 0,
-            counts_by_state=_optional_string_int_map(mapping.get("counts_by_state"), label="actors.counts_by_state"),
-            counts_by_role=_optional_string_int_map(mapping.get("counts_by_role"), label="actors.counts_by_role"),
-            items=[ActorSnapshot.from_wire(item) for item in _optional_dict_list(mapping.get("items"), label="actors.items")],
+            counts_by_state=_optional_string_int_map(
+                mapping.get("counts_by_state"), label="actors.counts_by_state"
+            ),
+            counts_by_role=_optional_string_int_map(
+                mapping.get("counts_by_role"), label="actors.counts_by_role"
+            ),
+            items=[
+                ActorSnapshot.from_wire(item)
+                for item in _optional_dict_list(mapping.get("items"), label="actors.items")
+            ],
             latest_transitions=[
                 ActorSnapshot.from_wire(item)
-                for item in _optional_dict_list(mapping.get("latest_transitions"), label="actors.latest_transitions")
+                for item in _optional_dict_list(
+                    mapping.get("latest_transitions"), label="actors.latest_transitions"
+                )
             ],
         )
 
@@ -332,7 +361,9 @@ class TaskSnapshot:
             task_key=_require_string(mapping, "task_key", label="task.task_key"),
             kind=_require_string(mapping, "kind", label="task.kind"),
             state=_require_string(mapping, "state", label="task.state"),
-            execution_owner=_require_string(mapping, "execution_owner", label="task.execution_owner"),
+            execution_owner=_require_string(
+                mapping, "execution_owner", label="task.execution_owner"
+            ),
             claimed_by=_optional_string(mapping, "claimed_by"),
             worker_pool=_optional_string(mapping, "worker_pool"),
             started_at=_optional_string(mapping, "started_at"),
@@ -355,12 +386,21 @@ class TaskCollectionSnapshot:
         mapping = _require_mapping(payload, label="task collection")
         return cls(
             total_count=_optional_int(mapping, "total_count") or 0,
-            counts_by_state=_optional_string_int_map(mapping.get("counts_by_state"), label="tasks.counts_by_state"),
-            counts_by_owner=_optional_string_int_map(mapping.get("counts_by_owner"), label="tasks.counts_by_owner"),
-            items=[TaskSnapshot.from_wire(item) for item in _optional_dict_list(mapping.get("items"), label="tasks.items")],
+            counts_by_state=_optional_string_int_map(
+                mapping.get("counts_by_state"), label="tasks.counts_by_state"
+            ),
+            counts_by_owner=_optional_string_int_map(
+                mapping.get("counts_by_owner"), label="tasks.counts_by_owner"
+            ),
+            items=[
+                TaskSnapshot.from_wire(item)
+                for item in _optional_dict_list(mapping.get("items"), label="tasks.items")
+            ],
             latest_transitions=[
                 TaskSnapshot.from_wire(item)
-                for item in _optional_dict_list(mapping.get("latest_transitions"), label="tasks.latest_transitions")
+                for item in _optional_dict_list(
+                    mapping.get("latest_transitions"), label="tasks.latest_transitions"
+                )
             ],
         )
 
@@ -471,7 +511,9 @@ class RuntimeObservability:
             ],
             deliveries=[
                 RuntimeDeliveryView.from_wire(item)
-                for item in _optional_dict_list(mapping.get("deliveries"), label="runtime.deliveries")
+                for item in _optional_dict_list(
+                    mapping.get("deliveries"), label="runtime.deliveries"
+                )
             ],
             events=[
                 RuntimeEventView.from_wire(item)
@@ -495,6 +537,498 @@ class RunAnomaly:
 
 
 @dataclass(frozen=True)
+class ManagedResearchRunContractLifecycle:
+    phase: str
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchRunContractLifecycle:
+        mapping = _require_mapping(payload, label="run_contract.lifecycle")
+        return cls(
+            phase=_require_string(
+                mapping,
+                "phase",
+                label="run_contract.lifecycle.phase",
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class ManagedResearchRunContractFinalization:
+    status: str
+    reason: str | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchRunContractFinalization:
+        mapping = _require_mapping(payload, label="run_contract.finalization")
+        return cls(
+            status=_require_string(
+                mapping,
+                "status",
+                label="run_contract.finalization.status",
+            ),
+            reason=_optional_string(mapping, "reason"),
+        )
+
+
+@dataclass(frozen=True)
+class ManagedResearchRunContractRecovery:
+    status: str
+    next_retry_at: str | None = None
+    reason: str | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchRunContractRecovery:
+        mapping = _require_mapping(payload, label="run_contract.recovery")
+        return cls(
+            status=_require_string(
+                mapping,
+                "status",
+                label="run_contract.recovery.status",
+            ),
+            next_retry_at=_optional_string(mapping, "next_retry_at"),
+            reason=_optional_string(mapping, "reason"),
+        )
+
+
+@dataclass(frozen=True)
+class ManagedResearchRunContractTasks:
+    total: int
+    terminal: int
+    nonterminal: int
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchRunContractTasks:
+        mapping = _require_mapping(payload, label="run_contract.tasks")
+        return cls(
+            total=_require_int(mapping, "total", label="run_contract.tasks.total"),
+            terminal=_require_int(
+                mapping,
+                "terminal",
+                label="run_contract.tasks.terminal",
+            ),
+            nonterminal=_require_int(
+                mapping,
+                "nonterminal",
+                label="run_contract.tasks.nonterminal",
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class ManagedResearchRunContractArtifacts:
+    readiness: str
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchRunContractArtifacts:
+        mapping = _require_mapping(payload, label="run_contract.artifacts")
+        return cls(
+            readiness=_require_string(
+                mapping,
+                "readiness",
+                label="run_contract.artifacts.readiness",
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class ManagedResearchRunContractExecutionRoute:
+    route: str
+    model: str | None = None
+    pool_required: bool = False
+    pool_account_claimed: bool = False
+    active_actor_claims: int = 0
+    route_reason: str | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchRunContractExecutionRoute:
+        mapping = _require_mapping(payload, label="run_contract.execution_route")
+        return cls(
+            route=_require_string(
+                mapping,
+                "route",
+                label="run_contract.execution_route.route",
+            ),
+            model=_optional_string(mapping, "model"),
+            pool_required=bool(_optional_bool(mapping, "pool_required") or False),
+            pool_account_claimed=bool(_optional_bool(mapping, "pool_account_claimed") or False),
+            active_actor_claims=(_optional_int(mapping, "active_actor_claims") or 0),
+            route_reason=_optional_string(mapping, "route_reason"),
+        )
+
+
+@dataclass(frozen=True)
+class ManagedResearchRunWorkProduct:
+    work_product_id: str
+    kind: str
+    title: str
+    status: str
+    readiness: str
+    subtype_kind: str | None = None
+    subtype_id: str | None = None
+    artifact_id: str | None = None
+    detail_url: str | None = None
+    supported_export_destinations: list[str] = field(default_factory=list)
+    latest_export_id: str | None = None
+    blocker: dict[str, object] | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchRunWorkProduct:
+        mapping = _require_mapping(payload, label="run_contract.work_products.items")
+        destinations = mapping.get("supported_export_destinations")
+        if destinations is None:
+            normalized_destinations: list[str] = []
+        elif isinstance(destinations, list):
+            normalized_destinations = [str(item) for item in destinations]
+        else:
+            raise ValueError(
+                "run_contract.work_products.items.supported_export_destinations "
+                "must be an array when provided"
+            )
+        blocker = mapping.get("blocker")
+        return cls(
+            work_product_id=_require_string(
+                mapping,
+                "work_product_id",
+                label="run_contract.work_products.items.work_product_id",
+            ),
+            kind=_require_string(
+                mapping,
+                "kind",
+                label="run_contract.work_products.items.kind",
+            ),
+            title=_require_string(
+                mapping,
+                "title",
+                label="run_contract.work_products.items.title",
+            ),
+            status=_require_string(
+                mapping,
+                "status",
+                label="run_contract.work_products.items.status",
+            ),
+            readiness=_require_string(
+                mapping,
+                "readiness",
+                label="run_contract.work_products.items.readiness",
+            ),
+            subtype_kind=_optional_string(mapping, "subtype_kind"),
+            subtype_id=_optional_string(mapping, "subtype_id"),
+            artifact_id=_optional_string(mapping, "artifact_id"),
+            detail_url=_optional_string(mapping, "detail_url"),
+            supported_export_destinations=normalized_destinations,
+            latest_export_id=_optional_string(mapping, "latest_export_id"),
+            blocker=dict(_require_mapping(blocker, label="work_product.blocker"))
+            if blocker is not None
+            else None,
+        )
+
+
+@dataclass(frozen=True)
+class ManagedResearchRunWorkProducts:
+    total: int = 0
+    ready: int = 0
+    blocked: int = 0
+    failed: int = 0
+    items: list[ManagedResearchRunWorkProduct] = field(default_factory=list)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchRunWorkProducts:
+        if payload is None:
+            return cls()
+        mapping = _require_mapping(payload, label="run_contract.work_products")
+        return cls(
+            total=_optional_int(mapping, "total") or 0,
+            ready=_optional_int(mapping, "ready") or 0,
+            blocked=_optional_int(mapping, "blocked") or 0,
+            failed=_optional_int(mapping, "failed") or 0,
+            items=[
+                ManagedResearchRunWorkProduct.from_wire(item)
+                for item in _optional_dict_list(
+                    mapping.get("items"),
+                    label="run_contract.work_products.items",
+                )
+            ],
+        )
+
+
+@dataclass(frozen=True)
+class ManagedResearchTrainedModel:
+    model_id: str
+    work_product_id: str | None
+    provider: str
+    base_model: str
+    method: str
+    status: str
+    export_status: str
+    metrics: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchTrainedModel:
+        mapping = _require_mapping(payload, label="run_contract.trained_models.models")
+        return cls(
+            model_id=_require_string(
+                mapping,
+                "model_id",
+                label="run_contract.trained_models.models.model_id",
+            ),
+            work_product_id=_optional_string(mapping, "work_product_id"),
+            provider=_optional_string(mapping, "provider") or "tinker",
+            base_model=_require_string(
+                mapping,
+                "base_model",
+                label="run_contract.trained_models.models.base_model",
+            ),
+            method=_require_string(
+                mapping,
+                "method",
+                label="run_contract.trained_models.models.method",
+            ),
+            status=_require_string(
+                mapping,
+                "status",
+                label="run_contract.trained_models.models.status",
+            ),
+            export_status=_optional_string(mapping, "export_status") or "not_exported",
+            metrics=_optional_object_dict(mapping.get("metrics")),
+        )
+
+
+@dataclass(frozen=True)
+class ManagedResearchRunContractTrainedModels:
+    total: int = 0
+    registered: int = 0
+    exported: int = 0
+    evaluated: int = 0
+    failed: int = 0
+    models: list[ManagedResearchTrainedModel] = field(default_factory=list)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchRunContractTrainedModels:
+        if payload is None:
+            return cls()
+        mapping = _require_mapping(payload, label="run_contract.trained_models")
+        return cls(
+            total=_optional_int(mapping, "total") or 0,
+            registered=_optional_int(mapping, "registered") or 0,
+            exported=_optional_int(mapping, "exported") or 0,
+            evaluated=_optional_int(mapping, "evaluated") or 0,
+            failed=_optional_int(mapping, "failed") or 0,
+            models=[
+                ManagedResearchTrainedModel.from_wire(item)
+                for item in _optional_dict_list(
+                    mapping.get("models"),
+                    label="run_contract.trained_models.models",
+                )
+            ],
+        )
+
+
+@dataclass(frozen=True)
+class ManagedResearchContainerEvalPackage:
+    package_id: str
+    work_product_id: str | None
+    kind: str
+    name: str
+    version: str | None
+    status: str
+    validation_status: str
+    artifact_id: str | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchContainerEvalPackage:
+        mapping = _require_mapping(
+            payload,
+            label="run_contract.container_eval_packages.packages",
+        )
+        return cls(
+            package_id=_require_string(
+                mapping,
+                "package_id",
+                label="run_contract.container_eval_packages.packages.package_id",
+            ),
+            work_product_id=_optional_string(mapping, "work_product_id"),
+            kind=_require_string(
+                mapping,
+                "kind",
+                label="run_contract.container_eval_packages.packages.kind",
+            ),
+            name=_require_string(
+                mapping,
+                "name",
+                label="run_contract.container_eval_packages.packages.name",
+            ),
+            version=_optional_string(mapping, "version"),
+            status=_require_string(
+                mapping,
+                "status",
+                label="run_contract.container_eval_packages.packages.status",
+            ),
+            validation_status=_require_string(
+                mapping,
+                "validation_status",
+                label=("run_contract.container_eval_packages.packages.validation_status"),
+            ),
+            artifact_id=_optional_string(mapping, "artifact_id"),
+        )
+
+
+@dataclass(frozen=True)
+class ManagedResearchRunContractContainerEvalPackages:
+    total: int = 0
+    valid: int = 0
+    invalid: int = 0
+    imported: int = 0
+    packages: list[ManagedResearchContainerEvalPackage] = field(default_factory=list)
+
+    @classmethod
+    def from_wire(
+        cls,
+        payload: object,
+    ) -> ManagedResearchRunContractContainerEvalPackages:
+        if payload is None:
+            return cls()
+        mapping = _require_mapping(
+            payload,
+            label="run_contract.container_eval_packages",
+        )
+        return cls(
+            total=_optional_int(mapping, "total") or 0,
+            valid=_optional_int(mapping, "valid") or 0,
+            invalid=_optional_int(mapping, "invalid") or 0,
+            imported=_optional_int(mapping, "imported") or 0,
+            packages=[
+                ManagedResearchContainerEvalPackage.from_wire(item)
+                for item in _optional_dict_list(
+                    mapping.get("packages"),
+                    label="run_contract.container_eval_packages.packages",
+                )
+            ],
+        )
+
+
+@dataclass(frozen=True)
+class ManagedResearchRunContractIncidents:
+    unresolved: int
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchRunContractIncidents:
+        mapping = _require_mapping(payload, label="run_contract.incidents")
+        return cls(
+            unresolved=_require_int(
+                mapping,
+                "unresolved",
+                label="run_contract.incidents.unresolved",
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class ManagedResearchRunContractDiagnostics:
+    lifecycle_invariants: list[dict[str, object]] = field(default_factory=list)
+    resource_wait: dict[str, object] | None = None
+    failure_classification: dict[str, object] | None = None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchRunContractDiagnostics:
+        mapping = _require_mapping(payload, label="run_contract.diagnostics")
+        resource_wait = mapping.get("resource_wait")
+        failure_classification = mapping.get("failure_classification")
+        return cls(
+            lifecycle_invariants=_optional_dict_list(
+                mapping.get("lifecycle_invariants"),
+                label="run_contract.diagnostics.lifecycle_invariants",
+            ),
+            resource_wait=dict(
+                _require_mapping(
+                    resource_wait,
+                    label="run_contract.diagnostics.resource_wait",
+                )
+            )
+            if resource_wait is not None
+            else None,
+            failure_classification=dict(
+                _require_mapping(
+                    failure_classification,
+                    label="run_contract.diagnostics.failure_classification",
+                )
+            )
+            if failure_classification is not None
+            else None,
+        )
+
+
+@dataclass(frozen=True)
+class ManagedResearchRunContract:
+    schema_version: str
+    project_id: str
+    run_id: str
+    state: ManagedResearchRunState
+    terminal: bool
+    terminal_outcome: ManagedResearchRunTerminalOutcome | None
+    lifecycle: ManagedResearchRunContractLifecycle
+    finalization: ManagedResearchRunContractFinalization
+    recovery: ManagedResearchRunContractRecovery
+    tasks: ManagedResearchRunContractTasks
+    artifacts: ManagedResearchRunContractArtifacts
+    execution_route: ManagedResearchRunContractExecutionRoute
+    work_products: ManagedResearchRunWorkProducts
+    trained_models: ManagedResearchRunContractTrainedModels
+    container_eval_packages: ManagedResearchRunContractContainerEvalPackages
+    incidents: ManagedResearchRunContractIncidents
+    diagnostics: ManagedResearchRunContractDiagnostics
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchRunContract:
+        mapping = _require_mapping(payload, label="run_contract")
+        terminal_outcome = _optional_string(mapping, "terminal_outcome")
+        return cls(
+            schema_version=_require_string(
+                mapping,
+                "schema_version",
+                label="run_contract.schema_version",
+            ),
+            project_id=_require_string(
+                mapping,
+                "project_id",
+                label="run_contract.project_id",
+            ),
+            run_id=_require_string(mapping, "run_id", label="run_contract.run_id"),
+            state=ManagedResearchRunState(
+                _require_string(mapping, "state", label="run_contract.state")
+            ),
+            terminal=_require_bool(
+                mapping,
+                "terminal",
+                label="run_contract.terminal",
+            ),
+            terminal_outcome=(
+                ManagedResearchRunTerminalOutcome(terminal_outcome)
+                if terminal_outcome is not None
+                else None
+            ),
+            lifecycle=ManagedResearchRunContractLifecycle.from_wire(mapping.get("lifecycle")),
+            finalization=ManagedResearchRunContractFinalization.from_wire(
+                mapping.get("finalization")
+            ),
+            recovery=ManagedResearchRunContractRecovery.from_wire(mapping.get("recovery")),
+            tasks=ManagedResearchRunContractTasks.from_wire(mapping.get("tasks")),
+            artifacts=ManagedResearchRunContractArtifacts.from_wire(mapping.get("artifacts")),
+            execution_route=ManagedResearchRunContractExecutionRoute.from_wire(
+                mapping.get("execution_route")
+            ),
+            work_products=ManagedResearchRunWorkProducts.from_wire(mapping.get("work_products")),
+            trained_models=ManagedResearchRunContractTrainedModels.from_wire(
+                mapping.get("trained_models")
+            ),
+            container_eval_packages=ManagedResearchRunContractContainerEvalPackages.from_wire(
+                mapping.get("container_eval_packages")
+            ),
+            incidents=ManagedResearchRunContractIncidents.from_wire(mapping.get("incidents")),
+            diagnostics=ManagedResearchRunContractDiagnostics.from_wire(mapping.get("diagnostics")),
+        )
+
+
+@dataclass(frozen=True)
 class RunObservabilitySnapshot:
     schema_version: str
     project_id: str
@@ -509,6 +1043,7 @@ class RunObservabilitySnapshot:
     state_authority: str
     work_completed: bool
     completion_classifier: str | None
+    run_contract: ManagedResearchRunContract
     candidate_publication: CandidatePublicationView
     actors: ActorCollectionSnapshot
     tasks: TaskCollectionSnapshot
@@ -523,7 +1058,9 @@ class RunObservabilitySnapshot:
     def from_wire(cls, payload: object) -> RunObservabilitySnapshot:
         mapping = _require_mapping(payload, label="run observability snapshot")
         return cls(
-            schema_version=_require_string(mapping, "schema_version", label="snapshot.schema_version"),
+            schema_version=_require_string(
+                mapping, "schema_version", label="snapshot.schema_version"
+            ),
             project_id=_require_string(mapping, "project_id", label="snapshot.project_id"),
             run_id=_require_string(mapping, "run_id", label="snapshot.run_id"),
             generated_at=_require_string(mapping, "generated_at", label="snapshot.generated_at"),
@@ -553,7 +1090,10 @@ class RunObservabilitySnapshot:
             ),
             work_completed=bool(_optional_bool(mapping, "work_completed")),
             completion_classifier=_optional_string(mapping, "completion_classifier"),
-            candidate_publication=CandidatePublicationView.from_wire(mapping.get("candidate_publication")),
+            run_contract=ManagedResearchRunContract.from_wire(mapping.get("run_contract")),
+            candidate_publication=CandidatePublicationView.from_wire(
+                mapping.get("candidate_publication")
+            ),
             actors=ActorCollectionSnapshot.from_wire(mapping.get("actors")),
             tasks=TaskCollectionSnapshot.from_wire(mapping.get("tasks")),
             runtime=RuntimeObservability.from_wire(mapping.get("runtime")),
@@ -568,7 +1108,9 @@ class RunObservabilitySnapshot:
             ),
             anomalies=[
                 RunAnomaly.from_wire(item)
-                for item in _optional_dict_list(mapping.get("anomalies"), label="snapshot.anomalies")
+                for item in _optional_dict_list(
+                    mapping.get("anomalies"), label="snapshot.anomalies"
+                )
             ],
             cursor=RunObservationCursor.from_wire(mapping.get("cursor")),
         )
@@ -581,6 +1123,21 @@ __all__ = [
     "CandidatePublicationView",
     "ManagedResearchRun",
     "ManagedResearchRunLivePhase",
+    "ManagedResearchRunContract",
+    "ManagedResearchRunContractArtifacts",
+    "ManagedResearchRunContractContainerEvalPackages",
+    "ManagedResearchRunContractDiagnostics",
+    "ManagedResearchRunContractExecutionRoute",
+    "ManagedResearchRunContractFinalization",
+    "ManagedResearchRunContractIncidents",
+    "ManagedResearchRunContractLifecycle",
+    "ManagedResearchRunContractRecovery",
+    "ManagedResearchRunContractTasks",
+    "ManagedResearchRunContractTrainedModels",
+    "ManagedResearchRunWorkProduct",
+    "ManagedResearchRunWorkProducts",
+    "ManagedResearchContainerEvalPackage",
+    "ManagedResearchTrainedModel",
     "ManagedResearchRunState",
     "ManagedResearchRunTerminalOutcome",
     "RunAnomaly",

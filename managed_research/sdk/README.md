@@ -34,7 +34,7 @@ Noun-first inspection belongs on the run/project namespaces and direct client
 reads such as `get_run(...)`, `list_run_questions(...)`,
 `get_run_primary_parent(...)`, and the OEQ/DEO/milestone/experiment list reads.
 
-Raw dict/list compatibility still exists on `SmrControlClient` where MCP and lower-level callers depend on wire-shaped payloads.
+Wire-shaped helpers remain on `SmrControlClient` where MCP and lower-level callers need backend-shaped payloads.
 
 Noun-first namespaces now mirror the customer surface:
 
@@ -48,8 +48,8 @@ Contract posture:
   `/Users/joshpurtell/Documents/GitHub/backend/smr_openapi.yaml`
 - backend-to-SDK drift is checked with
   `/Users/joshpurtell/Documents/GitHub/backend/scripts/validate_smr_openapi.py`
-- legacy names may remain as wrappers, but new noun behavior belongs only on
-  the flat namespaces above
+- older names may remain as wrappers, but new noun behavior belongs only on the
+  flat namespaces above
 
 Examples:
 

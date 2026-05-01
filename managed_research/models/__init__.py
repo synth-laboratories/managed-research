@@ -50,7 +50,14 @@ from managed_research.models.run_control import (
 )
 from managed_research.models.run_diagnostics import (
     SmrActorUsageSummary,
+    SmrRunActorLogEvent,
+    SmrRunActorLogs,
     SmrRunActorUsage,
+    SmrRunArtifactProgress,
+    SmrRunCostSummary,
+    SmrRunMeterCost,
+    SmrRunParticipant,
+    SmrRunParticipants,
     SmrRunTraceItem,
     SmrRunTraces,
 )
@@ -59,6 +66,21 @@ from managed_research.models.run_observability import (
     ActorSnapshot,
     CandidatePublicationOutcome,
     CandidatePublicationView,
+    ManagedResearchContainerEvalPackage,
+    ManagedResearchRunContract,
+    ManagedResearchRunContractArtifacts,
+    ManagedResearchRunContractContainerEvalPackages,
+    ManagedResearchRunContractDiagnostics,
+    ManagedResearchRunContractExecutionRoute,
+    ManagedResearchRunContractFinalization,
+    ManagedResearchRunContractIncidents,
+    ManagedResearchRunContractLifecycle,
+    ManagedResearchRunContractRecovery,
+    ManagedResearchRunContractTasks,
+    ManagedResearchRunContractTrainedModels,
+    ManagedResearchRunWorkProduct,
+    ManagedResearchRunWorkProducts,
+    ManagedResearchTrainedModel,
     RunAnomaly,
     RunAnomalyKind,
     RunLifecycleDispatch,
@@ -77,9 +99,9 @@ from managed_research.models.run_observability import (
 from managed_research.models.run_state import (
     ManagedResearchRun,
     ManagedResearchRunLivePhase,
-    RunState,
     ManagedResearchRunState,
     ManagedResearchRunTerminalOutcome,
+    RunState,
 )
 from managed_research.models.run_timeline import (
     SmrBranchMode,
@@ -104,11 +126,6 @@ from managed_research.models.smr_actor_models import (
     SmrReviewerSubtype,
     SmrWorkerSubtype,
 )
-from managed_research.models.smr_roles import (
-    RoleBinding,
-    SmrRoleBindings,
-    WorkerRolePalette,
-)
 from managed_research.models.smr_agent_harnesses import SmrAgentHarness
 from managed_research.models.smr_agent_kinds import SmrAgentKind
 from managed_research.models.smr_agent_models import SmrAgentModel
@@ -118,15 +135,20 @@ from managed_research.models.smr_funding_sources import SmrFundingSource
 from managed_research.models.smr_host_kinds import SmrHostKind
 from managed_research.models.smr_network_topology import SmrNetworkTopology
 from managed_research.models.smr_providers import (
+    ActorResourceCapability,
     OpenRouterConfig,
     Provider,
     ProviderBinding,
-    ActorResourceCapability,
     SynthAIConfig,
     TinkerConfig,
     UsageLimit,
 )
 from managed_research.models.smr_resource_kinds import SmrResourceKind
+from managed_research.models.smr_roles import (
+    RoleBinding,
+    SmrRoleBindings,
+    WorkerRolePalette,
+)
 from managed_research.models.smr_run_policy import (
     SmrRunPolicy,
     SmrRunPolicyAccess,
@@ -197,6 +219,9 @@ __all__ = [
     "BillingEntitlementAsset",
     "BillingEntitlementProfile",
     "BillingEntitlementSnapshot",
+    "OrgLimitItem",
+    "OrgLimits",
+    "OrgResourceUsage",
     "CreateRunnableResult",
     "ProviderKeyStatus",
     "RecommendedAction",
@@ -259,8 +284,23 @@ __all__ = [
     "build_local_launch_payload",
     "default_local_eval_contract_path",
     "load_local_eval_contract",
+    "ManagedResearchContainerEvalPackage",
     "ManagedResearchRun",
+    "ManagedResearchRunContract",
+    "ManagedResearchRunContractArtifacts",
+    "ManagedResearchRunContractContainerEvalPackages",
+    "ManagedResearchRunContractDiagnostics",
+    "ManagedResearchRunContractExecutionRoute",
+    "ManagedResearchRunContractFinalization",
+    "ManagedResearchRunContractIncidents",
+    "ManagedResearchRunContractLifecycle",
+    "ManagedResearchRunContractRecovery",
+    "ManagedResearchRunContractTasks",
+    "ManagedResearchRunContractTrainedModels",
     "ManagedResearchProject",
+    "ManagedResearchRunWorkProduct",
+    "ManagedResearchRunWorkProducts",
+    "ManagedResearchTrainedModel",
     "ManagedResearchRunControlAck",
     "ManagedResearchRunControlEnqueueStatus",
     "ManagedResearchRunControlError",
@@ -281,9 +321,14 @@ __all__ = [
     "SmrReviewerSubtype",
     "SmrRoleBindings",
     "SmrRunCostTotals",
+    "SmrRunActorLogEvent",
+    "SmrRunActorLogs",
     "SmrRunActorUsage",
+    "SmrRunArtifactProgress",
     "SmrRunBranchRequest",
     "SmrRunBranchResponse",
+    "SmrRunCostSummary",
+    "SmrRunMeterCost",
     "SmrRunnableProjectRequest",
     "SmrRuntimeKind",
     "SmrRunPolicy",
@@ -293,6 +338,8 @@ __all__ = [
     "SmrLogicalTimeline",
     "SmrLogicalTimelineNode",
     "SmrActorUsageSummary",
+    "SmrRunParticipant",
+    "SmrRunParticipants",
     "SmrProjectEconomics",
     "SmrProjectEntitlementOverlay",
     "SmrProjectUsage",
