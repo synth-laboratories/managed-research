@@ -53,8 +53,9 @@ print("artifacts:", [artifact.title for artifact in run.artifacts()])
 - Use `client.projects.create(...)` and `client.project(project_id)` for durable
   project-scoped work.
 - Run preflight before launch when you want structured launch blockers.
-- Inspect runs through messages, timelines, traces, checkpoints, artifacts,
-  usage, questions, approvals, and actor/task counts.
+- Inspect runs through messages, timelines, event logs, authority readouts,
+  operator evidence, traces, checkpoints, artifacts, usage, questions,
+  approvals, and actor/task counts.
 - Use MCP from Codex or Claude Code when you want an agent-native interface.
 
 ## MCP

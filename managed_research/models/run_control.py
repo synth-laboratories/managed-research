@@ -18,6 +18,7 @@ from managed_research.models.run_state import (
     ManagedResearchRun,
     _optional_string,
     _require_mapping,
+    _require_string,
 )
 
 
@@ -25,6 +26,17 @@ class ManagedResearchRunControlEnqueueStatus(StrEnum):
     ACCEPTED = "accepted"
     NOOP = "noop"
     TERMINAL_SYNC = "terminal_sync"
+
+
+class ManagedResearchActorControlAction(StrEnum):
+    PAUSE = "pause"
+    RESUME = "resume"
+    INTERRUPT = "interrupt"
+
+
+class ManagedResearchActorControlActorType(StrEnum):
+    WORKER = "worker"
+    ORCHESTRATOR = "orchestrator"
 
 
 class RunLifecycleControlErrorCode(StrEnum):
@@ -139,6 +151,41 @@ def _optional_datetime(payload: Mapping[str, object], key: str) -> datetime | No
     raise ValueError(f"{key} must be null, a datetime, or an ISO-8601 string")
 
 
+def _require_bool(payload: Mapping[str, object], key: str) -> bool:
+    value = payload.get(key)
+    if not isinstance(value, bool):
+        raise ValueError(f"{key} must be a boolean")
+    return value
+
+
+def _actor_control_action(
+    payload: Mapping[str, object], key: str
+) -> ManagedResearchActorControlAction:
+    value = _optional_string(payload, key)
+    if value is None:
+        raise ValueError(f"{key} must be a non-empty string")
+    try:
+        return ManagedResearchActorControlAction(value)
+    except ValueError as exc:
+        raise ValueError(
+            f"{key} {value!r} is not a known ManagedResearchActorControlAction"
+        ) from exc
+
+
+def _actor_control_actor_type(
+    payload: Mapping[str, object], key: str
+) -> ManagedResearchActorControlActorType:
+    value = _optional_string(payload, key)
+    if value is None:
+        raise ValueError(f"{key} must be a non-empty string")
+    try:
+        return ManagedResearchActorControlActorType(value)
+    except ValueError as exc:
+        raise ValueError(
+            f"{key} {value!r} is not a known ManagedResearchActorControlActorType"
+        ) from exc
+
+
 @dataclass(frozen=True)
 class ManagedResearchRunControlAck:
     """Result of a pause/resume/stop call.
@@ -171,7 +218,46 @@ class ManagedResearchRunControlAck:
         )
 
 
+@dataclass(frozen=True)
+class ManagedResearchActorControlAck:
+    """Result of a project-run actor pause/resume control request."""
+
+    accepted: bool
+    actor_id: str
+    actor_type: ManagedResearchActorControlActorType
+    run_id: str
+    requested_action: ManagedResearchActorControlAction
+    previous_state: str
+    target_state: str
+    receipt_id: str | None = None
+    requested_at: datetime | None = None
+    raw: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_wire(cls, payload: object) -> ManagedResearchActorControlAck:
+        mapping = _require_mapping(payload, label="actor control ack")
+        return cls(
+            accepted=_require_bool(mapping, "accepted"),
+            actor_id=_require_string(mapping, "actor_id", label="actor_control.actor_id"),
+            actor_type=_actor_control_actor_type(mapping, "actor_type"),
+            run_id=_require_string(mapping, "run_id", label="actor_control.run_id"),
+            requested_action=_actor_control_action(mapping, "requested_action"),
+            previous_state=_require_string(
+                mapping, "previous_state", label="actor_control.previous_state"
+            ),
+            target_state=_require_string(
+                mapping, "target_state", label="actor_control.target_state"
+            ),
+            receipt_id=_optional_string(mapping, "receipt_id"),
+            requested_at=_optional_datetime(mapping, "requested_at"),
+            raw=dict(mapping),
+        )
+
+
 __all__ = [
+    "ManagedResearchActorControlAction",
+    "ManagedResearchActorControlActorType",
+    "ManagedResearchActorControlAck",
     "ManagedResearchRunControlAck",
     "ManagedResearchRunControlEnqueueStatus",
     "ManagedResearchRunControlError",

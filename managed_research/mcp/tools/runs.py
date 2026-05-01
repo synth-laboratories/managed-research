@@ -6,6 +6,7 @@ from typing import Any
 
 from managed_research.mcp.registry import ToolDefinition, tool_schema
 from managed_research.mcp.tools.smr_policy_schemas import run_policy_input_schema
+from managed_research.models.run_control import ManagedResearchActorControlAction
 from managed_research.models.runtime_intent import (
     RuntimeIntentKind,
     RuntimeIntentStatus,
@@ -361,6 +362,98 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_get_run_logical_timeline,
         ),
         ToolDefinition(
+            name="smr_get_run_event_log",
+            description=(
+                "Read the typed run event log for a project-scoped run, with optional "
+                "source, kind, status, and limit filters."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "sources": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional event source filters.",
+                    },
+                    "event_kinds": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional event kind filters.",
+                    },
+                    "statuses": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional event status filters.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000,
+                    },
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_get_run_event_log,
+        ),
+        ToolDefinition(
+            name="smr_get_run_authority_readouts",
+            description=(
+                "Read backend-owned authority/readout projections for a run. "
+                "Set include_runtime_authority only when privileged runtime-authority detail is needed."
+            ),
+            input_schema=tool_schema(
+                {
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
+                    "include_runtime_authority": {
+                        "type": "boolean",
+                        "description": "Include privileged runtime-authority detail when allowed.",
+                    },
+                },
+                required=["run_id"],
+            ),
+            handler=server._tool_get_run_authority_readouts,
+        ),
+        ToolDefinition(
+            name="smr_get_run_operator_evidence",
+            description=(
+                "Read the bundled operator evidence for a project-scoped run, "
+                "including runtime/logical timelines, transcript slices, and reconciliation evidence."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "runtime_timeline_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 500,
+                    },
+                    "logical_timeline_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 500,
+                    },
+                    "transcript_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 500,
+                    },
+                    "reconciliation_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 500,
+                    },
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_get_run_operator_evidence,
+        ),
+        ToolDefinition(
             name="smr_get_run_traces",
             description=(
                 "Read persisted run traces for a run. "
@@ -556,6 +649,38 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                 required=["run_id"],
             ),
             handler=server._tool_get_run_actor_usage,
+        ),
+        ToolDefinition(
+            name="smr_control_project_run_actor",
+            description=(
+                "Pause or resume one actor inside a project-scoped run. "
+                "This is operator control, not project-truth promotion."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Managed research project id.",
+                    },
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "actor_id": {"type": "string", "description": "Actor id to control."},
+                    "action": {
+                        "type": "string",
+                        "enum": [item.value for item in ManagedResearchActorControlAction],
+                        "description": "Actor control action.",
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "Optional operator reason recorded in audit metadata.",
+                    },
+                    "idempotency_key": {
+                        "type": "string",
+                        "description": "Optional idempotency key for replay correlation.",
+                    },
+                },
+                required=["project_id", "run_id", "actor_id", "action"],
+            ),
+            handler=server._tool_control_project_run_actor,
         ),
         ToolDefinition(
             name="smr_list_run_participants",

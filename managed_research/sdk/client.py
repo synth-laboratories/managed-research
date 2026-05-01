@@ -989,6 +989,70 @@ class ManagedResearchClient:
             label="get_project_status",
         )
 
+    def get_project_workspace(self, project_id: str) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json("GET", f"/smr/projects/{project_id}/workspace"),
+            label="get_project_workspace",
+        )
+
+    def list_project_changesets(
+        self,
+        project_id: str,
+        *,
+        status: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return _coerce_dict_list(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/changesets",
+                params=build_query_params(status=status, limit=limit),
+            ),
+            label="list_project_changesets",
+        )
+
+    def create_project_changeset(
+        self,
+        project_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/changesets",
+                json_body=dict(payload),
+            ),
+            label="create_project_changeset",
+        )
+
+    def get_project_changeset(
+        self,
+        project_id: str,
+        changeset_id: str,
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/changesets/{changeset_id}",
+            ),
+            label="get_project_changeset",
+        )
+
+    def decide_project_changeset(
+        self,
+        project_id: str,
+        changeset_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/changesets/{changeset_id}/decision",
+                json_body=dict(payload),
+            ),
+            label="decide_project_changeset",
+        )
+
     def get_project_status_snapshot(self, project_id: str) -> dict[str, Any]:
         return self.get_project_status(project_id)
 
@@ -2759,6 +2823,30 @@ class ManagedResearchClient:
             label="resume_run",
         )
 
+    def control_project_run_actor(
+        self,
+        project_id: str,
+        run_id: str,
+        actor_id: str,
+        *,
+        action: str,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        body = {
+            "action": action,
+            "reason": reason,
+            "idempotency_key": idempotency_key,
+        }
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/runs/{run_id}/actors/{actor_id}/control",
+                json_body={key: value for key, value in body.items() if value is not None},
+            ),
+            label="control_project_run_actor",
+        )
+
     def list_run_questions(
         self,
         run_id: str,
@@ -3127,6 +3215,30 @@ class ManagedResearchClient:
             label="get_project_run_authority_readouts",
         )
         return SmrAuthorityReadouts.from_wire(payload)
+
+    def get_project_run_operator_evidence(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        runtime_timeline_limit: int | None = None,
+        logical_timeline_limit: int | None = None,
+        transcript_limit: int | None = None,
+        reconciliation_limit: int | None = None,
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/runs/{run_id}/operator-evidence",
+                params=build_query_params(
+                    runtime_timeline_limit=runtime_timeline_limit,
+                    logical_timeline_limit=logical_timeline_limit,
+                    transcript_limit=transcript_limit,
+                    reconciliation_limit=reconciliation_limit,
+                ),
+            ),
+            label="get_project_run_operator_evidence",
+        )
 
     def get_run_traces(self, run_id: str) -> SmrRunTraces:
         payload = _coerce_dict(

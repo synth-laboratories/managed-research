@@ -10,6 +10,11 @@ from pathlib import Path
 from typing import Any
 
 from managed_research.models.project import ManagedResearchProject
+from managed_research.models.project_workspace import ProjectWorkspaceProjection
+from managed_research.models.run_control import (
+    ManagedResearchActorControlAction,
+    ManagedResearchActorControlAck,
+)
 from managed_research.models.run_state import ManagedResearchRun
 from managed_research.models.types import SmrLaunchPreflight, SmrProjectSetup
 
@@ -370,6 +375,107 @@ class _BoundProjectRunsAPI:
     def get(self, run_id: str) -> ManagedResearchRun:
         return self._client.runs.get(run_id, project_id=self.project_id)
 
+    def control_actor(
+        self,
+        run_id: str,
+        actor_id: str,
+        *,
+        action: str,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self._client.runs.control_actor(
+            self.project_id,
+            run_id,
+            actor_id,
+            action=action,
+            reason=reason,
+            idempotency_key=idempotency_key,
+        )
+
+    def pause_actor(
+        self,
+        run_id: str,
+        actor_id: str,
+        *,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self.control_actor(
+            run_id,
+            actor_id,
+            action=ManagedResearchActorControlAction.PAUSE.value,
+            reason=reason,
+            idempotency_key=idempotency_key,
+        )
+
+    def resume_actor(
+        self,
+        run_id: str,
+        actor_id: str,
+        *,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self.control_actor(
+            run_id,
+            actor_id,
+            action=ManagedResearchActorControlAction.RESUME.value,
+            reason=reason,
+            idempotency_key=idempotency_key,
+        )
+
+    def interrupt_actor(
+        self,
+        run_id: str,
+        actor_id: str,
+        *,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self.control_actor(
+            run_id,
+            actor_id,
+            action=ManagedResearchActorControlAction.INTERRUPT.value,
+            reason=reason,
+            idempotency_key=idempotency_key,
+        )
+
+
+@dataclass
+class _BoundProjectChangeSetsAPI:
+    _client: Any
+    project_id: str
+
+    def list(
+        self,
+        *,
+        status: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_project_changesets(
+            self.project_id,
+            status=status,
+            limit=limit,
+        )
+
+    def create(self, payload: Mapping[str, Any] | dict[str, Any]) -> dict[str, Any]:
+        return self._client.create_project_changeset(self.project_id, payload)
+
+    def get(self, changeset_id: str) -> dict[str, Any]:
+        return self._client.get_project_changeset(self.project_id, changeset_id)
+
+    def decide(
+        self,
+        changeset_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.decide_project_changeset(
+            self.project_id,
+            changeset_id,
+            payload,
+        )
+
 
 @dataclass
 class ManagedResearchProjectClient:
@@ -414,6 +520,11 @@ class ManagedResearchProjectClient:
         repr=False,
     )
     _runs_api: _BoundProjectRunsAPI | None = field(
+        init=False,
+        default=None,
+        repr=False,
+    )
+    _changesets_api: _BoundProjectChangeSetsAPI | None = field(
         init=False,
         default=None,
         repr=False,
@@ -495,11 +606,25 @@ class ManagedResearchProjectClient:
             self._runs_api = _BoundProjectRunsAPI(self._client, self.project_id)
         return self._runs_api
 
+    @property
+    def changesets(self) -> _BoundProjectChangeSetsAPI:
+        if self._changesets_api is None:
+            self._changesets_api = _BoundProjectChangeSetsAPI(
+                self._client,
+                self.project_id,
+            )
+        return self._changesets_api
+
     def get(self) -> ManagedResearchProject:
         return ManagedResearchProject.from_wire(self._client.get_project(self.project_id))
 
     def readiness(self) -> dict[str, Any]:
         return self._client.get_project_readiness(self.project_id)
+
+    def workspace(self) -> ProjectWorkspaceProjection:
+        return ProjectWorkspaceProjection.from_wire(
+            self._client.get_project_workspace(self.project_id)
+        )
 
     def get_schedule(self) -> dict[str, Any]:
         return self.get().schedule

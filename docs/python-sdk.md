@@ -20,6 +20,7 @@ project.repositories.attach(github_repo="owner/repo")
 project.files.list()
 project.outputs.list()
 
+workspace = project.workspace()
 readiness = project.readiness()
 setup = project.setup.get()
 preflight = project.runs.preflight(
@@ -34,6 +35,33 @@ run = project.runs.start(
     providers=[{"provider": "openrouter"}],
 )
 ```
+
+`project.workspace()` and `client.projects.get_workspace(project_id)` return a
+typed `ProjectWorkspaceProjection`. Runs may propose objectives, experiments,
+reports, and knowledge updates; review or policy promotion owns durable project
+truth. The projection also exposes actor/control state, recent operator-facing
+events, context-pack preview, accepted canon-change readouts, and recommended
+next actions.
+
+Project ChangeSets are review-gated proposal groups. Use
+`client.projects.list_changesets(project_id)`,
+`client.projects.create_changeset(project_id, payload)`,
+`client.projects.get_changeset(project_id, changeset_id)`, or
+`client.project(project_id).changesets.*` to stage project mutations; use
+`decide_changeset(...)` or `changesets.decide(...)` to accept, promote, reject,
+supersede, or invalidate them. Creation does not write durable project truth.
+Accepted/promoted decisions apply only backend-supported canon targets such as
+project knowledge, reviewed objectives, and experiments. Decision responses
+include `applied_at` and `applied_items` when a promotion changed canon state.
+
+Actor controls are run-operational, not canon promotion. Use
+`client.runs.pause_actor(project_id, run_id, actor_id, reason=...)`,
+`client.runs.resume_actor(...)`, `client.runs.interrupt_actor(...)`,
+`client.project(project_id).runs.pause_actor(...)`, or a bound run handle's
+`pause_actor(...)` / `resume_actor(...)` / `interrupt_actor(...)` helpers to
+pause, resume, or request interruption for one actor inside a project-scoped
+run. Responses are typed as `ManagedResearchActorControlAck` and include the
+actor id/type, previous state, target state, and runtime control receipt id.
 
 ## Misc Default Project Flow
 

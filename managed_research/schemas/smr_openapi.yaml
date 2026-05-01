@@ -37,38 +37,15 @@ paths:
                 additionalProperties: true
                 type: object
                 title: Response Liveness Health Live Get
-  /version:
-    get:
-      summary: Version
-      description: Return queryable backend SemVer and deploy metadata.
-      operationId: version_version_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/VersionResponse'
-  /api/v1/version:
-    get:
-      summary: Version
-      description: Return queryable backend SemVer and deploy metadata.
-      operationId: version_api_v1_version_get
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/VersionResponse'
   /health:
     get:
       summary: Health
-      description: "Health check endpoint with database connectivity test.\n\nReturns\
-        \ service status and database connectivity.\nUses SQLAlchemy for database\
-        \ connectivity.\n\n``details[\"build\"]`` mirrors ``app.core.build_metadata``\
-        \ (``git_sha``, etc.) so\noperators can align deploy revisions with smokes;\
-        \ see ``smr_launch_sunday.txt`` \xA7P1."
+      description: 'Health check endpoint with database connectivity test.
+
+
+        Returns service status and database connectivity.
+
+        Uses SQLAlchemy for database connectivity.'
       operationId: health_health_get
       responses:
         '200':
@@ -1476,6 +1453,72 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /smr/runtime/control/runtime/enqueue_initial_messages:
+    post:
+      summary: Enqueue Initial Runtime Messages
+      operationId: enqueue_initial_runtime_messages_smr_runtime_control_runtime_enqueue_initial_messages_post
+      parameters:
+      - name: X-SMR-Worker-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          title: X-Smr-Worker-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnqueueInitialRuntimeMessagesRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Enqueue Initial Runtime Messages Smr Runtime Control
+                  Runtime Enqueue Initial Messages Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/runtime/control/runtime/publish_wakeup:
+    post:
+      summary: Publish Runtime Wakeup
+      operationId: publish_runtime_wakeup_smr_runtime_control_runtime_publish_wakeup_post
+      parameters:
+      - name: X-SMR-Worker-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          title: X-Smr-Worker-Key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishRuntimeWakeupRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Publish Runtime Wakeup Smr Runtime Control Runtime
+                  Publish Wakeup Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /smr/runtime/control/lifecycle/signal_projection:
     post:
       summary: Apply Run Workflow Signal Projection
@@ -1987,6 +2030,180 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SmrProjectResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/workspace:
+    get:
+      tags:
+      - smr
+      summary: Get Project Workspace
+      operationId: get_project_workspace_smr_projects__project_id__workspace_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectWorkspaceProjectionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/changesets:
+    get:
+      tags:
+      - smr
+      summary: List Project Changesets
+      operationId: list_project_changesets_smr_projects__project_id__changesets_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectChangeSetResponse'
+                title: Response List Project Changesets Smr Projects  Project Id  Changesets
+                  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - smr
+      summary: Create Project Changeset
+      operationId: create_project_changeset_smr_projects__project_id__changesets_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectChangeSetCreateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectChangeSetResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/changesets/{changeset_id}:
+    get:
+      tags:
+      - smr
+      summary: Get Project Changeset
+      operationId: get_project_changeset_smr_projects__project_id__changesets__changeset_id__get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: changeset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Changeset Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectChangeSetResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/changesets/{changeset_id}/decision:
+    post:
+      tags:
+      - smr
+      summary: Decide Project Changeset
+      operationId: decide_project_changeset_smr_projects__project_id__changesets__changeset_id__decision_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: changeset_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Changeset Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectChangeSetDecisionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectChangeSetResponse'
         '422':
           description: Validation Error
           content:
@@ -7344,6 +7561,16 @@ paths:
               type: string
           - type: 'null'
           title: Statuses
+      - name: review_states
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+          - type: 'null'
+          title: Review States
       - name: limit
         in: query
         required: false
@@ -7360,6 +7587,88 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SmrRunEventLogResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/event-log/{event_log_id}:
+    get:
+      tags:
+      - smr
+      summary: Get Project Run Event Log Entry
+      operationId: get_project_run_event_log_entry_smr_projects__project_id__runs__run_id__event_log__event_log_id__get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: event_log_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Event Log Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrRunEventLogEntryResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/event-log/{event_log_id}/review:
+    post:
+      tags:
+      - smr
+      summary: Review Project Run Event Log Entry
+      operationId: review_project_run_event_log_entry_smr_projects__project_id__runs__run_id__event_log__event_log_id__review_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: event_log_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Event Log Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrRunEventReviewRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrRunEventLogEntryResponse'
         '422':
           description: Validation Error
           content:
@@ -17796,131 +18105,11 @@ paths:
             application/json:
               schema: {}
   /s/{route_token}/{path}:
-    get:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    put:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get__put__1
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
     post:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get__post__2
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    options:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get__options__3
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    patch:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get__patch__4
+      operationId: synthtunnel_gateway_s__route_token___path__post
       parameters:
       - name: route_token
         in: path
@@ -17950,7 +18139,127 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get__delete__5
+      operationId: synthtunnel_gateway_s__route_token___path__post__delete__1
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__post__get__2
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__post__put__3
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__post__patch__4
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    options:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__post__options__5
       parameters:
       - name: route_token
         in: path
@@ -18378,76 +18687,6 @@ paths:
           content:
             application/json:
               schema: {}
-  /api/v1/admin/smr/runtime-reconciliation:
-    get:
-      tags:
-      - admin
-      summary: 'Admin: observe SMR active runtime reconciliation concerns'
-      operationId: smr_runtime_reconciliation_report_api_v1_admin_smr_runtime_reconciliation_get
-      security:
-      - HTTPBearer: []
-      parameters:
-      - name: org_id
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Org Id
-      - name: project_id
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Project Id
-      - name: run_id
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Run Id
-      - name: limit
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 100
-          title: Limit
-      - name: dead_outbox_age_seconds
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 900
-          title: Dead Outbox Age Seconds
-      - name: projection_lag_seconds
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 120
-          title: Projection Lag Seconds
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: true
-                title: Response Smr Runtime Reconciliation Report Api V1 Admin Smr
-                  Runtime Reconciliation Get
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/admin/victoria-logs/search:
     get:
       tags:
@@ -21120,18 +21359,7 @@ paths:
   /api/v1/health/redis:
     get:
       summary: Health Redis
-      description: 'Redis health check endpoint.
-
-
-        Returns detailed Redis status including:
-
-        - Whether Redis is enabled (SSE_USE_REDIS)
-
-        - Whether REDIS_URL is configured
-
-        - Whether Redis is reachable
-
-        - Rate limiter statistics (for PostgREST fallback monitoring)'
+      description: Redis health check endpoint.
       operationId: health_redis_api_v1_health_redis_get
       responses:
         '200':
@@ -21220,6 +21448,13 @@ components:
       - ga
       - suspended
       title: AccessTier
+    ActorControlAction:
+      type: string
+      enum:
+      - pause
+      - resume
+      - interrupt
+      title: ActorControlAction
     ActorResourceCapability:
       type: string
       enum:
@@ -22363,6 +22598,26 @@ components:
       - deleted_at
       title: DeleteTunnelResponse
       description: Response when deleting a tunnel.
+    EnqueueInitialRuntimeMessagesRequest:
+      properties:
+        run_id:
+          type: string
+          title: Run Id
+        sender:
+          type: string
+          title: Sender
+        messages:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Messages
+      type: object
+      required:
+      - run_id
+      - sender
+      - messages
+      title: EnqueueInitialRuntimeMessagesRequest
     EnsureCustomerRequest:
       properties:
         org_id:
@@ -23812,6 +24067,242 @@ components:
       - autumn_api_base
       title: PricingConfigResponse
       description: Pricing configuration response model.
+    ProjectChangeSetCreateRequest:
+      properties:
+        title:
+          type: string
+          title: Title
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        source:
+          type: string
+          title: Source
+          default: sdk_mcp
+        author_ref:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Author Ref
+        review_policy:
+          type: string
+          title: Review Policy
+          default: manual
+        items:
+          items:
+            $ref: '#/components/schemas/ProjectChangeSetItemRequest'
+          type: array
+          title: Items
+        idempotency_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Idempotency Key
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      type: object
+      required:
+      - title
+      - items
+      title: ProjectChangeSetCreateRequest
+    ProjectChangeSetDecisionRequest:
+      properties:
+        decision:
+          type: string
+          enum:
+          - accepted
+          - promoted
+          - rejected
+          - superseded
+          - invalidated
+          title: Decision
+        decided_by_ref:
+          type: string
+          title: Decided By Ref
+        decision_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Decision Reason
+      type: object
+      required:
+      - decision
+      - decided_by_ref
+      title: ProjectChangeSetDecisionRequest
+    ProjectChangeSetItemRequest:
+      properties:
+        target_kind:
+          type: string
+          title: Target Kind
+        target_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Id
+        operation:
+          type: string
+          title: Operation
+        proposed_payload:
+          additionalProperties: true
+          type: object
+          title: Proposed Payload
+        evidence_refs:
+          items:
+            type: string
+          type: array
+          title: Evidence Refs
+      type: object
+      required:
+      - target_kind
+      - operation
+      title: ProjectChangeSetItemRequest
+    ProjectChangeSetItemResponse:
+      properties:
+        changeset_item_id:
+          type: string
+          title: Changeset Item Id
+        target_kind:
+          type: string
+          title: Target Kind
+        target_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Id
+        operation:
+          type: string
+          title: Operation
+        proposed_payload:
+          additionalProperties: true
+          type: object
+          title: Proposed Payload
+        evidence_refs:
+          items:
+            type: string
+          type: array
+          title: Evidence Refs
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - changeset_item_id
+      - target_kind
+      - operation
+      - created_at
+      title: ProjectChangeSetItemResponse
+    ProjectChangeSetResponse:
+      properties:
+        changeset_id:
+          type: string
+          title: Changeset Id
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        title:
+          type: string
+          title: Title
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+        source:
+          type: string
+          title: Source
+        author_ref:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Author Ref
+        status:
+          type: string
+          enum:
+          - proposed
+          - needs_review
+          - accepted
+          - promoted
+          - rejected
+          - superseded
+          - invalidated
+          title: Status
+        review_policy:
+          type: string
+          title: Review Policy
+        decided_by_ref:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Decided By Ref
+        decided_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Decided At
+        decision_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Decision Reason
+        applied_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Applied At
+        applied_items:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Applied Items
+        item_count:
+          type: integer
+          title: Item Count
+          default: 0
+        items:
+          items:
+            $ref: '#/components/schemas/ProjectChangeSetItemResponse'
+          type: array
+          title: Items
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - changeset_id
+      - project_id
+      - title
+      - source
+      - status
+      - review_policy
+      - created_at
+      - updated_at
+      title: ProjectChangeSetResponse
     ProjectSetupStatus:
       type: string
       enum:
@@ -23820,6 +24311,830 @@ components:
       - blocked
       - ready
       title: ProjectSetupStatus
+    ProjectWorkspaceActor:
+      properties:
+        actor_id:
+          type: string
+          title: Actor Id
+        run_id:
+          type: string
+          title: Run Id
+        actor_key:
+          type: string
+          title: Actor Key
+        actor_type:
+          type: string
+          title: Actor Type
+        state:
+          type: string
+          title: State
+        pause_state:
+          type: string
+          title: Pause State
+        control_status:
+          $ref: '#/components/schemas/ProjectWorkspaceActorControlStatus'
+        last_activity_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Activity At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        href:
+          type: string
+          title: Href
+      type: object
+      required:
+      - actor_id
+      - run_id
+      - actor_key
+      - actor_type
+      - state
+      - pause_state
+      - control_status
+      - updated_at
+      - href
+      title: ProjectWorkspaceActor
+    ProjectWorkspaceActorControlStatus:
+      type: string
+      enum:
+      - active
+      - paused
+      - interrupt_requested
+      - completed
+      - failed
+      - unknown
+      title: ProjectWorkspaceActorControlStatus
+    ProjectWorkspaceAuthority:
+      properties:
+        projection_authority:
+          type: string
+          title: Projection Authority
+          default: backend
+        canon_policy:
+          type: string
+          title: Canon Policy
+          default: runs_propose_review_promotes_project_truth
+        durable_truth_writer:
+          type: string
+          title: Durable Truth Writer
+          default: review_or_policy_promotion
+        proposal_sources:
+          items:
+            type: string
+          type: array
+          title: Proposal Sources
+      type: object
+      title: ProjectWorkspaceAuthority
+    ProjectWorkspaceCanonChange:
+      properties:
+        change_id:
+          type: string
+          title: Change Id
+        change_kind:
+          type: string
+          title: Change Kind
+        title:
+          type: string
+          title: Title
+        source_run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Run Id
+        accepted_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Accepted At
+        href:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Href
+      type: object
+      required:
+      - change_id
+      - change_kind
+      - title
+      title: ProjectWorkspaceCanonChange
+    ProjectWorkspaceChangeSet:
+      properties:
+        changeset_id:
+          type: string
+          title: Changeset Id
+        title:
+          type: string
+          title: Title
+        status:
+          type: string
+          title: Status
+        truth_status:
+          type: string
+          enum:
+          - accepted
+          - proposed
+          - needs_review
+          - stale
+          - missing
+          title: Truth Status
+        review_policy:
+          type: string
+          title: Review Policy
+        item_count:
+          type: integer
+          title: Item Count
+          default: 0
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        decided_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Decided At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        href:
+          type: string
+          title: Href
+      type: object
+      required:
+      - changeset_id
+      - title
+      - status
+      - truth_status
+      - review_policy
+      - updated_at
+      - href
+      title: ProjectWorkspaceChangeSet
+    ProjectWorkspaceContextPack:
+      properties:
+        status:
+          type: string
+          enum:
+          - ready
+          - partial
+          - missing
+          title: Status
+        slice_count:
+          type: integer
+          title: Slice Count
+          default: 0
+        accepted_slice_count:
+          type: integer
+          title: Accepted Slice Count
+          default: 0
+        tentative_slice_count:
+          type: integer
+          title: Tentative Slice Count
+          default: 0
+        stale_slice_count:
+          type: integer
+          title: Stale Slice Count
+          default: 0
+        preview:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Preview
+        missing_inputs:
+          items:
+            type: string
+          type: array
+          title: Missing Inputs
+        note:
+          type: string
+          title: Note
+      type: object
+      required:
+      - status
+      - note
+      title: ProjectWorkspaceContextPack
+    ProjectWorkspaceEvent:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+        event_kind:
+          type: string
+          title: Event Kind
+        source_family:
+          type: string
+          title: Source Family
+        status:
+          type: string
+          title: Status
+        review_policy:
+          type: string
+          title: Review Policy
+        truth_status:
+          type: string
+          enum:
+          - accepted
+          - proposed
+          - needs_review
+          - stale
+          - missing
+          title: Truth Status
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        actor_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor Id
+        observed_at:
+          type: string
+          format: date-time
+          title: Observed At
+        href:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Href
+      type: object
+      required:
+      - event_id
+      - event_kind
+      - source_family
+      - status
+      - review_policy
+      - truth_status
+      - observed_at
+      title: ProjectWorkspaceEvent
+    ProjectWorkspaceExperiment:
+      properties:
+        experiment_id:
+          type: string
+          title: Experiment Id
+        title:
+          type: string
+          title: Title
+        hypothesis:
+          type: string
+          title: Hypothesis
+        status:
+          type: string
+          title: Status
+        truth_status:
+          type: string
+          enum:
+          - accepted
+          - proposed
+          - needs_review
+          - stale
+          - missing
+          title: Truth Status
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+        recommendation:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Recommendation
+        disposition:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Disposition
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        linked_artifact_ids:
+          items:
+            type: string
+          type: array
+          title: Linked Artifact Ids
+        linked_entry_ids:
+          items:
+            type: string
+          type: array
+          title: Linked Entry Ids
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - experiment_id
+      - title
+      - hypothesis
+      - status
+      - truth_status
+      - updated_at
+      title: ProjectWorkspaceExperiment
+    ProjectWorkspaceKnowledge:
+      properties:
+        status:
+          type: string
+          enum:
+          - accepted
+          - proposed
+          - needs_review
+          - stale
+          - missing
+          title: Status
+        content_preview:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Content Preview
+        updated_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Updated At
+        source:
+          type: string
+          title: Source
+          default: smr_project_knowledge
+        note:
+          type: string
+          title: Note
+      type: object
+      required:
+      - status
+      - note
+      title: ProjectWorkspaceKnowledge
+    ProjectWorkspaceLaunchRisk:
+      properties:
+        risk_id:
+          type: string
+          title: Risk Id
+        severity:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          title: Severity
+        status:
+          type: string
+          enum:
+          - open
+          - proved
+          title: Status
+        title:
+          type: string
+          title: Title
+        detail:
+          type: string
+          title: Detail
+      type: object
+      required:
+      - risk_id
+      - severity
+      - status
+      - title
+      - detail
+      title: ProjectWorkspaceLaunchRisk
+    ProjectWorkspaceLinks:
+      properties:
+        project:
+          type: string
+          title: Project
+        runs:
+          type: string
+          title: Runs
+        experiments:
+          type: string
+          title: Experiments
+        knowledge:
+          type: string
+          title: Knowledge
+        review:
+          type: string
+          title: Review
+        reports:
+          type: string
+          title: Reports
+        settings:
+          type: string
+          title: Settings
+      type: object
+      required:
+      - project
+      - runs
+      - experiments
+      - knowledge
+      - review
+      - reports
+      - settings
+      title: ProjectWorkspaceLinks
+    ProjectWorkspaceNextAction:
+      properties:
+        action_id:
+          type: string
+          title: Action Id
+        priority:
+          type: string
+          enum:
+          - high
+          - medium
+          - low
+          title: Priority
+        title:
+          type: string
+          title: Title
+        reason:
+          type: string
+          title: Reason
+        href:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Href
+      type: object
+      required:
+      - action_id
+      - priority
+      - title
+      - reason
+      title: ProjectWorkspaceNextAction
+    ProjectWorkspaceObjective:
+      properties:
+        objective_id:
+          type: string
+          title: Objective Id
+        objective_kind:
+          type: string
+          enum:
+          - open_ended_question
+          - directed_effort_outcome
+          title: Objective Kind
+        title:
+          type: string
+          title: Title
+        body:
+          type: string
+          title: Body
+        evaluation_state:
+          type: string
+          title: Evaluation State
+        truth_status:
+          type: string
+          enum:
+          - accepted
+          - proposed
+          - needs_review
+          - stale
+          - missing
+          title: Truth Status
+        review_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Review Summary
+        reviewed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Reviewed At
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        linked_artifact_ids:
+          items:
+            type: string
+          type: array
+          title: Linked Artifact Ids
+        linked_entry_ids:
+          items:
+            type: string
+          type: array
+          title: Linked Entry Ids
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - objective_id
+      - objective_kind
+      - title
+      - body
+      - evaluation_state
+      - truth_status
+      - updated_at
+      title: ProjectWorkspaceObjective
+    ProjectWorkspaceProjectionResponse:
+      properties:
+        project_id:
+          type: string
+          title: Project Id
+        generated_at:
+          type: string
+          format: date-time
+          title: Generated At
+        authority:
+          $ref: '#/components/schemas/ProjectWorkspaceAuthority'
+        summary:
+          $ref: '#/components/schemas/ProjectWorkspaceSummary'
+        runs:
+          items:
+            $ref: '#/components/schemas/ProjectWorkspaceRun'
+          type: array
+          title: Runs
+        actors:
+          items:
+            $ref: '#/components/schemas/ProjectWorkspaceActor'
+          type: array
+          title: Actors
+        events:
+          items:
+            $ref: '#/components/schemas/ProjectWorkspaceEvent'
+          type: array
+          title: Events
+        objectives:
+          items:
+            $ref: '#/components/schemas/ProjectWorkspaceObjective'
+          type: array
+          title: Objectives
+        experiments:
+          items:
+            $ref: '#/components/schemas/ProjectWorkspaceExperiment'
+          type: array
+          title: Experiments
+        knowledge:
+          $ref: '#/components/schemas/ProjectWorkspaceKnowledge'
+        context_pack:
+          $ref: '#/components/schemas/ProjectWorkspaceContextPack'
+        changesets:
+          items:
+            $ref: '#/components/schemas/ProjectWorkspaceChangeSet'
+          type: array
+          title: Changesets
+        canon_changes:
+          items:
+            $ref: '#/components/schemas/ProjectWorkspaceCanonChange'
+          type: array
+          title: Canon Changes
+        next_actions:
+          items:
+            $ref: '#/components/schemas/ProjectWorkspaceNextAction'
+          type: array
+          title: Next Actions
+        review_queue:
+          items:
+            $ref: '#/components/schemas/ProjectWorkspaceReviewItem'
+          type: array
+          title: Review Queue
+        reports:
+          items:
+            $ref: '#/components/schemas/ProjectWorkspaceReport'
+          type: array
+          title: Reports
+        launch_risks:
+          items:
+            $ref: '#/components/schemas/ProjectWorkspaceLaunchRisk'
+          type: array
+          title: Launch Risks
+        links:
+          $ref: '#/components/schemas/ProjectWorkspaceLinks'
+      type: object
+      required:
+      - project_id
+      - generated_at
+      - summary
+      - knowledge
+      - context_pack
+      - links
+      title: ProjectWorkspaceProjectionResponse
+    ProjectWorkspaceReport:
+      properties:
+        report_id:
+          type: string
+          title: Report Id
+        title:
+          type: string
+          title: Title
+        mode:
+          type: string
+          title: Mode
+        truth_status:
+          type: string
+          enum:
+          - accepted
+          - proposed
+          - needs_review
+          - stale
+          - missing
+          title: Truth Status
+        run_id:
+          type: string
+          title: Run Id
+        source_entry_ids:
+          items:
+            type: string
+          type: array
+          title: Source Entry Ids
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - report_id
+      - title
+      - mode
+      - truth_status
+      - run_id
+      - created_at
+      title: ProjectWorkspaceReport
+    ProjectWorkspaceReviewItem:
+      properties:
+        review_id:
+          type: string
+          title: Review Id
+        review_kind:
+          type: string
+          title: Review Kind
+        title:
+          type: string
+          title: Title
+        source_run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Run Id
+        reason:
+          type: string
+          title: Reason
+        truth_status:
+          type: string
+          enum:
+          - accepted
+          - proposed
+          - needs_review
+          - stale
+          - missing
+          title: Truth Status
+          default: needs_review
+        href:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Href
+      type: object
+      required:
+      - review_id
+      - review_kind
+      - title
+      - reason
+      title: ProjectWorkspaceReviewItem
+    ProjectWorkspaceRun:
+      properties:
+        run_id:
+          type: string
+          title: Run Id
+        state:
+          type: string
+          title: State
+        truth_status:
+          type: string
+          enum:
+          - accepted
+          - proposed
+          - needs_review
+          - stale
+          - missing
+          title: Truth Status
+          default: proposed
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        href:
+          type: string
+          title: Href
+      type: object
+      required:
+      - run_id
+      - state
+      - created_at
+      - updated_at
+      - href
+      title: ProjectWorkspaceRun
+    ProjectWorkspaceSummary:
+      properties:
+        project_id:
+          type: string
+          title: Project Id
+        name:
+          type: string
+          title: Name
+        mission:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Mission
+        timezone:
+          type: string
+          title: Timezone
+        phase:
+          type: string
+          title: Phase
+        readiness:
+          type: string
+          enum:
+          - ready
+          - needs_review
+          - missing_context
+          - launch_risk
+          title: Readiness
+        active_run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Active Run Id
+        latest_run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Latest Run Id
+        active_run_count:
+          type: integer
+          title: Active Run Count
+          default: 0
+        actor_count:
+          type: integer
+          title: Actor Count
+          default: 0
+        paused_actor_count:
+          type: integer
+          title: Paused Actor Count
+          default: 0
+        event_count:
+          type: integer
+          title: Event Count
+          default: 0
+        objective_count:
+          type: integer
+          title: Objective Count
+          default: 0
+        experiment_count:
+          type: integer
+          title: Experiment Count
+          default: 0
+        pending_review_count:
+          type: integer
+          title: Pending Review Count
+          default: 0
+        accepted_knowledge:
+          type: boolean
+          title: Accepted Knowledge
+          default: false
+      type: object
+      required:
+      - project_id
+      - name
+      - timezone
+      - phase
+      - readiness
+      title: ProjectWorkspaceSummary
     Provider:
       type: string
       enum:
@@ -23864,6 +25179,23 @@ components:
       - public_key
       title: PublicKeyResponse
       description: Response model for the sealed box public key.
+    PublishRuntimeWakeupRequest:
+      properties:
+        run_id:
+          type: string
+          title: Run Id
+        reason:
+          type: string
+          title: Reason
+        trigger:
+          type: string
+          title: Trigger
+          default: manual_wake
+      type: object
+      required:
+      - run_id
+      - reason
+      title: PublishRuntimeWakeupRequest
     RecordUsageRequest:
       properties:
         metric_type:
@@ -24481,11 +25813,7 @@ components:
     SmrActorControlRequest:
       properties:
         action:
-          type: string
-          enum:
-          - pause
-          - resume
-          title: Action
+          $ref: '#/components/schemas/ActorControlAction'
         reason:
           anyOf:
           - type: string
@@ -24517,8 +25845,7 @@ components:
           type: string
           title: Run Id
         requested_action:
-          type: string
-          title: Requested Action
+          $ref: '#/components/schemas/ActorControlAction'
         previous_state:
           type: string
           title: Previous State
@@ -25382,6 +26709,7 @@ components:
       - anthropic/claude-sonnet-4-6
       - anthropic/claude-haiku-4-5-20251001
       - x-ai/grok-4.1-fast
+      - x-ai/grok-4.3
       - moonshotai/kimi-k2.6
       title: SmrAgentModel
     SmrAgentModelCatalogEntry:
@@ -30987,7 +32315,7 @@ components:
           description: Override one shared agent model for this run. Shared top-level
             values are 'anthropic/claude-haiku-4-5-20251001', 'anthropic/claude-sonnet-4-6',
             'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5.5', 'gpt-oss-120b',
-            'moonshotai/kimi-k2.6', 'x-ai/grok-4.1-fast'. Use actor_model_overrides
+            'moonshotai/kimi-k2.6', 'x-ai/grok-4.1-fast', 'x-ai/grok-4.3'. Use actor_model_overrides
             for actor-specific model selection.
         agent_harness:
           anyOf:
@@ -32792,6 +34120,11 @@ components:
           type: string
           format: date-time
           title: Occurred At
+        source_family:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Family
         source:
           type: string
           title: Source
@@ -32804,6 +34137,70 @@ components:
         summary:
           type: string
           title: Summary
+        visibility:
+          type: string
+          title: Visibility
+          default: internal
+        review_state:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Review State
+        reviewed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Reviewed At
+        reviewed_by_ref:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reviewed By Ref
+        reviewer_role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reviewer Role
+        reviewer_session_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reviewer Session Id
+        disposition_note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Disposition Note
+        resulting_intent_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resulting Intent Id
+        resulting_message_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resulting Message Id
+        projection_only:
+          type: boolean
+          title: Projection Only
+          default: false
+        source_row_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Row Kind
+        source_row_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Row Id
+        logical_timeline_source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Logical Timeline Source
         status:
           anyOf:
           - type: string
@@ -32824,6 +34221,26 @@ components:
           - type: string
           - type: 'null'
           title: Disposition Id
+        command_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Command Id
+        turn_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Turn Id
+        message_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Message Id
+        delivery_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Delivery Id
         task_id:
           anyOf:
           - type: string
@@ -32834,6 +34251,21 @@ components:
           - type: string
           - type: 'null'
           title: Task Key
+        artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Artifact Id
+        checkpoint_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Checkpoint Id
+        launch_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Launch Id
         actor_id:
           anyOf:
           - type: string
@@ -32888,6 +34320,11 @@ components:
             type: string
           type: array
           title: Statuses
+        review_states:
+          items:
+            type: string
+          type: array
+          title: Review States
         entries:
           items:
             $ref: '#/components/schemas/SmrRunEventLogEntryResponse'
@@ -32900,6 +34337,41 @@ components:
       - run_id
       - generated_at
       title: SmrRunEventLogResponse
+    SmrRunEventReviewRequest:
+      properties:
+        review_state:
+          type: string
+          title: Review State
+        disposition_note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Disposition Note
+        reviewer_session_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reviewer Session Id
+        resulting_intent_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resulting Intent Id
+        resulting_message_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resulting Message Id
+        metadata:
+          additionalProperties:
+            type: string
+          type: object
+          title: Metadata
+      additionalProperties: false
+      type: object
+      required:
+      - review_state
+      title: SmrRunEventReviewRequest
     SmrRunExecutionResultArtifactResponse:
       properties:
         artifact_id:
@@ -34021,6 +35493,11 @@ components:
         runbook:
           type: string
           title: Runbook
+        runbook_preset:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Runbook Preset
         project_alias:
           anyOf:
           - type: string
@@ -34174,6 +35651,16 @@ components:
             type: object
           - type: 'null'
           title: Limit
+        execution_metadata:
+          additionalProperties: true
+          type: object
+          title: Execution Metadata
+        open_research:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Open Research
         status_detail:
           additionalProperties: true
           type: object
@@ -39294,7 +40781,7 @@ components:
         entitlements:
           $ref: '#/components/schemas/BillingEntitlementSnapshot'
         usage_summary:
-          $ref: '#/components/schemas/UsageSummaryResponse'
+          $ref: '#/components/schemas/app__api__v1__routes_usage_overview__UsageSummaryResponse'
         spend_summary:
           $ref: '#/components/schemas/SpendSummaryResponse'
         sources:
@@ -39505,84 +40992,6 @@ components:
             limit: 50000
             remaining: 47600
             used: 2400
-    UsageSummaryResponse:
-      properties:
-        total_nominal_usd:
-          type: number
-          title: Total Nominal Usd
-        total_cost_usd:
-          type: number
-          title: Total Cost Usd
-        total_charged_usd:
-          type: number
-          title: Total Charged Usd
-        total_internal_cost_usd:
-          type: number
-          title: Total Internal Cost Usd
-        by_type:
-          items:
-            $ref: '#/components/schemas/UsageByTypeResponse'
-          type: array
-          title: By Type
-        by_job:
-          items:
-            additionalProperties:
-              type: string
-            type: object
-          type: array
-          title: By Job
-        by_project:
-          items:
-            $ref: '#/components/schemas/UsageByProjectResponse'
-          type: array
-          title: By Project
-        by_source_type:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Source Type
-        by_source_subtype:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Source Subtype
-        by_source_provider:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Source Provider
-        by_funding_lane:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Funding Lane
-        by_execution_path:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Execution Path
-        by_actor:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Actor
-        by_billing_route:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Billing Route
-        by_pricing_policy:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Pricing Policy
-      type: object
-      required:
-      - total_nominal_usd
-      - total_cost_usd
-      - total_charged_usd
-      - total_internal_cost_usd
-      title: UsageSummaryResponse
     UsageType:
       type: string
       enum:
@@ -39725,29 +41134,6 @@ components:
       - cancelled
       title: ValidationWaveLifecycleState
       description: Validation-wave lifecycle with explicit success and reopen outcomes.
-    VersionResponse:
-      properties:
-        id:
-          type: string
-          title: Id
-        version:
-          type: string
-          title: Version
-        semver:
-          type: string
-          title: Semver
-        build:
-          additionalProperties: true
-          type: object
-          title: Build
-          default: {}
-      type: object
-      required:
-      - id
-      - version
-      - semver
-      title: VersionResponse
-      description: Public service version response.
     VllmLoraCreateRequest:
       properties:
         lora_id:
@@ -40067,6 +41453,84 @@ components:
       - last_30_days
       title: UsageSummaryResponse
       description: Response model for usage summary.
+    app__api__v1__routes_usage_overview__UsageSummaryResponse:
+      properties:
+        total_nominal_usd:
+          type: number
+          title: Total Nominal Usd
+        total_cost_usd:
+          type: number
+          title: Total Cost Usd
+        total_charged_usd:
+          type: number
+          title: Total Charged Usd
+        total_internal_cost_usd:
+          type: number
+          title: Total Internal Cost Usd
+        by_type:
+          items:
+            $ref: '#/components/schemas/UsageByTypeResponse'
+          type: array
+          title: By Type
+        by_job:
+          items:
+            additionalProperties:
+              type: string
+            type: object
+          type: array
+          title: By Job
+        by_project:
+          items:
+            $ref: '#/components/schemas/UsageByProjectResponse'
+          type: array
+          title: By Project
+        by_source_type:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Source Type
+        by_source_subtype:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Source Subtype
+        by_source_provider:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Source Provider
+        by_funding_lane:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Funding Lane
+        by_execution_path:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Execution Path
+        by_actor:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Actor
+        by_billing_route:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Billing Route
+        by_pricing_policy:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Pricing Policy
+      type: object
+      required:
+      - total_nominal_usd
+      - total_cost_usd
+      - total_charged_usd
+      - total_internal_cost_usd
+      title: UsageSummaryResponse
   securitySchemes:
     HTTPBearer:
       type: http

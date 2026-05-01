@@ -464,6 +464,45 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.get_project_status(project_id)
 
+    def _tool_get_project_workspace(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_workspace(project_id)
+
+    def _tool_list_project_changesets(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        status = optional_string(args, "status")
+        limit = optional_int(args, "limit")
+        with self._client_from_args(args) as client:
+            return client.list_project_changesets(
+                project_id,
+                status=status,
+                limit=limit,
+            )
+
+    def _tool_create_project_changeset(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        payload = {key: value for key, value in args.items() if key != "project_id"}
+        with self._client_from_args(args) as client:
+            return client.create_project_changeset(project_id, payload)
+
+    def _tool_get_project_changeset(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        changeset_id = require_string(args, "changeset_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_changeset(project_id, changeset_id)
+
+    def _tool_decide_project_changeset(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        changeset_id = require_string(args, "changeset_id")
+        payload = {
+            key: value
+            for key, value in args.items()
+            if key not in {"project_id", "changeset_id"}
+        }
+        with self._client_from_args(args) as client:
+            return client.decide_project_changeset(project_id, changeset_id, payload)
+
     def _tool_get_project_entitlement(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
@@ -1066,6 +1105,55 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.get_run_logical_timeline(project_id, run_id)
 
+    def _tool_get_run_event_log(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_run_event_log(
+                project_id,
+                run_id,
+                sources=args.get("sources"),
+                event_kinds=args.get("event_kinds"),
+                statuses=args.get("statuses"),
+                limit=optional_int(args, "limit"),
+            )
+
+    def _tool_get_run_authority_readouts(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            if project_id:
+                return client.get_project_run_authority_readouts(
+                    project_id,
+                    run_id,
+                    include_runtime_authority=optional_bool(
+                        args,
+                        "include_runtime_authority",
+                        default=False,
+                    ),
+                )
+            return client.get_run_authority_readouts(
+                run_id,
+                include_runtime_authority=optional_bool(
+                    args,
+                    "include_runtime_authority",
+                    default=False,
+                ),
+            )
+
+    def _tool_get_run_operator_evidence(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_run_operator_evidence(
+                project_id,
+                run_id,
+                runtime_timeline_limit=optional_int(args, "runtime_timeline_limit"),
+                logical_timeline_limit=optional_int(args, "logical_timeline_limit"),
+                transcript_limit=optional_int(args, "transcript_limit"),
+                reconciliation_limit=optional_int(args, "reconciliation_limit"),
+            )
+
     def _tool_get_run_traces(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
         project_id = optional_string(args, "project_id")
@@ -1146,6 +1234,22 @@ class ManagedResearchMcpServer:
             if project_id:
                 return client.get_project_run_actor_usage(project_id, run_id)
             return client.get_run_actor_usage(run_id)
+
+    def _tool_control_project_run_actor(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        actor_id = require_string(args, "actor_id")
+        action = require_string(args, "action")
+        with self._client_from_args(args) as client:
+            result = client.runs.control_actor(
+                project_id,
+                run_id,
+                actor_id,
+                action=action,
+                reason=optional_string(args, "reason"),
+                idempotency_key=optional_string(args, "idempotency_key"),
+            )
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_list_run_participants(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")

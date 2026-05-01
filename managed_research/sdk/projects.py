@@ -10,6 +10,7 @@ from managed_research.models.canonical_usage import (
     SmrProjectUsage,
 )
 from managed_research.models.project import CreateRunnableResult, ManagedResearchProject
+from managed_research.models.project_workspace import ProjectWorkspaceProjection
 from managed_research.models.types import (
     ProviderKeyStatus,
     SmrLaunchPreflight,
@@ -96,6 +97,50 @@ class ProjectsAPI(_ClientNamespace):
 
     def get_status_snapshot(self, project_id: str) -> dict[str, Any]:
         return self._client.get_project_status_snapshot(project_id)
+
+    def get_workspace(self, project_id: str) -> ProjectWorkspaceProjection:
+        return ProjectWorkspaceProjection.from_wire(
+            self._client.get_project_workspace(project_id)
+        )
+
+    def list_changesets(
+        self,
+        project_id: str,
+        *,
+        status: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_project_changesets(
+            project_id,
+            status=status,
+            limit=limit,
+        )
+
+    def create_changeset(
+        self,
+        project_id: str,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.create_project_changeset(project_id, payload)
+
+    def get_changeset(
+        self,
+        project_id: str,
+        changeset_id: str,
+    ) -> dict[str, Any]:
+        return self._client.get_project_changeset(project_id, changeset_id)
+
+    def decide_changeset(
+        self,
+        project_id: str,
+        changeset_id: str,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.decide_project_changeset(
+            project_id,
+            changeset_id,
+            payload,
+        )
 
     def get_entitlement(self, project_id: str) -> dict[str, Any]:
         return self._client.get_project_entitlement(project_id)

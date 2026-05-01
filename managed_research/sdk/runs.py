@@ -11,7 +11,11 @@ import httpx
 from managed_research.errors import SmrApiError
 from managed_research.models.canonical_usage import SmrRunUsage
 from managed_research.models.checkpoints import Checkpoint
-from managed_research.models.run_control import ManagedResearchRunControlAck
+from managed_research.models.run_control import (
+    ManagedResearchActorControlAction,
+    ManagedResearchActorControlAck,
+    ManagedResearchRunControlAck,
+)
 from managed_research.models.run_diagnostics import (
     SmrRunActorLogs,
     SmrRunActorUsage,
@@ -301,6 +305,23 @@ class RunHandle:
             include_runtime_authority=include_runtime_authority,
         )
 
+    def operator_evidence(
+        self,
+        *,
+        runtime_timeline_limit: int | None = None,
+        logical_timeline_limit: int | None = None,
+        transcript_limit: int | None = None,
+        reconciliation_limit: int | None = None,
+    ) -> dict[str, Any]:
+        return self._client.get_project_run_operator_evidence(
+            self.project_id,
+            self.run_id,
+            runtime_timeline_limit=runtime_timeline_limit,
+            logical_timeline_limit=logical_timeline_limit,
+            transcript_limit=transcript_limit,
+            reconciliation_limit=reconciliation_limit,
+        )
+
     def traces(self) -> SmrRunTraces:
         return self._client.get_project_run_traces(self.project_id, self.run_id)
 
@@ -502,6 +523,67 @@ class RunHandle:
             self.run_id,
             project_id=self.project_id,
             **kwargs,
+        )
+
+    def control_actor(
+        self,
+        actor_id: str,
+        *,
+        action: str,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return ManagedResearchActorControlAck.from_wire(
+            self._client.control_project_run_actor(
+                self.project_id,
+                self.run_id,
+                actor_id,
+                action=action,
+                reason=reason,
+                idempotency_key=idempotency_key,
+            )
+        )
+
+    def pause_actor(
+        self,
+        actor_id: str,
+        *,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self.control_actor(
+            actor_id,
+            action=ManagedResearchActorControlAction.PAUSE.value,
+            reason=reason,
+            idempotency_key=idempotency_key,
+        )
+
+    def resume_actor(
+        self,
+        actor_id: str,
+        *,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self.control_actor(
+            actor_id,
+            action=ManagedResearchActorControlAction.RESUME.value,
+            reason=reason,
+            idempotency_key=idempotency_key,
+        )
+
+    def interrupt_actor(
+        self,
+        actor_id: str,
+        *,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self.control_actor(
+            actor_id,
+            action=ManagedResearchActorControlAction.INTERRUPT.value,
+            reason=reason,
+            idempotency_key=idempotency_key,
         )
 
     def cost_summary(self) -> SmrRunCostSummary:
@@ -766,6 +848,81 @@ class RunsAPI(_ClientNamespace):
             self._client.resume_run(run_id, project_id=project_id)
         )
 
+    def control_actor(
+        self,
+        project_id: str,
+        run_id: str,
+        actor_id: str,
+        *,
+        action: str,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return ManagedResearchActorControlAck.from_wire(
+            self._client.control_project_run_actor(
+                project_id,
+                run_id,
+                actor_id,
+                action=action,
+                reason=reason,
+                idempotency_key=idempotency_key,
+            )
+        )
+
+    def pause_actor(
+        self,
+        project_id: str,
+        run_id: str,
+        actor_id: str,
+        *,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self.control_actor(
+            project_id,
+            run_id,
+            actor_id,
+            action=ManagedResearchActorControlAction.PAUSE.value,
+            reason=reason,
+            idempotency_key=idempotency_key,
+        )
+
+    def resume_actor(
+        self,
+        project_id: str,
+        run_id: str,
+        actor_id: str,
+        *,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self.control_actor(
+            project_id,
+            run_id,
+            actor_id,
+            action=ManagedResearchActorControlAction.RESUME.value,
+            reason=reason,
+            idempotency_key=idempotency_key,
+        )
+
+    def interrupt_actor(
+        self,
+        project_id: str,
+        run_id: str,
+        actor_id: str,
+        *,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self.control_actor(
+            project_id,
+            run_id,
+            actor_id,
+            action=ManagedResearchActorControlAction.INTERRUPT.value,
+            reason=reason,
+            idempotency_key=idempotency_key,
+        )
+
     def submit_intent(
         self,
         run_id: str,
@@ -981,6 +1138,25 @@ class RunsAPI(_ClientNamespace):
         return self._client.get_run_authority_readouts(
             run_id,
             include_runtime_authority=include_runtime_authority,
+        )
+
+    def get_operator_evidence(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        runtime_timeline_limit: int | None = None,
+        logical_timeline_limit: int | None = None,
+        transcript_limit: int | None = None,
+        reconciliation_limit: int | None = None,
+    ) -> dict[str, Any]:
+        return self._client.get_project_run_operator_evidence(
+            project_id,
+            run_id,
+            runtime_timeline_limit=runtime_timeline_limit,
+            logical_timeline_limit=logical_timeline_limit,
+            transcript_limit=transcript_limit,
+            reconciliation_limit=reconciliation_limit,
         )
 
     def get_traces(

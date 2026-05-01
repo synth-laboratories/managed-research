@@ -30,6 +30,15 @@ def _optional_string(payload: Mapping[str, object], key: str) -> str | None:
     return normalized or None
 
 
+def _parse_live_phase(value: str | None) -> ManagedResearchRunLivePhase:
+    if not value:
+        return ManagedResearchRunLivePhase.UNKNOWN
+    try:
+        return ManagedResearchRunLivePhase(value)
+    except ValueError:
+        return ManagedResearchRunLivePhase.UNKNOWN
+
+
 def _require_string(payload: Mapping[str, object], key: str, *, label: str) -> str:
     value = _optional_string(payload, key)
     if value is None:
@@ -1150,9 +1159,7 @@ class RunObservabilitySnapshot:
                 if _optional_string(mapping, "terminal_outcome") is not None
                 else None
             ),
-            live_phase=ManagedResearchRunLivePhase(
-                _optional_string(mapping, "live_phase") or "unknown"
-            ),
+            live_phase=_parse_live_phase(_optional_string(mapping, "live_phase")),
             state_reason=_optional_string(mapping, "state_reason"),
             state_authority=(
                 _optional_string(mapping, "state_authority")
