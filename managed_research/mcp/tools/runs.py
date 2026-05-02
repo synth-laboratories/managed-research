@@ -437,6 +437,57 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_get_run_execution,
         ),
         ToolDefinition(
+            name="smr_list_run_task_events",
+            description=(
+                "List backend-owned task lifecycle events for a run. Use this for "
+                "normal task inspection before falling back to raw timelines or "
+                "operator evidence."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 1000},
+                    "cursor": {"type": "string", "description": "Optional pagination cursor."},
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_list_run_task_events,
+        ),
+        ToolDefinition(
+            name="smr_list_run_objective_events",
+            description=(
+                "List backend-owned objective lifecycle events for a run. Use this "
+                "for OEQ/DEO progress and review inspection before raw evidence."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 1000},
+                    "cursor": {"type": "string", "description": "Optional pagination cursor."},
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_list_run_objective_events,
+        ),
+        ToolDefinition(
+            name="smr_get_run_work_graph",
+            description=(
+                "Fetch the run work graph bundle: execution summary, task events, "
+                "and objective events."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 1000},
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_get_run_work_graph,
+        ),
+        ToolDefinition(
             name="smr_get_run_logical_timeline",
             description=(
                 "Read the operator-facing logical timeline for a run. "

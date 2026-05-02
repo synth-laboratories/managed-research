@@ -239,6 +239,117 @@ class RunHandle:
             limit=limit,
         )
 
+    def publish_message(
+        self,
+        *,
+        intent: str = "queue",
+        audience: dict[str, Any] | None = None,
+        body: str | None = None,
+        payload: dict[str, Any] | None = None,
+        message_kind: str = "runtime_message",
+        thread_id: str | None = None,
+        parent_message_id: str | None = None,
+        fallback_policy: str = "block",
+        idempotency_key: str | None = None,
+        correlation_id: str | None = None,
+        causation_id: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.publish_manderqueue_message(
+            self.run_id,
+            project_id=self.project_id,
+            intent=intent,
+            audience=audience,
+            body=body,
+            payload=payload,
+            message_kind=message_kind,
+            thread_id=thread_id,
+            parent_message_id=parent_message_id,
+            fallback_policy=fallback_policy,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+            causation_id=causation_id,
+        )
+
+    def queue_message(self, *, body: str, **kwargs: Any) -> dict[str, Any]:
+        return self.publish_message(intent="queue", body=body, **kwargs)
+
+    def steer_message(self, *, body: str, **kwargs: Any) -> dict[str, Any]:
+        return self.publish_message(intent="steer", body=body, **kwargs)
+
+    def interrupt_message(self, *, body: str, **kwargs: Any) -> dict[str, Any]:
+        return self.publish_message(intent="interrupt", body=body, **kwargs)
+
+    def note_message(self, *, body: str, **kwargs: Any) -> dict[str, Any]:
+        return self.publish_message(intent="note", body=body, **kwargs)
+
+    def manderqueue_threads(self, *, limit: int | None = None) -> list[dict[str, Any]]:
+        return self._client.list_manderqueue_threads(
+            self.run_id, project_id=self.project_id, limit=limit
+        )
+
+    def manderqueue_messages(
+        self,
+        *,
+        thread_id: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_manderqueue_messages(
+            self.run_id,
+            project_id=self.project_id,
+            thread_id=thread_id,
+            limit=limit,
+        )
+
+    def manderqueue_interactions(
+        self,
+        *,
+        status: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_manderqueue_interactions(
+            self.run_id,
+            project_id=self.project_id,
+            status=status,
+            limit=limit,
+        )
+
+    def respond_to_manderqueue_interaction(
+        self,
+        interaction_id: str,
+        *,
+        body: str | None = None,
+        payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._client.respond_to_manderqueue_interaction(
+            self.run_id,
+            interaction_id,
+            project_id=self.project_id,
+            body=body,
+            payload=payload,
+        )
+
+    def edit_manderqueue_message(
+        self,
+        message_id: str,
+        *,
+        body: str | None = None,
+        payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._client.edit_manderqueue_message(
+            self.run_id,
+            message_id,
+            project_id=self.project_id,
+            body=body,
+            payload=payload,
+        )
+
+    def retract_manderqueue_message(self, message_id: str) -> dict[str, Any]:
+        return self._client.retract_manderqueue_message(
+            self.run_id,
+            message_id,
+            project_id=self.project_id,
+        )
+
     def submit_intent(
         self,
         intent: RuntimeIntent | dict[str, Any],
@@ -298,6 +409,39 @@ class RunHandle:
             task_limit=task_limit,
             message_limit=message_limit,
             work_product_limit=work_product_limit,
+        )
+
+    def task_events(
+        self,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.list_run_task_events(
+            self.project_id,
+            self.run_id,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def objective_events(
+        self,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.list_run_objective_events(
+            self.project_id,
+            self.run_id,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def work_graph(self, *, limit: int | None = None) -> dict[str, Any]:
+        return self._client.get_run_work_graph(
+            self.project_id,
+            self.run_id,
+            limit=limit,
         )
 
     def event_log(
@@ -766,6 +910,49 @@ class RunsAPI(_ClientNamespace):
             task_limit=task_limit,
             message_limit=message_limit,
             work_product_limit=work_product_limit,
+        )
+
+    def list_task_events(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.list_run_task_events(
+            project_id,
+            run_id,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def list_objective_events(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.list_run_objective_events(
+            project_id,
+            run_id,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def get_work_graph(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        return self._client.get_run_work_graph(
+            project_id,
+            run_id,
+            limit=limit,
         )
 
     def get_run_contract(
@@ -1379,6 +1566,50 @@ class RunsAPI(_ClientNamespace):
 
     def enqueue_runtime_message(self, run_id: str, **kwargs: Any) -> dict[str, Any]:
         return self._client.enqueue_runtime_message(run_id, **kwargs)
+
+    def publish_manderqueue_message(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return self._client.publish_manderqueue_message(
+            run_id, project_id=project_id, **kwargs
+        )
+
+    def list_manderqueue_messages(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_manderqueue_messages(
+            run_id, project_id=project_id, **kwargs
+        )
+
+    def list_manderqueue_threads(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_manderqueue_threads(
+            run_id, project_id=project_id, **kwargs
+        )
+
+    def list_manderqueue_interactions(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_manderqueue_interactions(
+            run_id, project_id=project_id, **kwargs
+        )
 
     def transcript(
         self,

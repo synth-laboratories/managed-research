@@ -2662,6 +2662,67 @@ class ManagedResearchClient:
         except ValueError as exc:
             raise SmrApiError(f"Invalid run execution projection payload: {exc}") from exc
 
+    def list_run_task_events(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {}
+        if limit is not None:
+            params["limit"] = int(limit)
+        if cursor and cursor.strip():
+            params["cursor"] = cursor.strip()
+        return _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/runs/{run_id}/task-events",
+                params=params or None,
+            ),
+            label="list_run_task_events",
+        )
+
+    def list_run_objective_events(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {}
+        if limit is not None:
+            params["limit"] = int(limit)
+        if cursor and cursor.strip():
+            params["cursor"] = cursor.strip()
+        return _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/runs/{run_id}/objective-events",
+                params=params or None,
+            ),
+            label="list_run_objective_events",
+        )
+
+    def get_run_work_graph(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        params = {"limit": int(limit)} if limit is not None else None
+        return _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/runs/{run_id}/work-graph",
+                params=params,
+            ),
+            label="get_run_work_graph",
+        )
+
     def poll_run_observability_snapshot(
         self,
         project_id: str,
@@ -4149,6 +4210,176 @@ class ManagedResearchClient:
                 json_body=json_body,
             ),
             label="enqueue_runtime_message",
+        )
+
+    def publish_manderqueue_message(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        intent: str = "queue",
+        audience: Mapping[str, Any] | dict[str, Any] | None = None,
+        body: str | None = None,
+        payload: Mapping[str, Any] | dict[str, Any] | None = None,
+        message_kind: str = "runtime_message",
+        thread_id: str | None = None,
+        parent_message_id: str | None = None,
+        fallback_policy: str = "block",
+        idempotency_key: str | None = None,
+        correlation_id: str | None = None,
+        causation_id: str | None = None,
+    ) -> dict[str, Any]:
+        json_body: dict[str, Any] = {
+            "intent": str(intent or "queue").strip(),
+            "audience": dict(audience or {"kind": "run"}),
+            "message_kind": str(message_kind or "runtime_message").strip(),
+            "fallback_policy": str(fallback_policy or "block").strip(),
+        }
+        for key, value in (
+            ("body", body),
+            ("thread_id", thread_id),
+            ("parent_message_id", parent_message_id),
+            ("idempotency_key", idempotency_key),
+            ("correlation_id", correlation_id),
+            ("causation_id", causation_id),
+        ):
+            if value and str(value).strip():
+                json_body[key] = str(value).strip()
+        normalized_payload = _optional_mapping(payload, field_name="payload")
+        if normalized_payload:
+            json_body["payload"] = normalized_payload
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/runs/{run_id}/manderqueue/messages",
+                json_body=json_body,
+            ),
+            label="publish_manderqueue_message",
+        )
+
+    def list_manderqueue_threads(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        params = {"limit": int(limit)} if limit is not None else None
+        return _coerce_dict_list(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/runs/{run_id}/manderqueue/threads",
+                params=params,
+            ),
+            label="list_manderqueue_threads",
+        )
+
+    def list_manderqueue_messages(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        thread_id: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {}
+        if thread_id and thread_id.strip():
+            params["thread_id"] = thread_id.strip()
+        if limit is not None:
+            params["limit"] = int(limit)
+        return _coerce_dict_list(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/runs/{run_id}/manderqueue/messages",
+                params=params or None,
+            ),
+            label="list_manderqueue_messages",
+        )
+
+    def list_manderqueue_interactions(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        status: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {}
+        if status and status.strip():
+            params["status"] = status.strip()
+        if limit is not None:
+            params["limit"] = int(limit)
+        return _coerce_dict_list(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/runs/{run_id}/manderqueue/interactions",
+                params=params or None,
+            ),
+            label="list_manderqueue_interactions",
+        )
+
+    def respond_to_manderqueue_interaction(
+        self,
+        run_id: str,
+        interaction_id: str,
+        *,
+        project_id: str,
+        body: str | None = None,
+        payload: Mapping[str, Any] | dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        json_body: dict[str, Any] = {}
+        if body and body.strip():
+            json_body["body"] = body.strip()
+        normalized_payload = _optional_mapping(payload, field_name="payload")
+        if normalized_payload:
+            json_body["payload"] = normalized_payload
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/runs/{run_id}/manderqueue/interactions/{interaction_id}/responses",
+                json_body=json_body,
+            ),
+            label="respond_to_manderqueue_interaction",
+        )
+
+    def edit_manderqueue_message(
+        self,
+        run_id: str,
+        message_id: str,
+        *,
+        project_id: str,
+        body: str | None = None,
+        payload: Mapping[str, Any] | dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        json_body: dict[str, Any] = {}
+        if body and body.strip():
+            json_body["body"] = body.strip()
+        normalized_payload = _optional_mapping(payload, field_name="payload")
+        if normalized_payload:
+            json_body["payload"] = normalized_payload
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/runs/{run_id}/manderqueue/messages/{message_id}/edit",
+                json_body=json_body,
+            ),
+            label="edit_manderqueue_message",
+        )
+
+    def retract_manderqueue_message(
+        self,
+        run_id: str,
+        message_id: str,
+        *,
+        project_id: str,
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/runs/{run_id}/manderqueue/messages/{message_id}/retract",
+                json_body={},
+            ),
+            label="retract_manderqueue_message",
         )
 
     def _list_run_log_archives(

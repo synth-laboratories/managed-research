@@ -1159,6 +1159,38 @@ class ManagedResearchMcpServer:
                 work_product_limit=optional_int(args, "work_product_limit") or 50,
             )
 
+    def _tool_list_run_task_events(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.list_run_task_events(
+                project_id,
+                run_id,
+                limit=optional_int(args, "limit"),
+                cursor=optional_string(args, "cursor"),
+            )
+
+    def _tool_list_run_objective_events(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.list_run_objective_events(
+                project_id,
+                run_id,
+                limit=optional_int(args, "limit"),
+                cursor=optional_string(args, "cursor"),
+            )
+
+    def _tool_get_run_work_graph(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.get_run_work_graph(
+                project_id,
+                run_id,
+                limit=optional_int(args, "limit"),
+            )
+
     def _tool_get_run_event_log(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         run_id = require_string(args, "run_id")
