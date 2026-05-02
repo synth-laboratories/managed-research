@@ -21,6 +21,7 @@ from managed_research.models.smr_providers import (
     coerce_usage_limit,
 )
 from managed_research.models.smr_run_policy import coerce_smr_run_policy
+from managed_research.models.smr_runbooks import coerce_smr_runbook_kind
 from managed_research.models.smr_work_modes import coerce_smr_work_mode
 from managed_research.models.types import SmrRunnableProjectRequest
 
@@ -83,12 +84,30 @@ def require_smr_work_mode(payload: JSONDict, key: str) -> str:
     return work_mode.value
 
 
+def optional_smr_work_mode(payload: JSONDict, key: str) -> str | None:
+    value = optional_string(payload, key)
+    work_mode = coerce_smr_work_mode(value, field_name=key)
+    return work_mode.value if work_mode is not None else None
+
+
 def require_smr_host_kind(payload: JSONDict, key: str) -> str:
     value = require_string(payload, key)
     host_kind = coerce_smr_host_kind(value, field_name=key)
     if host_kind is None:
         raise ValueError(f"'{key}' is required")
     return host_kind.value
+
+
+def optional_smr_host_kind(payload: JSONDict, key: str) -> str | None:
+    value = optional_string(payload, key)
+    host_kind = coerce_smr_host_kind(value, field_name=key)
+    return host_kind.value if host_kind is not None else None
+
+
+def optional_smr_runbook_kind(payload: JSONDict, key: str) -> str | None:
+    value = optional_string(payload, key)
+    runbook = coerce_smr_runbook_kind(value, field_name=key)
+    return runbook.value if runbook is not None else None
 
 
 def require_smr_credential_provider(payload: JSONDict, key: str) -> str:
@@ -139,6 +158,13 @@ def require_provider_bindings(payload: JSONDict, key: str) -> list[dict[str, Any
     return [binding.to_wire() for binding in coerce_provider_bindings(value, field_name=key)]
 
 
+def optional_provider_bindings(payload: JSONDict, key: str) -> list[dict[str, Any]] | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    return [binding.to_wire() for binding in coerce_provider_bindings(value, field_name=key)]
+
+
 def optional_usage_limit(payload: JSONDict, key: str) -> dict[str, Any] | None:
     value = payload.get(key)
     limit = coerce_usage_limit(value, field_name=key)
@@ -186,6 +212,42 @@ def _optional_object_list(payload: JSONDict, key: str) -> list[dict[str, Any]] |
             raise ValueError(f"'{key}' entries must be objects")
         normalized.append(dict(item))
     return normalized or None
+
+
+def _validate_runbook_preset_aliases(
+    *,
+    runbook_preset: str | None,
+    runbook_config_id: str | None,
+) -> None:
+    if runbook_preset and runbook_config_id and runbook_preset != runbook_config_id:
+        raise ValueError("runbook_preset and runbook_config_id must match when both are provided")
+
+
+def _requires_explicit_launch_axes(
+    *,
+    runbook_preset: str | None,
+    runbook_config_id: str | None,
+) -> bool:
+    return not (runbook_preset or runbook_config_id)
+
+
+def _require_explicit_launch_axes(
+    *,
+    host_kind: str | None,
+    work_mode: str | None,
+    providers: list[dict[str, Any]] | None,
+) -> None:
+    missing: list[str] = []
+    if host_kind is None:
+        missing.append("host_kind")
+    if work_mode is None:
+        missing.append("work_mode")
+    if providers is None:
+        missing.append("providers")
+    if missing:
+        raise ValueError(
+            "Provide runbook_preset or explicit launch fields: " + ", ".join(missing)
+        )
 
 
 @dataclass(frozen=True)
@@ -272,9 +334,12 @@ class ProviderKeyRequest:
 @dataclass(frozen=True)
 class RunLaunchRequest:
     project_id: str
-    host_kind: str
-    work_mode: str
-    providers: list[dict[str, Any]]
+    host_kind: str | None
+    work_mode: str | None
+    providers: list[dict[str, Any]] | None
+    runbook: str | None = None
+    runbook_preset: str | None = None
+    runbook_config_id: str | None = None
     limit: dict[str, Any] | None = None
     worker_pool_id: str | None = None
     timebox_seconds: int | None = None
@@ -302,11 +367,32 @@ class RunLaunchRequest:
     @classmethod
     def from_payload(cls, payload: JSONDict) -> RunLaunchRequest:
         reject_legacy_prompt_arg(payload)
+        runbook_preset = optional_string(payload, "runbook_preset")
+        runbook_config_id = optional_string(payload, "runbook_config_id")
+        _validate_runbook_preset_aliases(
+            runbook_preset=runbook_preset,
+            runbook_config_id=runbook_config_id,
+        )
+        host_kind = optional_smr_host_kind(payload, "host_kind")
+        work_mode = optional_smr_work_mode(payload, "work_mode")
+        providers = optional_provider_bindings(payload, "providers")
+        if _requires_explicit_launch_axes(
+            runbook_preset=runbook_preset,
+            runbook_config_id=runbook_config_id,
+        ):
+            _require_explicit_launch_axes(
+                host_kind=host_kind,
+                work_mode=work_mode,
+                providers=providers,
+            )
         return cls(
             project_id=require_string(payload, "project_id"),
-            host_kind=require_smr_host_kind(payload, "host_kind"),
-            work_mode=require_smr_work_mode(payload, "work_mode"),
-            providers=require_provider_bindings(payload, "providers"),
+            host_kind=host_kind,
+            work_mode=work_mode,
+            providers=providers,
+            runbook=optional_smr_runbook_kind(payload, "runbook"),
+            runbook_preset=runbook_preset,
+            runbook_config_id=runbook_config_id,
             limit=optional_usage_limit(payload, "limit"),
             worker_pool_id=optional_string(payload, "worker_pool_id"),
             timebox_seconds=optional_int(payload, "timebox_seconds"),
@@ -339,6 +425,9 @@ class RunLaunchRequest:
             "host_kind": self.host_kind,
             "work_mode": self.work_mode,
             "providers": self.providers,
+            "runbook": self.runbook,
+            "runbook_preset": self.runbook_preset,
+            "runbook_config_id": self.runbook_config_id,
             "limit": self.limit,
             "worker_pool_id": self.worker_pool_id,
             "timebox_seconds": self.timebox_seconds,
@@ -367,9 +456,12 @@ class RunLaunchRequest:
 
 @dataclass(frozen=True)
 class OneOffRunLaunchRequest:
-    host_kind: str
-    work_mode: str
-    providers: list[dict[str, Any]]
+    host_kind: str | None
+    work_mode: str | None
+    providers: list[dict[str, Any]] | None
+    runbook: str | None = None
+    runbook_preset: str | None = None
+    runbook_config_id: str | None = None
     limit: dict[str, Any] | None = None
     worker_pool_id: str | None = None
     timebox_seconds: int | None = None
@@ -397,10 +489,31 @@ class OneOffRunLaunchRequest:
     @classmethod
     def from_payload(cls, payload: JSONDict) -> OneOffRunLaunchRequest:
         reject_legacy_prompt_arg(payload)
+        runbook_preset = optional_string(payload, "runbook_preset")
+        runbook_config_id = optional_string(payload, "runbook_config_id")
+        _validate_runbook_preset_aliases(
+            runbook_preset=runbook_preset,
+            runbook_config_id=runbook_config_id,
+        )
+        host_kind = optional_smr_host_kind(payload, "host_kind")
+        work_mode = optional_smr_work_mode(payload, "work_mode")
+        providers = optional_provider_bindings(payload, "providers")
+        if _requires_explicit_launch_axes(
+            runbook_preset=runbook_preset,
+            runbook_config_id=runbook_config_id,
+        ):
+            _require_explicit_launch_axes(
+                host_kind=host_kind,
+                work_mode=work_mode,
+                providers=providers,
+            )
         return cls(
-            host_kind=require_smr_host_kind(payload, "host_kind"),
-            work_mode=require_smr_work_mode(payload, "work_mode"),
-            providers=require_provider_bindings(payload, "providers"),
+            host_kind=host_kind,
+            work_mode=work_mode,
+            providers=providers,
+            runbook=optional_smr_runbook_kind(payload, "runbook"),
+            runbook_preset=runbook_preset,
+            runbook_config_id=runbook_config_id,
             limit=optional_usage_limit(payload, "limit"),
             worker_pool_id=optional_string(payload, "worker_pool_id"),
             timebox_seconds=optional_int(payload, "timebox_seconds"),
@@ -433,6 +546,9 @@ class OneOffRunLaunchRequest:
             "host_kind": self.host_kind,
             "work_mode": self.work_mode,
             "providers": self.providers,
+            "runbook": self.runbook,
+            "runbook_preset": self.runbook_preset,
+            "runbook_config_id": self.runbook_config_id,
             "limit": self.limit,
             "worker_pool_id": self.worker_pool_id,
             "timebox_seconds": self.timebox_seconds,

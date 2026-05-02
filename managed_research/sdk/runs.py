@@ -24,6 +24,7 @@ from managed_research.models.run_diagnostics import (
     SmrRunParticipants,
     SmrRunTraces,
 )
+from managed_research.models.run_execution import RunExecutionProjection
 from managed_research.models.run_observability import (
     ManagedResearchRunContract,
     RunObservabilitySnapshot,
@@ -49,6 +50,7 @@ from managed_research.models.smr_providers import (
     ProviderBinding,
     UsageLimit,
 )
+from managed_research.models.smr_runbooks import SmrRunbookPreset
 from managed_research.models.smr_work_modes import SmrWorkMode
 from managed_research.models.types import RunArtifact, RunArtifactManifest
 from managed_research.sdk._base import _ClientNamespace
@@ -276,6 +278,27 @@ class RunHandle:
 
     def timeline(self) -> SmrLogicalTimeline:
         return self._client.get_run_logical_timeline(self.project_id, self.run_id)
+
+    def execution(
+        self,
+        *,
+        view: str = "summary",
+        event_limit: int = 100,
+        actor_limit: int = 50,
+        task_limit: int = 100,
+        message_limit: int = 50,
+        work_product_limit: int = 50,
+    ) -> RunExecutionProjection:
+        return self._client.get_run_execution(
+            self.project_id,
+            self.run_id,
+            view=view,
+            event_limit=event_limit,
+            actor_limit=actor_limit,
+            task_limit=task_limit,
+            message_limit=message_limit,
+            work_product_limit=work_product_limit,
+        )
 
     def event_log(
         self,
@@ -619,6 +642,9 @@ class RunsAPI(_ClientNamespace):
         selector = _resolve_project_selector(project_id, project=project)
         return self._client.get_launch_preflight(selector.project_id, **kwargs)
 
+    def runbook_presets(self) -> tuple[SmrRunbookPreset, ...]:
+        return self._client.list_runbook_presets()
+
     def trigger(
         self,
         project_id: str | None = None,
@@ -717,6 +743,29 @@ class RunsAPI(_ClientNamespace):
             question_limit=question_limit,
             timeline_limit=timeline_limit,
             message_limit=message_limit,
+        )
+
+    def get_execution(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        view: str = "summary",
+        event_limit: int = 100,
+        actor_limit: int = 50,
+        task_limit: int = 100,
+        message_limit: int = 50,
+        work_product_limit: int = 50,
+    ) -> RunExecutionProjection:
+        return self._client.get_run_execution(
+            project_id,
+            run_id,
+            view=view,
+            event_limit=event_limit,
+            actor_limit=actor_limit,
+            task_limit=task_limit,
+            message_limit=message_limit,
+            work_product_limit=work_product_limit,
         )
 
     def get_run_contract(

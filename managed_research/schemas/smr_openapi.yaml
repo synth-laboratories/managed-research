@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Synth API
   description: Synth backend API
-  version: 0.1.0
+  version: 0.2.0
 paths:
   /config/pricing:
     get:
@@ -4415,6 +4415,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /smr/trained_models/{model_id}/exports:
+    post:
+      tags:
+      - smr
+      - trained_models
+      summary: Export Trained Model
+      operationId: export_trained_model_smr_trained_models__model_id__exports_post
+      parameters:
+      - name: model_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Model Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportTrainedModelBody'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainedModelExportResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /smr/projects/{project_id}/runs/{run_id}/work-products:
     get:
       tags:
@@ -4729,6 +4762,376 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WorkProductExportResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/wiki:
+    get:
+      tags:
+      - smr
+      - wiki
+      summary: Get Project Wiki
+      operationId: get_project_wiki_smr_projects__project_id__wiki_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Project Wiki Smr Projects  Project Id  Wiki Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/wiki/pages:
+    get:
+      tags:
+      - smr
+      - wiki
+      summary: List Project Wiki Pages
+      operationId: list_project_wiki_pages_smr_projects__project_id__wiki_pages_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response List Project Wiki Pages Smr Projects  Project Id  Wiki
+                  Pages Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/wiki/pages/{page_id_or_slug}:
+    get:
+      tags:
+      - smr
+      - wiki
+      summary: Read Project Wiki Page
+      operationId: read_project_wiki_page_smr_projects__project_id__wiki_pages__page_id_or_slug__get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: page_id_or_slug
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Page Id Or Slug
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Read Project Wiki Page Smr Projects  Project Id  Wiki
+                  Pages  Page Id Or Slug  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/wiki/search:
+    get:
+      tags:
+      - smr
+      - wiki
+      summary: Search Project Wiki
+      operationId: search_project_wiki_smr_projects__project_id__wiki_search_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+          default: ''
+          title: Q
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 50
+          minimum: 1
+          default: 20
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Search Project Wiki Smr Projects  Project Id  Wiki
+                  Search Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/wiki/context-pack/preview:
+    get:
+      tags:
+      - smr
+      - wiki
+      summary: Preview Project Wiki Context Pack
+      operationId: preview_project_wiki_context_pack_smr_projects__project_id__wiki_context_pack_preview_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 80
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Preview Project Wiki Context Pack Smr Projects  Project
+                  Id  Wiki Context Pack Preview Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/wiki/proposals:
+    get:
+      tags:
+      - smr
+      - wiki
+      summary: List Project Wiki Proposals
+      operationId: list_project_wiki_proposals_smr_projects__project_id__wiki_proposals_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: state
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: State
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response List Project Wiki Proposals Smr Projects  Project
+                  Id  Wiki Proposals Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - smr
+      - wiki
+      summary: Create Project Wiki Proposal
+      operationId: create_project_wiki_proposal_smr_projects__project_id__wiki_proposals_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrWikiProposalCreateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Create Project Wiki Proposal Smr Projects  Project
+                  Id  Wiki Proposals Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/wiki/change-sets:
+    post:
+      tags:
+      - smr
+      - wiki
+      summary: Create Project Wiki Change Set
+      operationId: create_project_wiki_change_set_smr_projects__project_id__wiki_change_sets_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrWikiChangeSetCreateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Create Project Wiki Change Set Smr Projects  Project
+                  Id  Wiki Change Sets Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/wiki/evidence-links:
+    post:
+      tags:
+      - smr
+      - wiki
+      summary: Create Project Wiki Evidence Link
+      operationId: create_project_wiki_evidence_link_smr_projects__project_id__wiki_evidence_links_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrWikiEvidenceLinkCreateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Create Project Wiki Evidence Link Smr Projects  Project
+                  Id  Wiki Evidence Links Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/wiki/staleness-signals:
+    post:
+      tags:
+      - smr
+      - wiki
+      summary: Create Project Wiki Staleness Signal
+      operationId: create_project_wiki_staleness_signal_smr_projects__project_id__wiki_staleness_signals_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrWikiStalenessSignalCreateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Create Project Wiki Staleness Signal Smr Projects  Project
+                  Id  Wiki Staleness Signals Post
         '422':
           description: Validation Error
           content:
@@ -7320,13 +7723,28 @@ paths:
         schema:
           type: string
           title: Run Id
+      - name: include
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Temporary compatibility option. Set include=run for the legacy
+            full run payload.
+          title: Include
+        description: Temporary compatibility option. Set include=run for the legacy
+          full run payload.
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SmrRunResponse'
+                anyOf:
+                - $ref: '#/components/schemas/SmrRunControlReceiptResponse'
+                - $ref: '#/components/schemas/SmrRunResponse'
+                title: Response Stop Run Smr Runs  Run Id  Stop Post
         '422':
           description: Validation Error
           content:
@@ -7506,6 +7924,93 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SmrLogicalTimelineResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/execution:
+    get:
+      tags:
+      - smr
+      summary: Get Project Run Execution
+      operationId: get_project_run_execution_smr_projects__project_id__runs__run_id__execution_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: view
+        in: query
+        required: false
+        schema:
+          enum:
+          - summary
+          - detail
+          type: string
+          default: summary
+          title: View
+      - name: event_limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Event Limit
+      - name: actor_limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Actor Limit
+      - name: task_limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 250
+          minimum: 1
+          default: 100
+          title: Task Limit
+      - name: message_limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Message Limit
+      - name: work_product_limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Work Product Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrRunExecutionProjectionResponse'
         '422':
           description: Validation Error
           content:
@@ -8323,13 +8828,29 @@ paths:
         schema:
           type: string
           title: Run Id
+      - name: include
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Temporary compatibility option. Set include=run for the legacy
+            full run payload.
+          title: Include
+        description: Temporary compatibility option. Set include=run for the legacy
+          full run payload.
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SmrRunResponse'
+                anyOf:
+                - $ref: '#/components/schemas/SmrRunControlReceiptResponse'
+                - $ref: '#/components/schemas/SmrRunResponse'
+                title: Response Stop Project Run Smr Projects  Project Id  Runs  Run
+                  Id  Stop Post
         '422':
           description: Validation Error
           content:
@@ -13015,6 +13536,527 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SmrExperimentResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/experiments/{experiment_id}/runs:
+    get:
+      tags:
+      - smr
+      summary: List Project Experiment Runs
+      operationId: list_project_experiment_runs_smr_projects__project_id__experiments__experiment_id__runs_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: experiment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Experiment Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SmrExperimentRunLinkResponse'
+                title: Response List Project Experiment Runs Smr Projects  Project
+                  Id  Experiments  Experiment Id  Runs Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - smr
+      summary: Link Project Experiment Run
+      operationId: link_project_experiment_run_smr_projects__project_id__experiments__experiment_id__runs_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: experiment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Experiment Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrExperimentRunLinkCreateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrExperimentRunLinkResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/experiments/{experiment_id}/runs/{experiment_run_id}:
+    delete:
+      tags:
+      - smr
+      summary: Unlink Project Experiment Run
+      operationId: unlink_project_experiment_run_smr_projects__project_id__experiments__experiment_id__runs__experiment_run_id__delete
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: experiment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Experiment Id
+      - name: experiment_run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Experiment Run Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/experiments/{experiment_id}/container-runs:
+    get:
+      tags:
+      - smr
+      summary: List Project Experiment Container Runs
+      operationId: list_project_experiment_container_runs_smr_projects__project_id__experiments__experiment_id__container_runs_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: experiment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Experiment Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SmrExperimentContainerRunResponse'
+                title: Response List Project Experiment Container Runs Smr Projects  Project
+                  Id  Experiments  Experiment Id  Container Runs Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - smr
+      summary: Attach Project Experiment Container Run
+      operationId: attach_project_experiment_container_run_smr_projects__project_id__experiments__experiment_id__container_runs_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: experiment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Experiment Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrExperimentContainerRunCreateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrExperimentContainerRunResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/experiments/{experiment_id}/results:
+    get:
+      tags:
+      - smr
+      summary: List Project Experiment Results
+      operationId: list_project_experiment_results_smr_projects__project_id__experiments__experiment_id__results_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: experiment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Experiment Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SmrExperimentResultResponse'
+                title: Response List Project Experiment Results Smr Projects  Project
+                  Id  Experiments  Experiment Id  Results Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - smr
+      summary: Attach Project Experiment Result
+      operationId: attach_project_experiment_result_smr_projects__project_id__experiments__experiment_id__results_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: experiment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Experiment Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrExperimentResultCreateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrExperimentResultResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/experiment-results:
+    get:
+      tags:
+      - smr
+      summary: List Project Experiment Results Index
+      operationId: list_project_experiment_results_index_smr_projects__project_id__experiment_results_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: experiment_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Experiment Id
+      - name: metric
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Metric
+      - name: taskset_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Taskset Id
+      - name: taskset_seed
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Taskset Seed
+      - name: comparison_cohort_key
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comparison Cohort Key
+      - name: truth_status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Truth Status
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SmrExperimentResultResponse'
+                title: Response List Project Experiment Results Index Smr Projects  Project
+                  Id  Experiment Results Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/experiment-results/top:
+    get:
+      tags:
+      - smr
+      summary: Rank Project Experiment Results
+      operationId: rank_project_experiment_results_smr_projects__project_id__experiment_results_top_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: metric
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          title: Metric
+      - name: taskset_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Taskset Id
+      - name: taskset_seed
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Taskset Seed
+      - name: comparison_cohort_key
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comparison Cohort Key
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SmrExperimentResultTopResponse'
+                title: Response Rank Project Experiment Results Smr Projects  Project
+                  Id  Experiment Results Top Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/experiment-comparison-cohorts:
+    get:
+      tags:
+      - smr
+      summary: List Project Experiment Comparison Cohorts
+      operationId: list_project_experiment_comparison_cohorts_smr_projects__project_id__experiment_comparison_cohorts_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SmrExperimentComparisonCohortResponse'
+                title: Response List Project Experiment Comparison Cohorts Smr Projects  Project
+                  Id  Experiment Comparison Cohorts Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/experiment-comparison-cohorts/{cohort_key}:
+    get:
+      tags:
+      - smr
+      summary: Get Project Experiment Comparison Cohort
+      operationId: get_project_experiment_comparison_cohort_smr_projects__project_id__experiment_comparison_cohorts__cohort_key__get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: cohort_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Cohort Key
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SmrExperimentResultResponse'
+                title: Response Get Project Experiment Comparison Cohort Smr Projects  Project
+                  Id  Experiment Comparison Cohorts  Cohort Key  Get
         '422':
           description: Validation Error
           content:
@@ -17946,7 +18988,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Responses Response Id
-      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__get
+      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__delete
       responses:
         '200':
           description: Successful Response
@@ -17957,7 +18999,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Responses Response Id
-      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__get__delete__1
+      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__delete__delete__1
       responses:
         '200':
           description: Successful Response
@@ -18029,7 +19071,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__get
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__delete
       responses:
         '200':
           description: Successful Response
@@ -18040,7 +19082,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__get__post__1
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__delete__post__1
       responses:
         '200':
           description: Successful Response
@@ -18051,7 +19093,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__get__delete__2
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__delete__delete__2
       responses:
         '200':
           description: Successful Response
@@ -18086,7 +19128,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id Items Item Id
-      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__get
+      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__delete
       responses:
         '200':
           description: Successful Response
@@ -18097,7 +19139,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id Items Item Id
-      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__get__delete__1
+      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__delete__delete__1
       responses:
         '200':
           description: Successful Response
@@ -18105,11 +19147,11 @@ paths:
             application/json:
               schema: {}
   /s/{route_token}/{path}:
-    post:
+    options:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__post
+      operationId: synthtunnel_gateway_s__route_token___path__options
       parameters:
       - name: route_token
         in: path
@@ -18139,7 +19181,7 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__post__delete__1
+      operationId: synthtunnel_gateway_s__route_token___path__options__delete__1
       parameters:
       - name: route_token
         in: path
@@ -18165,11 +19207,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-    get:
+    post:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__post__get__2
+      operationId: synthtunnel_gateway_s__route_token___path__options__post__2
       parameters:
       - name: route_token
         in: path
@@ -18199,7 +19241,37 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__post__put__3
+      operationId: synthtunnel_gateway_s__route_token___path__options__put__3
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__options__get__4
       parameters:
       - name: route_token
         in: path
@@ -18229,37 +19301,7 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__post__patch__4
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    options:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__post__options__5
+      operationId: synthtunnel_gateway_s__route_token___path__options__patch__5
       parameters:
       - name: route_token
         in: path
@@ -22770,6 +23812,21 @@ components:
       - org_id
       title: EnvKeyResponse
       description: Response indicating the stored credential metadata.
+    ExportTrainedModelBody:
+      properties:
+        destination:
+          additionalProperties: true
+          type: object
+          title: Destination
+        idempotency_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Idempotency Key
+      type: object
+      required:
+      - destination
+      title: ExportTrainedModelBody
     FlushSSEStreamsResponse:
       properties:
         flushed_keys:
@@ -25501,6 +26558,12 @@ components:
       - status
       - readiness
       title: RunWorkProductResponse
+    RunbookKind:
+      type: string
+      enum:
+      - lite
+      - heavy
+      title: RunbookKind
     RuntimeIntent:
       properties:
         kind:
@@ -26715,6 +27778,7 @@ components:
       - anthropic/claude-haiku-4-5-20251001
       - x-ai/grok-4.1-fast
       - x-ai/grok-4.3
+      - x-ai/grok-4.20-beta
       - moonshotai/kimi-k2.6
       title: SmrAgentModel
     SmrAgentModelCatalogEntry:
@@ -27879,6 +28943,455 @@ components:
       - host_kind
       - required_runtime_kind
       title: SmrExecutionProfileRequest
+    SmrExperimentComparisonCohortResponse:
+      properties:
+        comparison_cohort_key:
+          type: string
+          title: Comparison Cohort Key
+        metric:
+          type: string
+          title: Metric
+        metric_direction:
+          type: string
+          title: Metric Direction
+        dataset_or_task_set_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Dataset Or Task Set Id
+        taskset_seed:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Taskset Seed
+        result_count:
+          type: integer
+          title: Result Count
+        latest_result_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Latest Result At
+      type: object
+      required:
+      - comparison_cohort_key
+      - metric
+      - metric_direction
+      - result_count
+      title: SmrExperimentComparisonCohortResponse
+    SmrExperimentContainerRunCreateRequest:
+      properties:
+        container_run_id:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Container Run Id
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        experiment_run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Experiment Run Id
+        role:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Role
+        backend_execution_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Backend Execution Id
+        session_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Session Id
+        participant_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Participant Id
+        container_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Id
+        container_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Name
+        container_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Version
+        container_digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Digest
+        image_ref:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Image Ref
+        task_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Id
+        task_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Version
+        task_contract_path:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Contract Path
+        task_contract_digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Contract Digest
+        taskset_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Taskset Id
+        taskset_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Taskset Version
+        taskset_seed:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Taskset Seed
+        task_ids:
+          items:
+            type: string
+          type: array
+          title: Task Ids
+        example_ids:
+          items:
+            type: string
+          type: array
+          title: Example Ids
+        eval_profile_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eval Profile Id
+        eval_profile_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eval Profile Version
+        verifier_or_scorer_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Verifier Or Scorer Id
+        verifier_or_scorer_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Verifier Or Scorer Version
+        inference_model:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Inference Model
+        inference_temperature:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Inference Temperature
+        inference_seed:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Inference Seed
+        decoding_config_digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Decoding Config Digest
+        input_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Input Artifact Id
+        output_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Output Artifact Id
+        per_example_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Per Example Artifact Id
+        summary_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary Artifact Id
+        stdout_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stdout Artifact Id
+        stderr_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stderr Artifact Id
+        status:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Status
+          default: observed
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+      type: object
+      required:
+      - container_run_id
+      title: SmrExperimentContainerRunCreateRequest
+    SmrExperimentContainerRunResponse:
+      properties:
+        container_run_id:
+          type: string
+          title: Container Run Id
+        experiment_id:
+          type: string
+          title: Experiment Id
+        org_id:
+          type: string
+          title: Org Id
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        experiment_run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Experiment Run Id
+        role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Role
+        backend_execution_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Backend Execution Id
+        session_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Session Id
+        participant_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Participant Id
+        container_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Id
+        container_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Name
+        container_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Version
+        container_digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Digest
+        image_ref:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Image Ref
+        task_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Id
+        task_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Version
+        task_contract_path:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Contract Path
+        task_contract_digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Contract Digest
+        taskset_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Taskset Id
+        taskset_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Taskset Version
+        taskset_seed:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Taskset Seed
+        task_ids:
+          items:
+            type: string
+          type: array
+          title: Task Ids
+        example_ids:
+          items:
+            type: string
+          type: array
+          title: Example Ids
+        eval_profile_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eval Profile Id
+        eval_profile_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eval Profile Version
+        verifier_or_scorer_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Verifier Or Scorer Id
+        verifier_or_scorer_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Verifier Or Scorer Version
+        inference_model:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Inference Model
+        inference_temperature:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Inference Temperature
+        inference_seed:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Inference Seed
+        decoding_config_digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Decoding Config Digest
+        input_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Input Artifact Id
+        output_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Output Artifact Id
+        per_example_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Per Example Artifact Id
+        summary_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary Artifact Id
+        stdout_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stdout Artifact Id
+        stderr_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stderr Artifact Id
+        status:
+          type: string
+          title: Status
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - container_run_id
+      - experiment_id
+      - org_id
+      - project_id
+      - status
+      - created_at
+      title: SmrExperimentContainerRunResponse
     SmrExperimentCreateRequest:
       properties:
         run_id:
@@ -27901,17 +29414,55 @@ components:
           maxLength: 500
           minLength: 1
           title: Title
+        kind:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Kind
+          default: analysis
         hypothesis:
           type: string
           maxLength: 10000
           minLength: 1
           title: Hypothesis
+        intervention:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Intervention
+        comparison:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comparison
+        expected_effect:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Expected Effect
         status:
           type: string
           maxLength: 64
           minLength: 1
           title: Status
           default: proposed
+        verdict:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Verdict
+        evidence_grade:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Evidence Grade
+        next_recommended_action:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Recommended Action
         summary:
           anyOf:
           - type: string
@@ -28084,6 +29635,13 @@ components:
             minLength: 1
           - type: 'null'
           title: Title
+        kind:
+          anyOf:
+          - type: string
+            maxLength: 64
+            minLength: 1
+          - type: 'null'
+          title: Kind
         hypothesis:
           anyOf:
           - type: string
@@ -28091,6 +29649,21 @@ components:
             minLength: 1
           - type: 'null'
           title: Hypothesis
+        intervention:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Intervention
+        comparison:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comparison
+        expected_effect:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Expected Effect
         status:
           anyOf:
           - type: string
@@ -28098,6 +29671,23 @@ components:
             minLength: 1
           - type: 'null'
           title: Status
+        verdict:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Verdict
+        evidence_grade:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Evidence Grade
+        next_recommended_action:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Recommended Action
         summary:
           anyOf:
           - type: string
@@ -28204,12 +29794,46 @@ components:
         title:
           type: string
           title: Title
+        kind:
+          type: string
+          title: Kind
+          default: analysis
         hypothesis:
           type: string
           title: Hypothesis
+        intervention:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Intervention
+        comparison:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comparison
+        expected_effect:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Expected Effect
         status:
           type: string
           title: Status
+        verdict:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Verdict
+        evidence_grade:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Evidence Grade
+        next_recommended_action:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Recommended Action
         summary:
           anyOf:
           - type: string
@@ -28299,6 +29923,724 @@ components:
       - created_at
       - updated_at
       title: SmrExperimentResponse
+    SmrExperimentResultCreateRequest:
+      properties:
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        experiment_run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Experiment Run Id
+        container_run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Run Id
+        candidate_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidate Id
+        candidate_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidate Kind
+        candidate_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidate Label
+        metric:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Metric
+        metric_direction:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Metric Direction
+          default: higher_is_better
+        value:
+          type: number
+          title: Value
+        baseline_value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Baseline Value
+        delta:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Delta
+        dataset_or_task_set_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Dataset Or Task Set Id
+        dataset_or_task_set_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Dataset Or Task Set Version
+        container_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Name
+        container_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Version
+        container_digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Digest
+        eval_profile_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eval Profile Id
+        eval_profile_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eval Profile Version
+        verifier_or_scorer_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Verifier Or Scorer Id
+        verifier_or_scorer_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Verifier Or Scorer Version
+        taskset_seed:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Taskset Seed
+        task_ids:
+          items:
+            type: string
+          type: array
+          title: Task Ids
+        example_ids:
+          items:
+            type: string
+          type: array
+          title: Example Ids
+        sample_size:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Sample Size
+        seed_set:
+          items:
+            type: integer
+          type: array
+          title: Seed Set
+        split_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Split Name
+        scorer_config_digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scorer Config Digest
+        per_example_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Per Example Artifact Id
+        summary_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary Artifact Id
+        cost_cents:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Cost Cents
+        tokens:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Tokens
+        wall_time_seconds:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Wall Time Seconds
+        evidence_grade:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Evidence Grade
+        truth_status:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Truth Status
+          default: observed
+        caveats:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Caveats
+        reviewer_notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reviewer Notes
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      type: object
+      required:
+      - metric
+      - value
+      title: SmrExperimentResultCreateRequest
+    SmrExperimentResultResponse:
+      properties:
+        result_id:
+          type: string
+          title: Result Id
+        org_id:
+          type: string
+          title: Org Id
+        project_id:
+          type: string
+          title: Project Id
+        experiment_id:
+          type: string
+          title: Experiment Id
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        experiment_run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Experiment Run Id
+        container_run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Run Id
+        candidate_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidate Id
+        candidate_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidate Kind
+        candidate_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidate Label
+        metric:
+          type: string
+          title: Metric
+        metric_direction:
+          type: string
+          title: Metric Direction
+        value:
+          type: number
+          title: Value
+        baseline_value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Baseline Value
+        delta:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Delta
+        dataset_or_task_set_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Dataset Or Task Set Id
+        dataset_or_task_set_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Dataset Or Task Set Version
+        container_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Name
+        container_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Version
+        container_digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Digest
+        eval_profile_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eval Profile Id
+        eval_profile_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eval Profile Version
+        verifier_or_scorer_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Verifier Or Scorer Id
+        verifier_or_scorer_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Verifier Or Scorer Version
+        taskset_seed:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Taskset Seed
+        task_ids:
+          items:
+            type: string
+          type: array
+          title: Task Ids
+        example_ids:
+          items:
+            type: string
+          type: array
+          title: Example Ids
+        comparison_cohort_key:
+          type: string
+          title: Comparison Cohort Key
+        comparison_missing_dimensions:
+          items:
+            type: string
+          type: array
+          title: Comparison Missing Dimensions
+        sample_size:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Sample Size
+        seed_set:
+          items:
+            type: integer
+          type: array
+          title: Seed Set
+        split_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Split Name
+        scorer_config_digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scorer Config Digest
+        per_example_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Per Example Artifact Id
+        summary_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary Artifact Id
+        cost_cents:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Cost Cents
+        tokens:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Tokens
+        wall_time_seconds:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Wall Time Seconds
+        evidence_grade:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Evidence Grade
+        truth_status:
+          type: string
+          title: Truth Status
+        caveats:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Caveats
+        reviewer_notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reviewer Notes
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - result_id
+      - org_id
+      - project_id
+      - experiment_id
+      - metric
+      - metric_direction
+      - value
+      - comparison_cohort_key
+      - truth_status
+      - created_at
+      title: SmrExperimentResultResponse
+    SmrExperimentResultTopResponse:
+      properties:
+        result_id:
+          type: string
+          title: Result Id
+        org_id:
+          type: string
+          title: Org Id
+        project_id:
+          type: string
+          title: Project Id
+        experiment_id:
+          type: string
+          title: Experiment Id
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        experiment_run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Experiment Run Id
+        container_run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Run Id
+        candidate_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidate Id
+        candidate_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidate Kind
+        candidate_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Candidate Label
+        metric:
+          type: string
+          title: Metric
+        metric_direction:
+          type: string
+          title: Metric Direction
+        value:
+          type: number
+          title: Value
+        baseline_value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Baseline Value
+        delta:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Delta
+        dataset_or_task_set_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Dataset Or Task Set Id
+        dataset_or_task_set_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Dataset Or Task Set Version
+        container_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Name
+        container_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Version
+        container_digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Container Digest
+        eval_profile_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eval Profile Id
+        eval_profile_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Eval Profile Version
+        verifier_or_scorer_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Verifier Or Scorer Id
+        verifier_or_scorer_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Verifier Or Scorer Version
+        taskset_seed:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Taskset Seed
+        task_ids:
+          items:
+            type: string
+          type: array
+          title: Task Ids
+        example_ids:
+          items:
+            type: string
+          type: array
+          title: Example Ids
+        comparison_cohort_key:
+          type: string
+          title: Comparison Cohort Key
+        comparison_missing_dimensions:
+          items:
+            type: string
+          type: array
+          title: Comparison Missing Dimensions
+        sample_size:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Sample Size
+        seed_set:
+          items:
+            type: integer
+          type: array
+          title: Seed Set
+        split_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Split Name
+        scorer_config_digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scorer Config Digest
+        per_example_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Per Example Artifact Id
+        summary_artifact_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary Artifact Id
+        cost_cents:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Cost Cents
+        tokens:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Tokens
+        wall_time_seconds:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Wall Time Seconds
+        evidence_grade:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Evidence Grade
+        truth_status:
+          type: string
+          title: Truth Status
+        caveats:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Caveats
+        reviewer_notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reviewer Notes
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        experiment_title:
+          type: string
+          title: Experiment Title
+        experiment_intervention:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Experiment Intervention
+        not_comparable_reasons:
+          items:
+            type: string
+          type: array
+          title: Not Comparable Reasons
+      type: object
+      required:
+      - result_id
+      - org_id
+      - project_id
+      - experiment_id
+      - metric
+      - metric_direction
+      - value
+      - comparison_cohort_key
+      - truth_status
+      - created_at
+      - experiment_title
+      title: SmrExperimentResultTopResponse
+    SmrExperimentRunLinkCreateRequest:
+      properties:
+        run_id:
+          type: string
+          title: Run Id
+        role:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Role
+          default: primary
+        source_role:
+          type: string
+          maxLength: 32
+          minLength: 1
+          title: Source Role
+          default: human
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      type: object
+      required:
+      - run_id
+      title: SmrExperimentRunLinkCreateRequest
+    SmrExperimentRunLinkResponse:
+      properties:
+        experiment_run_id:
+          type: string
+          title: Experiment Run Id
+        org_id:
+          type: string
+          title: Org Id
+        project_id:
+          type: string
+          title: Project Id
+        experiment_id:
+          type: string
+          title: Experiment Id
+        run_id:
+          type: string
+          title: Run Id
+        role:
+          type: string
+          title: Role
+        source_role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Role
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - experiment_run_id
+      - org_id
+      - project_id
+      - experiment_id
+      - run_id
+      - role
+      - created_at
+      title: SmrExperimentRunLinkResponse
     SmrExportTargetConfig:
       properties:
         bucket:
@@ -32249,11 +34591,7 @@ components:
     SmrProjectTriggerRequest:
       properties:
         runbook:
-          type: string
-          enum:
-          - lite
-          - heavy
-          title: Runbook
+          $ref: '#/components/schemas/RunbookKind'
           description: Typed orchestration posture for this run. Runbooks control
             collaboration behavior, not model selection.
           default: lite
@@ -32318,10 +34656,8 @@ components:
           - $ref: '#/components/schemas/SmrAgentModel'
           - type: 'null'
           description: Override one shared agent model for this run. Shared top-level
-            values are 'anthropic/claude-haiku-4-5-20251001', 'anthropic/claude-sonnet-4-6',
-            'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5.5', 'gpt-oss-120b',
-            'moonshotai/kimi-k2.6', 'x-ai/grok-4.1-fast', 'x-ai/grok-4.3'. Use actor_model_overrides
-            for actor-specific model selection.
+            values are 'gpt-5.4-mini', 'x-ai/grok-4.20-beta', 'x-ai/grok-4.3'. Use
+            actor_model_overrides for actor-specific model selection.
         agent_harness:
           anyOf:
           - type: string
@@ -32356,9 +34692,7 @@ components:
           type: array
           title: Actor Model Overrides
           description: Deprecated compatibility input for actor-scoped model overrides
-            keyed by actor_type and actor_subtype. Use this for reviewer subtype
-            selections such as reviewer:task_completion, reviewer:run_completion,
-            reviewer:safety, and reviewer:objective.
+            keyed by actor_type and actor_subtype. Prefer roles for new integrations.
         roles:
           anyOf:
           - $ref: '#/components/schemas/SmrRoleBindingsRequest'
@@ -33940,6 +36274,74 @@ components:
           title: Items
       type: object
       title: SmrRunContractWorkProductsResponse
+    SmrRunControlReceiptResponse:
+      properties:
+        run_id:
+          type: string
+          title: Run Id
+        project_id:
+          type: string
+          title: Project Id
+        control_kind:
+          type: string
+          title: Control Kind
+        requested_state:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Requested State
+        enqueue_status:
+          type: string
+          title: Enqueue Status
+        terminal_state:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Terminal State
+        stop_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stop Reason
+        control_message_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Control Message Id
+        audit_status:
+          type: string
+          title: Audit Status
+          default: not_requested
+        audit_receipt_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Audit Receipt Id
+        accepted_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Accepted At
+        status_url:
+          type: string
+          title: Status Url
+      type: object
+      required:
+      - run_id
+      - project_id
+      - control_kind
+      - enqueue_status
+      - status_url
+      title: SmrRunControlReceiptResponse
+      description: 'Compact receipt for run lifecycle controls.
+
+
+        This is the write-side acknowledgement. Full run state remains available
+
+        through the run read endpoint so stop/pause/resume do not couple operator
+
+        latency to heavy projection hydration.'
     SmrRunCostTotals:
       properties:
         total_cents:
@@ -34379,6 +36781,255 @@ components:
       required:
       - review_state
       title: SmrRunEventReviewRequest
+    SmrRunExecutionActorResponse:
+      properties:
+        actor_id:
+          type: string
+          title: Actor Id
+        role:
+          type: string
+          title: Role
+        label:
+          type: string
+          title: Label
+        state:
+          type: string
+          title: State
+        task_ids:
+          items:
+            type: string
+          type: array
+          title: Task Ids
+        task_keys:
+          items:
+            type: string
+          type: array
+          title: Task Keys
+        spawned_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Spawned At
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+        latest_event_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Latest Event At
+        latest_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Latest Summary
+      type: object
+      required:
+      - actor_id
+      - role
+      - label
+      - state
+      title: SmrRunExecutionActorResponse
+    SmrRunExecutionCursorResponse:
+      properties:
+        latest_node_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Latest Node Id
+        latest_event_seq:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Latest Event Seq
+        latest_runtime_message_seq:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Latest Runtime Message Seq
+        transcript_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Transcript Cursor
+        generated_at:
+          type: string
+          format: date-time
+          title: Generated At
+      type: object
+      required:
+      - generated_at
+      title: SmrRunExecutionCursorResponse
+    SmrRunExecutionEventResponse:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+        kind:
+          type: string
+          title: Kind
+        occurred_at:
+          type: string
+          format: date-time
+          title: Occurred At
+        actor_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor Id
+        task_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Id
+        task_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Key
+        message_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Message Id
+        title:
+          type: string
+          title: Title
+        summary:
+          type: string
+          title: Summary
+        state:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: State
+        parent_event_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Parent Event Id
+        source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source
+      type: object
+      required:
+      - event_id
+      - kind
+      - occurred_at
+      - title
+      - summary
+      title: SmrRunExecutionEventResponse
+    SmrRunExecutionMessageResponse:
+      properties:
+        message_id:
+          type: string
+          title: Message Id
+        event_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Event Id
+        actor_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor Id
+        participant_role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Participant Role
+        task_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Id
+        task_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Key
+        occurred_at:
+          type: string
+          format: date-time
+          title: Occurred At
+        title:
+          type: string
+          title: Title
+        body:
+          type: string
+          title: Body
+        visibility:
+          type: string
+          title: Visibility
+          default: public
+      type: object
+      required:
+      - message_id
+      - occurred_at
+      - title
+      - body
+      title: SmrRunExecutionMessageResponse
+    SmrRunExecutionProjectionResponse:
+      properties:
+        schema_version:
+          type: string
+          title: Schema Version
+          default: smr_run_execution.v1
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          type: string
+          title: Run Id
+        generated_at:
+          type: string
+          format: date-time
+          title: Generated At
+        run:
+          $ref: '#/components/schemas/SmrRunExecutionRunResponse'
+        cursor:
+          $ref: '#/components/schemas/SmrRunExecutionCursorResponse'
+        actors:
+          items:
+            $ref: '#/components/schemas/SmrRunExecutionActorResponse'
+          type: array
+          title: Actors
+        tasks:
+          items:
+            $ref: '#/components/schemas/SmrRunExecutionTaskResponse'
+          type: array
+          title: Tasks
+        messages:
+          items:
+            $ref: '#/components/schemas/SmrRunExecutionMessageResponse'
+          type: array
+          title: Messages
+        events:
+          items:
+            $ref: '#/components/schemas/SmrRunExecutionEventResponse'
+          type: array
+          title: Events
+        work_products:
+          items:
+            $ref: '#/components/schemas/SmrRunExecutionWorkProductRefResponse'
+          type: array
+          title: Work Products
+      type: object
+      required:
+      - project_id
+      - run_id
+      - generated_at
+      - run
+      - cursor
+      title: SmrRunExecutionProjectionResponse
     SmrRunExecutionResultArtifactResponse:
       properties:
         artifact_id:
@@ -34504,6 +37155,147 @@ components:
       - run_id
       - updated_at
       title: SmrRunExecutionResultsResponse
+    SmrRunExecutionRunResponse:
+      properties:
+        state:
+          type: string
+          title: State
+        live_phase:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Live Phase
+        terminal_outcome:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Terminal Outcome
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+        latest_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Latest Summary
+      type: object
+      required:
+      - state
+      title: SmrRunExecutionRunResponse
+    SmrRunExecutionTaskResponse:
+      properties:
+        task_id:
+          type: string
+          title: Task Id
+        task_key:
+          type: string
+          title: Task Key
+        title:
+          type: string
+          title: Title
+        state:
+          type: string
+          title: State
+        objective_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Objective Id
+        owner_actor_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Owner Actor Id
+        created_by_actor_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created By Actor Id
+        updated_by_actor_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated By Actor Id
+        created_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Created At
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+        latest_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Latest Summary
+        work_product_refs:
+          items:
+            type: string
+          type: array
+          title: Work Product Refs
+      type: object
+      required:
+      - task_id
+      - task_key
+      - title
+      - state
+      title: SmrRunExecutionTaskResponse
+    SmrRunExecutionWorkProductRefResponse:
+      properties:
+        work_product_id:
+          type: string
+          title: Work Product Id
+        kind:
+          type: string
+          title: Kind
+        subtype_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subtype Kind
+        title:
+          type: string
+          title: Title
+        status:
+          type: string
+          title: Status
+        task_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Id
+        actor_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor Id
+      type: object
+      required:
+      - work_product_id
+      - kind
+      - title
+      - status
+      title: SmrRunExecutionWorkProductRefResponse
     SmrRunFileMountResponse:
       properties:
         mount_id:
@@ -36750,11 +39542,27 @@ components:
           type: boolean
           title: Public
         runbook:
+          $ref: '#/components/schemas/RunbookKind'
+        runbook_kind:
+          $ref: '#/components/schemas/RunbookKind'
+        default_work_mode:
+          $ref: '#/components/schemas/WorkMode'
+        host_kind:
           type: string
-          enum:
-          - lite
-          - heavy
-          title: Runbook
+          title: Host Kind
+        visibility:
+          type: string
+          title: Visibility
+          default: public
+        limit_summary:
+          additionalProperties: true
+          type: object
+          title: Limit Summary
+        capabilities:
+          items:
+            type: string
+          type: array
+          title: Capabilities
       type: object
       required:
       - id
@@ -36762,6 +39570,9 @@ components:
       - description
       - public
       - runbook
+      - runbook_kind
+      - default_work_mode
+      - host_kind
       title: SmrRunbookPresetCatalogEntry
     SmrRunbookPresetsResponse:
       properties:
@@ -38432,6 +41243,167 @@ components:
       - per_run
       - stored_rollup_count
       title: SmrUsageRollupsResponse
+    SmrWikiChangeSetCreateRequest:
+      properties:
+        title:
+          type: string
+          title: Title
+          default: Wiki change proposal
+        summary:
+          type: string
+          title: Summary
+          default: ''
+        source_kind:
+          type: string
+          title: Source Kind
+          default: manual
+        source_run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Run Id
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      type: object
+      title: SmrWikiChangeSetCreateRequest
+    SmrWikiEvidenceLinkCreateRequest:
+      properties:
+        target_kind:
+          type: string
+          title: Target Kind
+        target_id:
+          type: string
+          title: Target Id
+        evidence_ref_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Evidence Ref Id
+        source_kind:
+          type: string
+          title: Source Kind
+          default: manual
+        source_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Id
+        role:
+          type: string
+          title: Role
+          default: supporting
+        quote:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Quote
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+        confidence:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confidence
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      type: object
+      required:
+      - target_kind
+      - target_id
+      title: SmrWikiEvidenceLinkCreateRequest
+    SmrWikiProposalCreateRequest:
+      properties:
+        changeset_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Changeset Id
+        title:
+          type: string
+          title: Title
+          default: Wiki change proposal
+        summary:
+          type: string
+          title: Summary
+          default: ''
+        source_kind:
+          type: string
+          title: Source Kind
+          default: manual
+        operation:
+          type: string
+          title: Operation
+          default: propose_update
+        target_kind:
+          type: string
+          title: Target Kind
+          default: wiki
+        target_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Id
+        payload:
+          additionalProperties: true
+          type: object
+          title: Payload
+        evidence_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Evidence Summary
+        confidence:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confidence
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      type: object
+      title: SmrWikiProposalCreateRequest
+    SmrWikiStalenessSignalCreateRequest:
+      properties:
+        target_kind:
+          type: string
+          title: Target Kind
+        target_id:
+          type: string
+          title: Target Id
+        signal_kind:
+          type: string
+          title: Signal Kind
+          default: stale
+        reason:
+          type: string
+          title: Reason
+        source_kind:
+          type: string
+          title: Source Kind
+          default: manual
+        source_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Id
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      type: object
+      required:
+      - target_kind
+      - target_id
+      - reason
+      title: SmrWikiStalenessSignalCreateRequest
     SmrWorkerAppendExperimentLogEntryRequest:
       properties:
         project_id:
@@ -39976,6 +42948,67 @@ components:
       - urls
       - images
       title: TraceRetrievalMode
+    TrainedModelExportResponse:
+      properties:
+        model_id:
+          type: string
+          title: Model Id
+        export_id:
+          type: string
+          title: Export Id
+        work_product_id:
+          type: string
+          title: Work Product Id
+        org_id:
+          type: string
+          title: Org Id
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          type: string
+          title: Run Id
+        destination_kind:
+          type: string
+          title: Destination Kind
+        destination_summary:
+          additionalProperties: true
+          type: object
+          title: Destination Summary
+        idempotency_key:
+          type: string
+          title: Idempotency Key
+        status:
+          type: string
+          title: Status
+        error:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Error
+        created_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created At
+        updated_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated At
+      type: object
+      required:
+      - model_id
+      - export_id
+      - work_product_id
+      - org_id
+      - project_id
+      - run_id
+      - destination_kind
+      - idempotency_key
+      - status
+      title: TrainedModelExportResponse
     TrainedModelMetricsBody:
       properties:
         base_metric:
@@ -41285,6 +44318,12 @@ components:
       - org_id
       - amount_cents
       title: WebhookAddCreditsRequest
+    WorkMode:
+      type: string
+      enum:
+      - directed_effort
+      - open_ended_discovery
+      title: WorkMode
     WorkProductArtifactLinkResponse:
       properties:
         work_product_artifact_id:

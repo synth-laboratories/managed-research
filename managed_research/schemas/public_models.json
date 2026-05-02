@@ -101,6 +101,15 @@
       "public": true
     },
     {
+      "id": "x-ai/grok-4.20-beta",
+      "display_group": "additional_first_launch",
+      "compute_pool_kind": "api_proxy_pool",
+      "compute_pool_id": "openrouter_pool",
+      "provider": "openrouter",
+      "route_kind": "api_proxy_pool",
+      "public": true
+    },
+    {
       "id": "moonshotai/kimi-k2.6",
       "display_group": "additional_first_launch",
       "compute_pool_kind": "api_proxy_pool",

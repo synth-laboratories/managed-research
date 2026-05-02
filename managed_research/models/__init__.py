@@ -88,6 +88,16 @@ from managed_research.models.run_diagnostics import (
     SmrRunTraceItem,
     SmrRunTraces,
 )
+from managed_research.models.run_execution import (
+    RunExecutionActor,
+    RunExecutionCursor,
+    RunExecutionEvent,
+    RunExecutionMessage,
+    RunExecutionProjection,
+    RunExecutionRun,
+    RunExecutionTask,
+    RunExecutionWorkProductRef,
+)
 from managed_research.models.run_observability import (
     ActorCollectionSnapshot,
     ActorSnapshot,
@@ -184,6 +194,13 @@ from managed_research.models.smr_run_policy import (
     SmrRunPolicy,
     SmrRunPolicyAccess,
     SmrRunPolicyLimits,
+)
+from managed_research.models.smr_runbooks import (
+    SMR_RUNBOOK_KIND_VALUES,
+    SmrRunbookKind,
+    SmrRunbookLimitSummary,
+    SmrRunbookPreset,
+    coerce_smr_runbook_kind,
 )
 from managed_research.models.smr_runtime_kinds import SmrRuntimeKind
 from managed_research.models.smr_tool_providers import SmrToolProvider
@@ -386,6 +403,11 @@ __all__ = [
     "SmrRunMeterCost",
     "SmrRunnableProjectRequest",
     "SmrRuntimeKind",
+    "SMR_RUNBOOK_KIND_VALUES",
+    "SmrRunbookKind",
+    "SmrRunbookLimitSummary",
+    "SmrRunbookPreset",
+    "coerce_smr_runbook_kind",
     "SmrRunPolicy",
     "SmrRunPolicyAccess",
     "SmrRunPolicyLimits",

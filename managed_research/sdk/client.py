@@ -35,6 +35,7 @@ from managed_research.models.run_diagnostics import (
     SmrRunParticipants,
     SmrRunTraces,
 )
+from managed_research.models.run_execution import RunExecutionProjection
 from managed_research.models.run_observability import (
     ManagedResearchRunContract,
     RunObservabilitySnapshot,
@@ -88,6 +89,11 @@ from managed_research.models.smr_roles import (
     coerce_smr_role_bindings,
 )
 from managed_research.models.smr_run_policy import SmrRunPolicy, coerce_smr_run_policy
+from managed_research.models.smr_runbooks import (
+    SmrRunbookKind,
+    SmrRunbookPreset,
+    coerce_smr_runbook_kind,
+)
 from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
 from managed_research.models.types import (
     KickoffContract,
@@ -173,6 +179,11 @@ def _require_non_empty_string(value: str | None, *, field_name: str) -> str:
     if not text:
         raise ValueError(f"{field_name} is required")
     return text
+
+
+def _optional_non_empty_string(value: str | None) -> str | None:
+    text = str(value or "").strip()
+    return text or None
 
 
 def _optional_mapping(
@@ -341,12 +352,15 @@ def _primary_objective_ref_payload(
 
 def _build_project_run_payload(
     *,
-    host_kind: SmrHostKind,
-    work_mode: SmrWorkMode,
-    providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]],
+    host_kind: SmrHostKind | str | None = None,
+    work_mode: SmrWorkMode | str | None = None,
+    providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]]
+    | None = None,
     limit: UsageLimit | Mapping[str, Any] | dict[str, Any] | None = None,
     worker_pool_id: str | None = None,
-    runbook: str | None = None,
+    runbook: SmrRunbookKind | str | None = None,
+    runbook_preset: str | None = None,
+    runbook_config_id: str | None = None,
     local_execution: Mapping[str, Any] | dict[str, Any] | None = None,
     execution_profile: LocalExecutionProfile | Mapping[str, Any] | dict[str, Any] | None = None,
     timebox_seconds: int | None = None,
@@ -371,20 +385,45 @@ def _build_project_run_payload(
     idempotency_key_run_create: str | None = None,
     idempotency_key: str | None = None,
 ) -> dict[str, Any]:
+    preset_id = _optional_non_empty_string(runbook_preset)
+    config_id = _optional_non_empty_string(runbook_config_id)
+    if preset_id and config_id and preset_id != config_id:
+        raise ValueError("runbook_preset and runbook_config_id must match when both are provided")
+    uses_backend_preset = bool(preset_id or config_id)
+    payload: dict[str, Any] = {}
+    if preset_id:
+        payload["runbook_preset"] = preset_id
+    if config_id:
+        payload["runbook_config_id"] = config_id
+
+    normalized_runbook = coerce_smr_runbook_kind(runbook, field_name="runbook")
+    if normalized_runbook is not None:
+        payload["runbook"] = normalized_runbook.value
+
     normalized_host_kind = coerce_smr_host_kind(host_kind, field_name="host_kind")
-    if normalized_host_kind is None:
-        raise ValueError("host_kind is required")
+    if normalized_host_kind is not None:
+        payload["host_kind"] = normalized_host_kind.value
+    elif not uses_backend_preset:
+        raise ValueError("host_kind is required unless runbook_preset is provided")
+
     normalized_work_mode = coerce_smr_work_mode(work_mode, field_name="work_mode")
-    if normalized_work_mode is None:
-        raise ValueError("work_mode is required")
-    payload: dict[str, Any] = {
-        "host_kind": normalized_host_kind.value,
-        "work_mode": normalized_work_mode.value,
-        "providers": [
+    if normalized_work_mode is not None:
+        payload["work_mode"] = normalized_work_mode.value
+    elif not uses_backend_preset:
+        raise ValueError("work_mode is required unless runbook_preset is provided")
+
+    provider_values = list(providers) if providers is not None else None
+    if provider_values is not None:
+        payload["providers"] = [
             binding.to_wire()
-            for binding in coerce_provider_bindings(providers, field_name="providers")
-        ],
-    }
+            for binding in coerce_provider_bindings(
+                provider_values,
+                field_name="providers",
+            )
+        ]
+    elif not uses_backend_preset:
+        raise ValueError("providers is required unless runbook_preset is provided")
+
     normalized_limit = coerce_usage_limit(limit, field_name="limit")
     if normalized_limit is not None:
         limit_payload = normalized_limit.to_dict()
@@ -410,8 +449,6 @@ def _build_project_run_payload(
         )
     if worker_pool_id and worker_pool_id.strip():
         payload["worker_pool_id"] = worker_pool_id.strip()
-    if runbook and runbook.strip():
-        payload["runbook"] = runbook.strip().lower()
     normalized_local_execution = _optional_mapping(
         local_execution,
         field_name="local_execution",
@@ -2291,12 +2328,15 @@ class ManagedResearchClient:
         self,
         project_id: str,
         *,
-        host_kind: SmrHostKind,
-        work_mode: SmrWorkMode,
-        providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]],
+        host_kind: SmrHostKind | str | None = None,
+        work_mode: SmrWorkMode | str | None = None,
+        providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]]
+        | None = None,
         limit: UsageLimit | Mapping[str, Any] | dict[str, Any] | None = None,
         worker_pool_id: str | None = None,
-        runbook: str | None = None,
+        runbook: SmrRunbookKind | str | None = None,
+        runbook_preset: str | None = None,
+        runbook_config_id: str | None = None,
         local_execution: Mapping[str, Any] | dict[str, Any] | None = None,
         execution_profile: LocalExecutionProfile | Mapping[str, Any] | dict[str, Any] | None = None,
         timebox_seconds: int | None = None,
@@ -2330,6 +2370,8 @@ class ManagedResearchClient:
             limit=limit,
             worker_pool_id=worker_pool_id,
             runbook=runbook,
+            runbook_preset=runbook_preset,
+            runbook_config_id=runbook_config_id,
             local_execution=local_execution,
             execution_profile=execution_profile,
             timebox_seconds=timebox_seconds,
@@ -2382,16 +2424,37 @@ class ManagedResearchClient:
 
         return self.get_launch_preflight(project_id, **kwargs)
 
+    def list_runbook_presets(self) -> tuple[SmrRunbookPreset, ...]:
+        payload = _coerce_dict(
+            self._request_json("GET", "/smr/runbook-presets"),
+            label="list_runbook_presets",
+        )
+        raw_presets = payload["runbook_presets"] if "runbook_presets" in payload else []
+        if not isinstance(raw_presets, list):
+            raise SmrApiError("Invalid runbook preset catalog payload: runbook_presets must be a list")
+        presets: list[SmrRunbookPreset] = []
+        for item in raw_presets:
+            if not isinstance(item, Mapping):
+                raise SmrApiError("Invalid runbook preset catalog payload: preset entries must be objects")
+            try:
+                presets.append(SmrRunbookPreset.from_wire(item))
+            except ValueError as exc:
+                raise SmrApiError(f"Invalid runbook preset catalog payload: {exc}") from exc
+        return tuple(presets)
+
     def trigger_run(
         self,
         project_id: str,
         *,
-        host_kind: SmrHostKind,
-        work_mode: SmrWorkMode,
-        providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]],
+        host_kind: SmrHostKind | str | None = None,
+        work_mode: SmrWorkMode | str | None = None,
+        providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]]
+        | None = None,
         limit: UsageLimit | Mapping[str, Any] | dict[str, Any] | None = None,
         worker_pool_id: str | None = None,
-        runbook: str | None = None,
+        runbook: SmrRunbookKind | str | None = None,
+        runbook_preset: str | None = None,
+        runbook_config_id: str | None = None,
         local_execution: Mapping[str, Any] | dict[str, Any] | None = None,
         execution_profile: LocalExecutionProfile | Mapping[str, Any] | dict[str, Any] | None = None,
         timebox_seconds: int | None = None,
@@ -2425,6 +2488,8 @@ class ManagedResearchClient:
             limit=limit,
             worker_pool_id=worker_pool_id,
             runbook=runbook,
+            runbook_preset=runbook_preset,
+            runbook_config_id=runbook_config_id,
             local_execution=local_execution,
             execution_profile=execution_profile,
             timebox_seconds=timebox_seconds,
@@ -2564,6 +2629,38 @@ class ManagedResearchClient:
             timeline_limit=1,
             message_limit=1,
         ).run_contract
+
+    def get_run_execution(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        view: str = "summary",
+        event_limit: int = 100,
+        actor_limit: int = 50,
+        task_limit: int = 100,
+        message_limit: int = 50,
+        work_product_limit: int = 50,
+    ) -> RunExecutionProjection:
+        payload = _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/runs/{run_id}/execution",
+                params=build_query_params(
+                    view=view,
+                    event_limit=event_limit,
+                    actor_limit=actor_limit,
+                    task_limit=task_limit,
+                    message_limit=message_limit,
+                    work_product_limit=work_product_limit,
+                ),
+            ),
+            label="get_run_execution",
+        )
+        try:
+            return RunExecutionProjection.from_wire(payload)
+        except ValueError as exc:
+            raise SmrApiError(f"Invalid run execution projection payload: {exc}") from exc
 
     def poll_run_observability_snapshot(
         self,

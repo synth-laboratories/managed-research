@@ -175,6 +175,13 @@ from managed_research.models.smr_run_policy import (
     SmrRunPolicyAccess,
     SmrRunPolicyLimits,
 )
+from managed_research.models.smr_runbooks import (
+    SMR_RUNBOOK_KIND_VALUES,
+    SmrRunbookKind,
+    SmrRunbookLimitSummary,
+    SmrRunbookPreset,
+    coerce_smr_runbook_kind,
+)
 from managed_research.models.smr_runtime_kinds import SmrRuntimeKind
 from managed_research.models.smr_tool_providers import SmrToolProvider
 from managed_research.models.smr_work_modes import SmrWorkMode
@@ -382,6 +389,11 @@ __all__ = [
     "SmrRunPolicy",
     "SmrRunPolicyAccess",
     "SmrRunPolicyLimits",
+    "SMR_RUNBOOK_KIND_VALUES",
+    "SmrRunbookKind",
+    "SmrRunbookLimitSummary",
+    "SmrRunbookPreset",
+    "coerce_smr_runbook_kind",
     "SmrRunUsage",
     "SynthAIConfig",
     "RunLifecycleDispatch",
@@ -470,6 +482,11 @@ __all__ = [
     "Provider",
     "ProviderBinding",
     "UsageLimit",
+    "SMR_RUNBOOK_KIND_VALUES",
+    "SmrRunbookKind",
+    "SmrRunbookLimitSummary",
+    "SmrRunbookPreset",
+    "coerce_smr_runbook_kind",
     "SmrHostKind",
     "SmrNetworkTopology",
     "SmrWorkMode",

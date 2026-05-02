@@ -21,6 +21,7 @@ from managed_research.models.smr_agent_kinds import SMR_AGENT_KIND_VALUES
 from managed_research.models.smr_agent_models import SMR_AGENT_MODEL_VALUES
 from managed_research.models.smr_host_kinds import SMR_HOST_KIND_VALUES
 from managed_research.models.smr_providers import PROVIDER_VALUES
+from managed_research.models.smr_runbooks import SMR_RUNBOOK_KIND_VALUES
 from managed_research.models.smr_work_modes import SMR_WORK_MODE_VALUES
 
 
@@ -91,6 +92,28 @@ def _usage_limit_schema() -> dict[str, Any]:
     }
 
 
+def _runbook_launch_properties() -> dict[str, Any]:
+    return {
+        "runbook": {
+            "type": "string",
+            "enum": list(SMR_RUNBOOK_KIND_VALUES),
+            "description": "Runbook posture. Defaults to lite unless a preset sets it.",
+        },
+        "runbook_preset": {
+            "type": "string",
+            "description": (
+                "Backend-owned launch preset id such as lite or heavy. When provided, "
+                "host_kind, work_mode, and providers may be omitted and resolved by "
+                "the backend."
+            ),
+        },
+        "runbook_config_id": {
+            "type": "string",
+            "description": "Compatibility alias for runbook_preset.",
+        },
+    }
+
+
 def build_run_tools(server: Any) -> list[ToolDefinition]:
     return [
         ToolDefinition(
@@ -103,6 +126,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             input_schema=tool_schema(
                 {
                     "project_id": {"type": "string", "description": "Managed research project id."},
+                    **_runbook_launch_properties(),
                     "host_kind": {
                         "type": "string",
                         "enum": list(SMR_HOST_KIND_VALUES),
@@ -205,7 +229,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "description": "Deprecated compatibility alias for idempotency_key_run_create.",
                     },
                 },
-                required=["project_id", "host_kind", "work_mode", "providers"],
+                required=["project_id"],
             ),
             handler=server._tool_trigger_run,
         ),
@@ -217,6 +241,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             ),
             input_schema=tool_schema(
                 {
+                    **_runbook_launch_properties(),
                     "host_kind": {
                         "type": "string",
                         "enum": list(SMR_HOST_KIND_VALUES),
@@ -313,7 +338,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "description": "Deprecated compatibility alias for idempotency_key_run_create.",
                     },
                 },
-                required=["host_kind", "work_mode", "providers"],
+                required=[],
             ),
             handler=server._tool_start_one_off_run,
         ),
@@ -363,6 +388,53 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                 required=["project_id", "run_id"],
             ),
             handler=server._tool_get_run_contract,
+        ),
+        ToolDefinition(
+            name="smr_get_run_execution",
+            description=(
+                "Read the high-level execution projection for a run: actors, "
+                "tasks/objectives, public messages, timeline events, and output refs. "
+                "Use this for normal run inspection before falling back to raw "
+                "timeline, transcript, or operator evidence."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "view": {
+                        "type": "string",
+                        "enum": ["summary", "detail"],
+                        "description": "Projection detail level. Defaults to summary.",
+                    },
+                    "event_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 500,
+                    },
+                    "actor_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 200,
+                    },
+                    "task_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 250,
+                    },
+                    "message_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 200,
+                    },
+                    "work_product_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 200,
+                    },
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_get_run_execution,
         ),
         ToolDefinition(
             name="smr_get_run_logical_timeline",

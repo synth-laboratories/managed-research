@@ -1066,6 +1066,10 @@ class ManagedResearchMcpServer:
                 **request.client_kwargs(),
             )
 
+    def _tool_list_runbook_presets(self, args: JSONDict) -> Any:
+        with self._client_from_args(args) as client:
+            return [preset.to_wire() for preset in client.list_runbook_presets()]
+
     def _tool_list_runs(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         active_only = optional_bool(args, "active_only", default=False)
@@ -1139,6 +1143,21 @@ class ManagedResearchMcpServer:
         run_id = require_string(args, "run_id")
         with self._client_from_args(args) as client:
             return client.get_run_logical_timeline(project_id, run_id)
+
+    def _tool_get_run_execution(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.get_run_execution(
+                project_id,
+                run_id,
+                view=optional_string(args, "view") or "summary",
+                event_limit=optional_int(args, "event_limit") or 100,
+                actor_limit=optional_int(args, "actor_limit") or 50,
+                task_limit=optional_int(args, "task_limit") or 100,
+                message_limit=optional_int(args, "message_limit") or 50,
+                work_product_limit=optional_int(args, "work_product_limit") or 50,
+            )
 
     def _tool_get_run_event_log(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
