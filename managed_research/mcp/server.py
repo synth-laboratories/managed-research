@@ -739,7 +739,7 @@ class ManagedResearchMcpServer:
         if metadata is not None and not isinstance(metadata, dict):
             raise ValueError("metadata must be an object")
         with self._client_from_args(args) as client:
-            return client.trained_models.register(
+            result = client.trained_models.register(
                 run_id=run_id,
                 base_model=base_model,
                 method=method,
@@ -753,16 +753,21 @@ class ManagedResearchMcpServer:
                 train_cost_usd=self._optional_float_arg(args, "train_cost_usd"),
                 metadata=metadata or {},
             )
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_get_trained_model(self, args: JSONDict) -> Any:
         model_id = require_string(args, "model_id")
         with self._client_from_args(args) as client:
-            return client.trained_models.get(model_id)
+            result = client.trained_models.get(model_id)
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_list_trained_models_for_run(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
         with self._client_from_args(args) as client:
-            return client.trained_models.list_for_run(run_id)
+            return [
+                asdict(item) if is_dataclass(item) else item
+                for item in client.trained_models.list_for_run(run_id)
+            ]
 
     def _tool_export_trained_model(self, args: JSONDict) -> Any:
         model_id = require_string(args, "model_id")
@@ -770,21 +775,23 @@ class ManagedResearchMcpServer:
         if not isinstance(destination, dict):
             raise ValueError("destination must be an object")
         with self._client_from_args(args) as client:
-            return client.trained_models.export(
+            result = client.trained_models.export(
                 model_id,
                 destination=destination,
                 idempotency_key=optional_string(args, "idempotency_key"),
             )
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_create_trained_model_adapter_upload_url(self, args: JSONDict) -> Any:
         model_id = require_string(args, "model_id")
         with self._client_from_args(args) as client:
-            return client.trained_models.create_adapter_upload_url(
+            result = client.trained_models.create_adapter_upload_url(
                 model_id,
                 expires_in=optional_int(args, "expires_in") or 3600,
                 content_type=optional_string(args, "content_type")
                 or "application/gzip",
             )
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_complete_trained_model_adapter_upload(self, args: JSONDict) -> Any:
         model_id = require_string(args, "model_id")
@@ -795,13 +802,14 @@ class ManagedResearchMcpServer:
         if adapter_size_bytes is None:
             raise ValueError("adapter_size_bytes is required")
         with self._client_from_args(args) as client:
-            return client.trained_models.complete_adapter_upload(
+            result = client.trained_models.complete_adapter_upload(
                 model_id,
                 bucket=require_string(args, "bucket"),
                 key=require_string(args, "key"),
                 adapter_size_bytes=adapter_size_bytes,
                 metadata_patch=metadata_patch,
             )
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_update_trained_model(self, args: JSONDict) -> Any:
         model_id = require_string(args, "model_id")
@@ -809,7 +817,7 @@ class ManagedResearchMcpServer:
         if metadata_patch is not None and not isinstance(metadata_patch, dict):
             raise ValueError("metadata_patch must be an object")
         with self._client_from_args(args) as client:
-            return client.trained_models.update(
+            result = client.trained_models.update(
                 model_id,
                 tuned_metric=self._optional_float_arg(args, "tuned_metric"),
                 uplift_abs=self._optional_float_arg(args, "uplift_abs"),
@@ -817,11 +825,13 @@ class ManagedResearchMcpServer:
                 status=optional_string(args, "status"),
                 metadata_patch=metadata_patch,
             )
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_delete_trained_model(self, args: JSONDict) -> Any:
         model_id = require_string(args, "model_id")
         with self._client_from_args(args) as client:
-            return client.trained_models.delete(model_id)
+            result = client.trained_models.delete(model_id)
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_get_run_cost_summary(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")

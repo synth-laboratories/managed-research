@@ -44,6 +44,7 @@ class RunLifecycleControlErrorCode(StrEnum):
     TERMINAL_RUN = "terminal_run"
     RUNTIME_NOT_LIVE = "runtime_not_live"
     RUN_NOT_FOUND = "run_not_found"
+    PROJECT_ARCHIVED = "project_archived"
 
 
 class ManagedResearchRunControlError(SmrApiError):
@@ -62,8 +63,8 @@ class ManagedResearchRunControlError(SmrApiError):
         error_code: RunLifecycleControlErrorCode,
         message: str,
         retryable: bool,
-        current_state: str,
-        run_id: str,
+        current_state: str | None,
+        run_id: str | None,
         status_code: int | None = 409,
         response_text: str | None = None,
         detail: Mapping[str, object] | None = None,
@@ -99,6 +100,20 @@ class ManagedResearchRunControlError(SmrApiError):
         if not isinstance(payload, Mapping):
             raise ValueError("run control 409 body must be a JSON object with a 'detail' mapping")
         detail = payload.get("detail")
+        if detail == RunLifecycleControlErrorCode.PROJECT_ARCHIVED.value:
+            return cls(
+                error_code=RunLifecycleControlErrorCode.PROJECT_ARCHIVED,
+                message=(
+                    "Project is archived; this backend does not allow the requested "
+                    "run control through the project mutation guard."
+                ),
+                retryable=False,
+                current_state=None,
+                run_id=None,
+                status_code=status_code,
+                response_text=response_text,
+                detail={"legacy_detail": detail},
+            )
         if not isinstance(detail, Mapping):
             raise ValueError(
                 "run control 409 body missing mapping 'detail' with error_code/message/retryable/current_state/run_id"
