@@ -67,6 +67,8 @@ SMR_SHARED_TOP_LEVEL_AGENT_MODEL_VALUES: tuple[str, ...] = (
     SmrAgentModel.ANTHROPIC_CLAUDE_SONNET_4_6.value,
     SmrAgentModel.ANTHROPIC_CLAUDE_HAIKU_4_5_20251001.value,
     SmrAgentModel.X_AI_GROK_4_1_FAST.value,
+    SmrAgentModel.X_AI_GROK_4_3.value,
+    SmrAgentModel.X_AI_GROK_4_20_BETA.value,
     SmrAgentModel.MOONSHOTAI_KIMI_K2_6.value,
 )
 

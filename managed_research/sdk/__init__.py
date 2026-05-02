@@ -204,6 +204,7 @@ from managed_research.models.types import (
 from managed_research.models.work_products import (
     ManagedResearchContainerEvalPackage,
     ManagedResearchRunWorkProduct,
+    ManagedResearchTrainedModel,
     ManagedResearchWorkProductArtifactLink,
     ManagedResearchWorkProductExport,
 )
@@ -300,6 +301,7 @@ __all__ = [
     "ManagedResearchRunContractTasks",
     "ManagedResearchRunContractTrainedModels",
     "ManagedResearchRunWorkProduct",
+    "ManagedResearchTrainedModel",
     "ManagedResearchWorkProductArtifactLink",
     "ManagedResearchRunControlAck",
     "ManagedResearchRunControlEnqueueStatus",
@@ -456,6 +458,7 @@ __all__ = [
     "MISC_PROJECT_ID",
     "WorkProductsAPI",
     "ManagedResearchRunWorkProduct",
+    "ManagedResearchTrainedModel",
     "ManagedResearchContainerEvalPackage",
     "ManagedResearchWorkProductArtifactLink",
     "ManagedResearchWorkProductExport",
