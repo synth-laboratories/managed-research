@@ -266,7 +266,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/app__api__v1__routes_balance__UsageSummaryResponse'
+                $ref: '#/components/schemas/UsageSummaryResponse'
   /api/v1/balance/autumn-current:
     get:
       tags:
@@ -19988,7 +19988,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Environments
-      operationId: proxy_environments_api_managed_agents_anthropic_v1_environments_get
+      operationId: proxy_environments_api_managed_agents_anthropic_v1_environments_post
       responses:
         '200':
           description: Successful Response
@@ -19999,7 +19999,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Environments
-      operationId: proxy_environments_api_managed_agents_anthropic_v1_environments_get__post__1
+      operationId: proxy_environments_api_managed_agents_anthropic_v1_environments_post__post__1
       responses:
         '200':
           description: Successful Response
@@ -20011,7 +20011,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Environments Environment Id
-      operationId: proxy_environments_environment_id_api_managed_agents_anthropic_v1_environments__environment_id__get
+      operationId: proxy_environments_environment_id_api_managed_agents_anthropic_v1_environments__environment_id__post
       responses:
         '200':
           description: Successful Response
@@ -20022,7 +20022,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Environments Environment Id
-      operationId: proxy_environments_environment_id_api_managed_agents_anthropic_v1_environments__environment_id__get__post__1
+      operationId: proxy_environments_environment_id_api_managed_agents_anthropic_v1_environments__environment_id__post__post__1
       responses:
         '200':
           description: Successful Response
@@ -20046,7 +20046,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Agents
-      operationId: proxy_agents_api_managed_agents_anthropic_v1_agents_get
+      operationId: proxy_agents_api_managed_agents_anthropic_v1_agents_post
       responses:
         '200':
           description: Successful Response
@@ -20057,7 +20057,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Agents
-      operationId: proxy_agents_api_managed_agents_anthropic_v1_agents_get__post__1
+      operationId: proxy_agents_api_managed_agents_anthropic_v1_agents_post__post__1
       responses:
         '200':
           description: Successful Response
@@ -20069,7 +20069,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Agents Agent Id
-      operationId: proxy_agents_agent_id_api_managed_agents_anthropic_v1_agents__agent_id__get
+      operationId: proxy_agents_agent_id_api_managed_agents_anthropic_v1_agents__agent_id__post
       responses:
         '200':
           description: Successful Response
@@ -20080,7 +20080,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Agents Agent Id
-      operationId: proxy_agents_agent_id_api_managed_agents_anthropic_v1_agents__agent_id__get__post__1
+      operationId: proxy_agents_agent_id_api_managed_agents_anthropic_v1_agents__agent_id__post__post__1
       responses:
         '200':
           description: Successful Response
@@ -20104,7 +20104,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions
-      operationId: proxy_sessions_api_managed_agents_anthropic_v1_sessions_get
+      operationId: proxy_sessions_api_managed_agents_anthropic_v1_sessions_post
       responses:
         '200':
           description: Successful Response
@@ -20115,7 +20115,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions
-      operationId: proxy_sessions_api_managed_agents_anthropic_v1_sessions_get__post__1
+      operationId: proxy_sessions_api_managed_agents_anthropic_v1_sessions_post__post__1
       responses:
         '200':
           description: Successful Response
@@ -20127,7 +20127,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions Session Id
-      operationId: proxy_sessions_session_id_api_managed_agents_anthropic_v1_sessions__session_id__get
+      operationId: proxy_sessions_session_id_api_managed_agents_anthropic_v1_sessions__session_id__post
       responses:
         '200':
           description: Successful Response
@@ -20138,7 +20138,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions Session Id
-      operationId: proxy_sessions_session_id_api_managed_agents_anthropic_v1_sessions__session_id__get__post__1
+      operationId: proxy_sessions_session_id_api_managed_agents_anthropic_v1_sessions__session_id__post__post__1
       responses:
         '200':
           description: Successful Response
@@ -20162,7 +20162,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions Session Id Events
-      operationId: proxy_sessions_session_id_events_api_managed_agents_anthropic_v1_sessions__session_id__events_get
+      operationId: proxy_sessions_session_id_events_api_managed_agents_anthropic_v1_sessions__session_id__events_post
       responses:
         '200':
           description: Successful Response
@@ -20173,7 +20173,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions Session Id Events
-      operationId: proxy_sessions_session_id_events_api_managed_agents_anthropic_v1_sessions__session_id__events_get__post__1
+      operationId: proxy_sessions_session_id_events_api_managed_agents_anthropic_v1_sessions__session_id__events_post__post__1
       responses:
         '200':
           description: Successful Response
@@ -20221,7 +20221,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Responses Response Id
-      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__delete
+      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__get
       responses:
         '200':
           description: Successful Response
@@ -20232,7 +20232,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Responses Response Id
-      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__delete__delete__1
+      operationId: proxy_openai_responses_response_id_api_managed_agents_openai_v1_responses__response_id__get__delete__1
       responses:
         '200':
           description: Successful Response
@@ -20304,7 +20304,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__get
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__post
       responses:
         '200':
           description: Successful Response
@@ -20315,7 +20315,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__get__post__1
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__post__post__1
       responses:
         '200':
           description: Successful Response
@@ -20326,7 +20326,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__get__delete__2
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__post__delete__2
       responses:
         '200':
           description: Successful Response
@@ -20338,7 +20338,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id Items
-      operationId: proxy_openai_conversations_conversation_id_items_api_managed_agents_openai_v1_conversations__conversation_id__items_get
+      operationId: proxy_openai_conversations_conversation_id_items_api_managed_agents_openai_v1_conversations__conversation_id__items_post
       responses:
         '200':
           description: Successful Response
@@ -20349,7 +20349,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id Items
-      operationId: proxy_openai_conversations_conversation_id_items_api_managed_agents_openai_v1_conversations__conversation_id__items_get__post__1
+      operationId: proxy_openai_conversations_conversation_id_items_api_managed_agents_openai_v1_conversations__conversation_id__items_post__post__1
       responses:
         '200':
           description: Successful Response
@@ -20361,7 +20361,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id Items Item Id
-      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__delete
+      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__get
       responses:
         '200':
           description: Successful Response
@@ -20372,7 +20372,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id Items Item Id
-      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__delete__delete__1
+      operationId: proxy_openai_conversations_conversation_id_items_item_id_api_managed_agents_openai_v1_conversations__conversation_id__items__item_id__get__delete__1
       responses:
         '200':
           description: Successful Response
@@ -20380,41 +20380,11 @@ paths:
             application/json:
               schema: {}
   /s/{route_token}/{path}:
-    delete:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__delete
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
     get:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__delete__get__1
+      operationId: synthtunnel_gateway_s__route_token___path__get
       parameters:
       - name: route_token
         in: path
@@ -20444,7 +20414,7 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__delete__patch__2
+      operationId: synthtunnel_gateway_s__route_token___path__get__patch__1
       parameters:
       - name: route_token
         in: path
@@ -20474,7 +20444,7 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__delete__put__3
+      operationId: synthtunnel_gateway_s__route_token___path__get__put__2
       parameters:
       - name: route_token
         in: path
@@ -20504,7 +20474,37 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__delete__options__4
+      operationId: synthtunnel_gateway_s__route_token___path__get__options__3
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__get__delete__4
       parameters:
       - name: route_token
         in: path
@@ -20534,7 +20534,7 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__delete__post__5
+      operationId: synthtunnel_gateway_s__route_token___path__get__post__5
       parameters:
       - name: route_token
         in: path
@@ -21293,7 +21293,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UsageSummaryResponse'
+                $ref: '#/components/schemas/app__api__v1__admin__UsageSummaryResponse'
         '422':
           description: Validation Error
           content:
@@ -36960,8 +36960,8 @@ components:
           - $ref: '#/components/schemas/SmrAgentModel'
           - type: 'null'
           description: Override one shared agent model for this run. Shared top-level
-            values are 'gpt-5.4-mini', 'x-ai/grok-4.20-beta', 'x-ai/grok-4.3'. Use
-            actor_model_overrides for actor-specific model selection.
+            values are 'gpt-5.4-mini', 'x-ai/grok-4.1-fast', 'x-ai/grok-4.20-beta',
+            'x-ai/grok-4.3'. Use actor_model_overrides for actor-specific model selection.
         agent_harness:
           anyOf:
           - type: string
@@ -40962,6 +40962,8 @@ components:
           additionalProperties: true
           type: object
           title: Diagnostics
+        runtime_diagnostics:
+          $ref: '#/components/schemas/SmrRunRuntimeDiagnosticsResponse'
         projection_inputs:
           additionalProperties:
             $ref: '#/components/schemas/SmrProjectionInputResponse'
@@ -41068,6 +41070,87 @@ components:
           default: in_place
       type: object
       title: SmrRunRestoreRequest
+    SmrRunRuntimeBlockerResponse:
+      properties:
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Code
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+        fact_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Fact Kind
+        resource_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resource Id
+        participant_session_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Participant Session Id
+        participant_role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Participant Role
+        queue_state:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Queue State
+        failure_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Failure Code
+        failure_detail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Failure Detail
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+        observed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Observed At
+        local_docker_capacity:
+          additionalProperties: true
+          type: object
+          title: Local Docker Capacity
+      type: object
+      title: SmrRunRuntimeBlockerResponse
+    SmrRunRuntimeDiagnosticsResponse:
+      properties:
+        source:
+          type: string
+          title: Source
+          default: smr_runtime_resource_facts.v1
+        primary_blocker:
+          anyOf:
+          - $ref: '#/components/schemas/SmrRunRuntimeBlockerResponse'
+          - type: 'null'
+        blockers:
+          items:
+            $ref: '#/components/schemas/SmrRunRuntimeBlockerResponse'
+          type: array
+          title: Blockers
+      type: object
+      title: SmrRunRuntimeDiagnosticsResponse
     SmrRunRuntimeLaunchListResponse:
       properties:
         project_id:
@@ -46712,30 +46795,21 @@ components:
         org_id:
           type: string
           title: Org Id
-        date_range:
-          type: string
-          title: Date Range
-        total_cost_cents:
-          type: integer
-          title: Total Cost Cents
-        total_cost_dollars:
-          type: number
-          title: Total Cost Dollars
-        gpu_events_count:
-          type: integer
-          title: Gpu Events Count
-        total_gpu_seconds:
-          type: number
-          title: Total Gpu Seconds
+        current_month:
+          additionalProperties: true
+          type: object
+          title: Current Month
+        last_30_days:
+          additionalProperties: true
+          type: object
+          title: Last 30 Days
       type: object
       required:
       - org_id
-      - date_range
-      - total_cost_cents
-      - total_cost_dollars
-      - gpu_events_count
-      - total_gpu_seconds
+      - current_month
+      - last_30_days
       title: UsageSummaryResponse
+      description: Response model for usage summary.
     UsageType:
       type: string
       enum:
@@ -47154,26 +47228,35 @@ components:
       required:
       - commit_sha
       title: WorkspaceConfirmPushRequest
-    app__api__v1__routes_balance__UsageSummaryResponse:
+    app__api__v1__admin__UsageSummaryResponse:
       properties:
         org_id:
           type: string
           title: Org Id
-        current_month:
-          additionalProperties: true
-          type: object
-          title: Current Month
-        last_30_days:
-          additionalProperties: true
-          type: object
-          title: Last 30 Days
+        date_range:
+          type: string
+          title: Date Range
+        total_cost_cents:
+          type: integer
+          title: Total Cost Cents
+        total_cost_dollars:
+          type: number
+          title: Total Cost Dollars
+        gpu_events_count:
+          type: integer
+          title: Gpu Events Count
+        total_gpu_seconds:
+          type: number
+          title: Total Gpu Seconds
       type: object
       required:
       - org_id
-      - current_month
-      - last_30_days
+      - date_range
+      - total_cost_cents
+      - total_cost_dollars
+      - gpu_events_count
+      - total_gpu_seconds
       title: UsageSummaryResponse
-      description: Response model for usage summary.
     app__api__v1__routes_usage_overview__UsageSummaryResponse:
       properties:
         total_nominal_usd:
