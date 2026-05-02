@@ -14,9 +14,10 @@ def build_trained_model_tools(server: Any) -> list[ToolDefinition]:
             description=(
                 "Register a Tinker-trained LoRA adapter produced by the current "
                 "Managed Research "
-                "run. This downloads the adapter from Tinker, uploads it to Wasabi, "
-                "and inserts an ``smr_models`` registry row so the adapter can be "
-                "rehydrated for offline evaluation and cleaned up at end of run."
+                "run. This inserts an ``smr_models`` registry row, attempts to "
+                "prepare a downloadable Wasabi adapter, and publishes a model "
+                "WorkProduct. If the response has no wasabi_uri or includes "
+                "export_error, use smr_export_trained_model to retry/export."
             ),
             input_schema=tool_schema(
                 {
@@ -97,6 +98,43 @@ def build_trained_model_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_export_trained_model,
         ),
         ToolDefinition(
+            name="smr_create_trained_model_adapter_upload_url",
+            description=(
+                "Create a presigned Synth storage PUT URL for a trained-model "
+                "adapter tarball. Use this from a worker that has Tinker export "
+                "tooling when backend-side export is unavailable."
+            ),
+            input_schema=tool_schema(
+                {
+                    "model_id": {"type": "string"},
+                    "expires_in": {"type": "integer"},
+                    "content_type": {"type": "string"},
+                },
+                required=["model_id"],
+            ),
+            handler=server._tool_create_trained_model_adapter_upload_url,
+        ),
+        ToolDefinition(
+            name="smr_complete_trained_model_adapter_upload",
+            description=(
+                "Mark a worker-uploaded trained-model adapter as the canonical "
+                "Wasabi object for the model WorkProduct. Call this only after "
+                "the PUT to the URL from smr_create_trained_model_adapter_upload_url "
+                "has succeeded."
+            ),
+            input_schema=tool_schema(
+                {
+                    "model_id": {"type": "string"},
+                    "bucket": {"type": "string"},
+                    "key": {"type": "string"},
+                    "adapter_size_bytes": {"type": "integer"},
+                    "metadata_patch": {"type": "object"},
+                },
+                required=["model_id", "bucket", "key", "adapter_size_bytes"],
+            ),
+            handler=server._tool_complete_trained_model_adapter_upload,
+        ),
+        ToolDefinition(
             name="smr_update_trained_model",
             description=(
                 "Patch metrics on a trained-model record — typically called after "
@@ -142,6 +180,29 @@ def build_trained_model_tools(server: Any) -> list[ToolDefinition]:
                 required=["run_id"],
             ),
             handler=server._tool_get_run_cost_summary,
+        ),
+        ToolDefinition(
+            name="smr_report_tinker_training_usage",
+            description=(
+                "Record Tinker training-job usage for a run. Use this when the "
+                "training code did not use the TinkerBudgetSession wrapper or "
+                "when the trained-model response is missing train_cost_usd."
+            ),
+            input_schema=tool_schema(
+                {
+                    "run_id": {"type": "string"},
+                    "actual_cost_usd": {"type": "number"},
+                    "estimated_cost_usd": {"type": "number"},
+                    "model": {"type": "string"},
+                    "task_id": {"type": "string"},
+                    "idempotency_key": {"type": "string"},
+                    "provider_result_id": {"type": "string"},
+                    "request_id": {"type": "string"},
+                    "metadata": {"type": "object"},
+                },
+                required=["run_id"],
+            ),
+            handler=server._tool_report_tinker_training_usage,
         ),
     ]
 
