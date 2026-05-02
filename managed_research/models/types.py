@@ -1085,6 +1085,7 @@ class SmrRunnableProjectRequest:
     environment_kind: SmrEnvironmentKind
     agent_profiles: SmrAgentProfileBindings
     worker_profile_ids: list[str] = field(default_factory=list)
+    actor_profile_id: str | None = None
     actor_model_assignments: list[SmrActorModelAssignment] = field(default_factory=list)
     budgets: dict[str, object] = field(default_factory=dict)
     key_policy: dict[str, object] = field(default_factory=dict)
@@ -1155,6 +1156,7 @@ class SmrRunnableProjectRequest:
                 worker_profile_ids=worker_profile_ids,
             ),
             worker_profile_ids=worker_profile_ids,
+            actor_profile_id=_optional_string(mapping, "actor_profile_id"),
             actor_model_assignments=normalize_actor_model_assignments(
                 mapping.get("actor_model_assignments"),
                 field_name="actor_model_assignments",
@@ -1202,6 +1204,8 @@ class SmrRunnableProjectRequest:
             payload["actor_model_assignments"] = [
                 item.as_payload() for item in self.actor_model_assignments
             ]
+        if self.actor_profile_id is not None:
+            payload["actor_profile_id"] = self.actor_profile_id
         if self.scenario is not None:
             payload["scenario"] = self.scenario
         if self.notes is not None:
