@@ -776,6 +776,33 @@ class ManagedResearchMcpServer:
                 idempotency_key=optional_string(args, "idempotency_key"),
             )
 
+    def _tool_create_trained_model_adapter_upload_url(self, args: JSONDict) -> Any:
+        model_id = require_string(args, "model_id")
+        with self._client_from_args(args) as client:
+            return client.trained_models.create_adapter_upload_url(
+                model_id,
+                expires_in=optional_int(args, "expires_in") or 3600,
+                content_type=optional_string(args, "content_type")
+                or "application/gzip",
+            )
+
+    def _tool_complete_trained_model_adapter_upload(self, args: JSONDict) -> Any:
+        model_id = require_string(args, "model_id")
+        metadata_patch = args.get("metadata_patch")
+        if metadata_patch is not None and not isinstance(metadata_patch, dict):
+            raise ValueError("metadata_patch must be an object")
+        adapter_size_bytes = optional_int(args, "adapter_size_bytes")
+        if adapter_size_bytes is None:
+            raise ValueError("adapter_size_bytes is required")
+        with self._client_from_args(args) as client:
+            return client.trained_models.complete_adapter_upload(
+                model_id,
+                bucket=require_string(args, "bucket"),
+                key=require_string(args, "key"),
+                adapter_size_bytes=adapter_size_bytes,
+                metadata_patch=metadata_patch,
+            )
+
     def _tool_update_trained_model(self, args: JSONDict) -> Any:
         model_id = require_string(args, "model_id")
         metadata_patch = args.get("metadata_patch")
@@ -800,6 +827,26 @@ class ManagedResearchMcpServer:
         run_id = require_string(args, "run_id")
         with self._client_from_args(args) as client:
             return client.run_cost.summary(run_id)
+
+    def _tool_report_tinker_training_usage(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        metadata = args.get("metadata")
+        if metadata is not None and not isinstance(metadata, dict):
+            raise ValueError("metadata must be an object")
+        with self._client_from_args(args) as client:
+            return client.run_cost.report_tinker_training_usage(
+                run_id,
+                actual_cost_usd=self._optional_float_arg(args, "actual_cost_usd"),
+                estimated_cost_usd=self._optional_float_arg(
+                    args, "estimated_cost_usd"
+                ),
+                model=optional_string(args, "model"),
+                task_id=optional_string(args, "task_id"),
+                idempotency_key=optional_string(args, "idempotency_key"),
+                provider_result_id=optional_string(args, "provider_result_id"),
+                request_id=optional_string(args, "request_id"),
+                metadata=metadata or {},
+            )
 
     def _tool_list_project_files(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")

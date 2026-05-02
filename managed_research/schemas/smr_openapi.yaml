@@ -4448,6 +4448,72 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /smr/trained_models/{model_id}/adapter_upload_url:
+    post:
+      tags:
+      - smr
+      - trained_models
+      summary: Create Trained Model Adapter Upload Url
+      operationId: create_trained_model_adapter_upload_url_smr_trained_models__model_id__adapter_upload_url_post
+      parameters:
+      - name: model_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Model Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrainedModelAdapterUploadUrlBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainedModelAdapterUploadUrlResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/trained_models/{model_id}/adapter_uploads/complete:
+    post:
+      tags:
+      - smr
+      - trained_models
+      summary: Complete Trained Model Adapter Upload
+      operationId: complete_trained_model_adapter_upload_smr_trained_models__model_id__adapter_uploads_complete_post
+      parameters:
+      - name: model_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Model Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteTrainedModelAdapterUploadBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainedModelResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /smr/projects/{project_id}/runs/{run_id}/work-products:
     get:
       tags:
@@ -12220,6 +12286,412 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /smr/runs/{run_id}/manderqueue/messages:
+    post:
+      tags:
+      - smr
+      summary: Publish Run Message
+      operationId: publish_run_message_smr_runs__run_id__manderqueue_messages_post
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishManderqueueMessageRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Publish Run Message Smr Runs  Run Id  Manderqueue
+                  Messages Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/manderqueue/messages:
+    post:
+      tags:
+      - smr
+      summary: Publish Project Run Message
+      operationId: publish_project_run_message_smr_projects__project_id__runs__run_id__manderqueue_messages_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishManderqueueMessageRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Publish Project Run Message Smr Projects  Project
+                  Id  Runs  Run Id  Manderqueue Messages Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - smr
+      summary: List Project Run Messages
+      operationId: list_project_run_messages_smr_projects__project_id__runs__run_id__manderqueue_messages_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: thread_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Thread Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 1000
+          minimum: 1
+          default: 200
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+                title: Response List Project Run Messages Smr Projects  Project Id  Runs  Run
+                  Id  Manderqueue Messages Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/manderqueue/threads:
+    get:
+      tags:
+      - smr
+      summary: List Project Run Threads
+      operationId: list_project_run_threads_smr_projects__project_id__runs__run_id__manderqueue_threads_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+                title: Response List Project Run Threads Smr Projects  Project Id  Runs  Run
+                  Id  Manderqueue Threads Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/manderqueue/interactions:
+    get:
+      tags:
+      - smr
+      summary: List Project Run Interactions
+      operationId: list_project_run_interactions_smr_projects__project_id__runs__run_id__manderqueue_interactions_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 1000
+          minimum: 1
+          default: 200
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+                title: Response List Project Run Interactions Smr Projects  Project
+                  Id  Runs  Run Id  Manderqueue Interactions Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/manderqueue/interactions/{interaction_id}/responses:
+    post:
+      tags:
+      - smr
+      summary: Respond Project Run Interaction
+      operationId: respond_project_run_interaction_smr_projects__project_id__runs__run_id__manderqueue_interactions__interaction_id__responses_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: interaction_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Interaction Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManderqueueResponseRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Respond Project Run Interaction Smr Projects  Project
+                  Id  Runs  Run Id  Manderqueue Interactions  Interaction Id  Responses
+                  Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/manderqueue/acknowledgements:
+    post:
+      tags:
+      - smr
+      summary: Acknowledge Project Run Message
+      operationId: acknowledge_project_run_message_smr_projects__project_id__runs__run_id__manderqueue_acknowledgements_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManderqueueAckRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Acknowledge Project Run Message Smr Projects  Project
+                  Id  Runs  Run Id  Manderqueue Acknowledgements Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/manderqueue/messages/{message_id}/retract:
+    post:
+      tags:
+      - smr
+      summary: Retract Project Run Message
+      operationId: retract_project_run_message_smr_projects__project_id__runs__run_id__manderqueue_messages__message_id__retract_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: message_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Message Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Retract Project Run Message Smr Projects  Project
+                  Id  Runs  Run Id  Manderqueue Messages  Message Id  Retract Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/manderqueue/messages/{message_id}/edit:
+    post:
+      tags:
+      - smr
+      summary: Edit Project Run Message
+      operationId: edit_project_run_message_smr_projects__project_id__runs__run_id__manderqueue_messages__message_id__edit_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: message_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Message Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManderqueueEditRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Edit Project Run Message Smr Projects  Project Id  Runs  Run
+                  Id  Manderqueue Messages  Message Id  Edit Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /smr/v1/launches:
     post:
       tags:
@@ -13019,6 +13491,583 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SmrMilestoneResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/objectives:
+    get:
+      tags:
+      - smr
+      summary: List Project Objectives
+      operationId: list_project_objectives_smr_projects__project_id__objectives_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: kind
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/ParentObjectiveKind'
+          - type: 'null'
+          title: Kind
+      - name: run_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SmrObjectiveResponse'
+                title: Response List Project Objectives Smr Projects  Project Id  Objectives
+                  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - smr
+      summary: Create Project Objective
+      operationId: create_project_objective_smr_projects__project_id__objectives_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrObjectiveCreateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrObjectiveResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/objectives/{objective_id}:
+    get:
+      tags:
+      - smr
+      summary: Get Project Objective
+      operationId: get_project_objective_smr_projects__project_id__objectives__objective_id__get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: objective_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Objective Id
+      - name: kind
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/ParentObjectiveKind'
+          - type: 'null'
+          title: Kind
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrObjectiveResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - smr
+      summary: Patch Project Objective
+      operationId: patch_project_objective_smr_projects__project_id__objectives__objective_id__patch
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: objective_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Objective Id
+      - name: kind
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/ParentObjectiveKind'
+          - type: 'null'
+          title: Kind
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrObjectivePatchRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrObjectiveResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/objectives/{objective_id}/events:
+    get:
+      tags:
+      - smr
+      summary: Get Project Objective Events
+      operationId: get_project_objective_events_smr_projects__project_id__objectives__objective_id__events_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: objective_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Objective Id
+      - name: kind
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/ParentObjectiveKind'
+          - type: 'null'
+          title: Kind
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 1000
+          minimum: 1
+          default: 200
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrRunObjectiveEventsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/objectives/{objective_id}/claims:
+    post:
+      tags:
+      - smr
+      summary: Create Project Objective Progress Claim
+      operationId: create_project_objective_progress_claim_smr_projects__project_id__objectives__objective_id__claims_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: objective_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Objective Id
+      - name: kind
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/ParentObjectiveKind'
+          - type: 'null'
+          title: Kind
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrObjectiveProgressClaimCreateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrObjectiveProgressClaim'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - smr
+      summary: List Project Objective Progress Claims
+      operationId: list_project_objective_progress_claims_smr_projects__project_id__objectives__objective_id__claims_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: objective_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Objective Id
+      - name: kind
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/ParentObjectiveKind'
+          - type: 'null'
+          title: Kind
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SmrObjectiveProgressClaim'
+                title: Response List Project Objective Progress Claims Smr Projects  Project
+                  Id  Objectives  Objective Id  Claims Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/objectives/{objective_id}/progress:
+    get:
+      tags:
+      - smr
+      summary: Get Project Objective Progress
+      operationId: get_project_objective_progress_smr_projects__project_id__objectives__objective_id__progress_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: objective_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Objective Id
+      - name: kind
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/ParentObjectiveKind'
+          - type: 'null'
+          title: Kind
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrObjectiveProgressSnapshot'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/objectives/{objective_id}/tasks:
+    get:
+      tags:
+      - smr
+      summary: List Project Objective Tasks
+      operationId: list_project_objective_tasks_smr_projects__project_id__objectives__objective_id__tasks_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: objective_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Objective Id
+      - name: kind
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/ParentObjectiveKind'
+          - type: 'null'
+          title: Kind
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SmrObjectiveTaskLink'
+                title: Response List Project Objective Tasks Smr Projects  Project
+                  Id  Objectives  Objective Id  Tasks Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/objectives/{objective_id}/request-review:
+    post:
+      tags:
+      - smr
+      summary: Request Project Objective Review
+      operationId: request_project_objective_review_smr_projects__project_id__objectives__objective_id__request_review_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: objective_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Objective Id
+      - name: kind
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/ParentObjectiveKind'
+          - type: 'null'
+          title: Kind
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrObjectiveRequestReviewRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrObjectiveResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/objectives/{objective_id}/pause:
+    post:
+      tags:
+      - smr
+      summary: Pause Project Objective
+      operationId: pause_project_objective_smr_projects__project_id__objectives__objective_id__pause_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: objective_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Objective Id
+      - name: kind
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/ParentObjectiveKind'
+          - type: 'null'
+          title: Kind
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrObjectiveResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/objectives/{objective_id}/resume:
+    post:
+      tags:
+      - smr
+      summary: Resume Project Objective
+      operationId: resume_project_objective_smr_projects__project_id__objectives__objective_id__resume_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: objective_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Objective Id
+      - name: kind
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/ParentObjectiveKind'
+          - type: 'null'
+          title: Kind
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrObjectiveResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/objectives/{objective_id}/withdraw:
+    post:
+      tags:
+      - smr
+      summary: Withdraw Project Objective
+      operationId: withdraw_project_objective_smr_projects__project_id__objectives__objective_id__withdraw_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: objective_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Objective Id
+      - name: kind
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/ParentObjectiveKind'
+          - type: 'null'
+          title: Kind
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrObjectiveResponse'
         '422':
           description: Validation Error
           content:
@@ -14170,6 +15219,67 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /smr/runs/{run_id}/objective-scopes:
+    get:
+      tags:
+      - smr
+      summary: List Run Objective Scopes
+      operationId: list_run_objective_scopes_smr_runs__run_id__objective_scopes_get
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SmrObjectiveRunScopeResponse'
+                title: Response List Run Objective Scopes Smr Runs  Run Id  Objective
+                  Scopes Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - smr
+      summary: Register Run Objective Scope
+      operationId: register_run_objective_scope_smr_runs__run_id__objective_scopes_put
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrObjectiveRunScopeRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrObjectiveRunScopeResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /smr/runs/{run_id}/primary-parent/milestones:
     get:
       tags:
@@ -14622,6 +15732,129 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SmrRawTraceDownloadUrlResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/task-events:
+    get:
+      tags:
+      - smr
+      summary: Get Project Run Task Events
+      operationId: get_project_run_task_events_smr_projects__project_id__runs__run_id__task_events_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 1000
+          minimum: 1
+          default: 200
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrRunTaskEventsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/objective-events:
+    get:
+      tags:
+      - smr
+      summary: Get Project Run Objective Events
+      operationId: get_project_run_objective_events_smr_projects__project_id__runs__run_id__objective_events_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 1000
+          minimum: 1
+          default: 200
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrRunObjectiveEventsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/work-graph:
+    get:
+      tags:
+      - smr
+      summary: Get Project Run Work Graph
+      operationId: get_project_run_work_graph_smr_projects__project_id__runs__run_id__work_graph_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 1000
+          minimum: 1
+          default: 200
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrRunWorkGraphResponse'
         '422':
           description: Validation Error
           content:
@@ -19071,7 +20304,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__delete
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__get
       responses:
         '200':
           description: Successful Response
@@ -19082,7 +20315,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__delete__post__1
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__get__post__1
       responses:
         '200':
           description: Successful Response
@@ -19093,7 +20326,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__delete__delete__2
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__get__delete__2
       responses:
         '200':
           description: Successful Response
@@ -19147,101 +20380,11 @@ paths:
             application/json:
               schema: {}
   /s/{route_token}/{path}:
-    options:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__options
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
     delete:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__options__delete__1
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    post:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__options__post__2
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    put:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__options__put__3
+      operationId: synthtunnel_gateway_s__route_token___path__delete
       parameters:
       - name: route_token
         in: path
@@ -19271,7 +20414,7 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__options__get__4
+      operationId: synthtunnel_gateway_s__route_token___path__delete__get__1
       parameters:
       - name: route_token
         in: path
@@ -19301,7 +20444,97 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__options__patch__5
+      operationId: synthtunnel_gateway_s__route_token___path__delete__patch__2
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__delete__put__3
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    options:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__delete__options__4
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__delete__post__5
       parameters:
       - name: route_token
         in: path
@@ -20060,7 +21293,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/app__api__v1__admin__UsageSummaryResponse'
+                $ref: '#/components/schemas/UsageSummaryResponse'
         '422':
           description: Validation Error
           content:
@@ -23236,6 +24469,30 @@ components:
       - session_id
       title: CheckoutSessionResponse
       description: Response with checkout session URL.
+    CompleteTrainedModelAdapterUploadBody:
+      properties:
+        bucket:
+          type: string
+          title: Bucket
+        key:
+          type: string
+          title: Key
+        adapter_size_bytes:
+          type: integer
+          exclusiveMinimum: 0.0
+          title: Adapter Size Bytes
+        metadata_patch:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Metadata Patch
+      type: object
+      required:
+      - bucket
+      - key
+      - adapter_size_bytes
+      title: CompleteTrainedModelAdapterUploadBody
     ContainerEvalPackageBody:
       properties:
         kind:
@@ -24103,6 +25360,17 @@ components:
       - increase_by
       title: IncreaseLimitRequest
       description: Request to increase a limit.
+    InteractionIntent:
+      type: string
+      enum:
+      - queue
+      - steer
+      - interrupt
+      - note
+      - human_request
+      - review_request
+      - broadcast
+      title: InteractionIntent
     InternalUsageEventOut:
       properties:
         id:
@@ -24694,6 +25962,91 @@ components:
       required:
       - port
       title: LocalTarget
+    ManderqueueAckRequest:
+      properties:
+        message_id:
+          type: string
+          title: Message Id
+        subscriber_id:
+          type: string
+          title: Subscriber Id
+      type: object
+      required:
+      - message_id
+      - subscriber_id
+      title: ManderqueueAckRequest
+    ManderqueueAudienceRequest:
+      properties:
+        kind:
+          type: string
+          enum:
+          - direct
+          - selector
+          - topic
+          - human
+          - actor_group
+          - run
+          title: Kind
+          default: run
+        subscriber_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subscriber Id
+        subscriber_ids:
+          items:
+            type: string
+          type: array
+          title: Subscriber Ids
+        subscriber_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subscriber Key
+        subscriber_keys:
+          items:
+            type: string
+          type: array
+          title: Subscriber Keys
+        topic:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Topic
+        selector:
+          additionalProperties: true
+          type: object
+          title: Selector
+      type: object
+      title: ManderqueueAudienceRequest
+    ManderqueueEditRequest:
+      properties:
+        body:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Body
+        payload:
+          anyOf:
+          - {}
+          - type: 'null'
+          title: Payload
+      type: object
+      title: ManderqueueEditRequest
+    ManderqueueResponseRequest:
+      properties:
+        body:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Body
+        payload:
+          anyOf:
+          - {}
+          - type: 'null'
+          title: Payload
+      type: object
+      title: ManderqueueResponseRequest
     MeResponse:
       properties:
         org_id:
@@ -24746,6 +26099,15 @@ components:
       - role
       title: Message
       description: Chat message.
+    MessageKind:
+      type: string
+      enum:
+      - runtime_message
+      - human_question
+      - human_response
+      - review
+      - system
+      title: MessageKind
     MilestoneKind:
       type: string
       enum:
@@ -24898,6 +26260,47 @@ components:
       - logical_alias
       - action
       title: NemotronPodResponse
+    ObjectiveProgressClaimKind:
+      type: string
+      enum:
+      - progress
+      - achievement
+      title: ObjectiveProgressClaimKind
+    ObjectiveProgressClaimStatus:
+      type: string
+      enum:
+      - pending
+      - review_pending
+      - accepted
+      - rejected
+      title: ObjectiveProgressClaimStatus
+    ObjectiveRunScopeRole:
+      type: string
+      enum:
+      - primary
+      - supporting
+      - reviewer
+      - blocker
+      - out_of_scope
+      title: ObjectiveRunScopeRole
+    ObjectiveTaskKind:
+      type: string
+      enum:
+      - worker
+      - reviewer
+      - orchestrator
+      - validation
+      title: ObjectiveTaskKind
+    ObjectiveTaskLinkStatus:
+      type: string
+      enum:
+      - queued
+      - running
+      - blocked
+      - review_pending
+      - complete
+      - failed
+      title: ObjectiveTaskLinkStatus
     OrgBalanceBlock:
       properties:
         balance_cents:
@@ -24951,6 +26354,7 @@ components:
     ParentObjectiveEvaluationState:
       type: string
       enum:
+      - unevaluated
       - active
       - review_pending
       - needs_revision
@@ -24967,6 +26371,17 @@ components:
       - open_ended_question
       - directed_effort_outcome
       title: ParentObjectiveKind
+    ParentObjectiveStatus:
+      type: string
+      enum:
+      - active
+      - paused
+      - blocked
+      - review_pending
+      - complete
+      - failed
+      - withdrawn
+      title: ParentObjectiveStatus
     ParentScopeKind:
       type: string
       enum:
@@ -25838,20 +27253,18 @@ components:
           type: string
           title: Objective Id
         objective_kind:
-          type: string
-          enum:
-          - open_ended_question
-          - directed_effort_outcome
-          title: Objective Kind
+          $ref: '#/components/schemas/ParentObjectiveKind'
         title:
           type: string
           title: Title
         body:
           type: string
           title: Body
+        status:
+          $ref: '#/components/schemas/ParentObjectiveStatus'
+          default: active
         evaluation_state:
-          type: string
-          title: Evaluation State
+          $ref: '#/components/schemas/ParentObjectiveEvaluationState'
         truth_status:
           type: string
           enum:
@@ -25877,6 +27290,51 @@ components:
           - type: string
           - type: 'null'
           title: Run Id
+        progress_count:
+          type: integer
+          title: Progress Count
+          default: 0
+        achievement_count:
+          type: integer
+          title: Achievement Count
+          default: 0
+        percent_complete:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Percent Complete
+        active_task_count:
+          type: integer
+          title: Active Task Count
+          default: 0
+        pending_claim_count:
+          type: integer
+          title: Pending Claim Count
+          default: 0
+        related_run_count:
+          type: integer
+          title: Related Run Count
+          default: 0
+        budget_max_cost_cents:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Budget Max Cost Cents
+        budget_spent_cost_cents:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Budget Spent Cost Cents
+        budget_max_tokens:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Budget Max Tokens
+        budget_spent_tokens:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Budget Spent Tokens
         linked_artifact_ids:
           items:
             type: string
@@ -26236,6 +27694,73 @@ components:
       - public_key
       title: PublicKeyResponse
       description: Response model for the sealed box public key.
+    PublishManderqueueMessageRequest:
+      properties:
+        intent:
+          $ref: '#/components/schemas/InteractionIntent'
+          default: queue
+        audience:
+          $ref: '#/components/schemas/ManderqueueAudienceRequest'
+        body:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Body
+        payload:
+          anyOf:
+          - {}
+          - type: 'null'
+          title: Payload
+        message_kind:
+          $ref: '#/components/schemas/MessageKind'
+          default: runtime_message
+        thread_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Thread Id
+        parent_message_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Parent Message Id
+        visibility_policy:
+          additionalProperties: true
+          type: object
+          title: Visibility Policy
+        replay_policy:
+          additionalProperties: true
+          type: object
+          title: Replay Policy
+        fallback_policy:
+          type: string
+          enum:
+          - block
+          - queue
+          - start_turn
+          title: Fallback Policy
+          default: block
+        idempotency_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Idempotency Key
+        correlation_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Correlation Id
+        causation_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Causation Id
+        client_metadata:
+          additionalProperties: true
+          type: object
+          title: Client Metadata
+      type: object
+      title: PublishManderqueueMessageRequest
     PublishRuntimeWakeupRequest:
       properties:
         run_id:
@@ -28742,6 +30267,9 @@ components:
             type: string
           type: array
           title: Deliverable Requirements
+        status:
+          $ref: '#/components/schemas/ParentObjectiveStatus'
+          default: active
         evaluation_state:
           $ref: '#/components/schemas/ParentObjectiveEvaluationState'
         evaluation_iteration:
@@ -32439,6 +33967,778 @@ components:
       - authorize_url
       - state
       title: SmrOauthStartResponse
+    SmrObjectiveBudget:
+      properties:
+        currency:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Currency
+        max_cost_cents:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Max Cost Cents
+        spent_cost_cents:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Spent Cost Cents
+        max_tokens:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Max Tokens
+        spent_tokens:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Spent Tokens
+        max_iterations:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Max Iterations
+        used_iterations:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Used Iterations
+      type: object
+      title: SmrObjectiveBudget
+    SmrObjectiveCreateRequest:
+      properties:
+        kind:
+          $ref: '#/components/schemas/ParentObjectiveKind'
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        title:
+          type: string
+          maxLength: 500
+          minLength: 1
+          title: Title
+        description:
+          type: string
+          maxLength: 20000
+          minLength: 1
+          title: Description
+        scope:
+          type: string
+          maxLength: 20000
+          minLength: 1
+          title: Scope
+        question_text:
+          anyOf:
+          - type: string
+            maxLength: 20000
+            minLength: 1
+          - type: 'null'
+          title: Question Text
+        evidence_requirements:
+          items:
+            type: string
+          type: array
+          title: Evidence Requirements
+        resolution_criteria:
+          items:
+            type: string
+          type: array
+          title: Resolution Criteria
+        outcome_text:
+          anyOf:
+          - type: string
+            maxLength: 20000
+            minLength: 1
+          - type: 'null'
+          title: Outcome Text
+        success_criteria:
+          items:
+            type: string
+          type: array
+          title: Success Criteria
+        deliverable_requirements:
+          items:
+            type: string
+          type: array
+          title: Deliverable Requirements
+        max_evaluation_iterations:
+          type: integer
+          maximum: 100.0
+          minimum: 1.0
+          title: Max Evaluation Iterations
+          default: 1
+        budget:
+          anyOf:
+          - $ref: '#/components/schemas/SmrObjectiveBudget'
+          - type: 'null'
+        status:
+          $ref: '#/components/schemas/ParentObjectiveStatus'
+          default: active
+        idempotency_key:
+          anyOf:
+          - type: string
+            maxLength: 128
+          - type: 'null'
+          title: Idempotency Key
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      type: object
+      required:
+      - kind
+      - title
+      - description
+      - scope
+      title: SmrObjectiveCreateRequest
+    SmrObjectivePatchRequest:
+      properties:
+        expected_revision:
+          type: integer
+          minimum: 1.0
+          title: Expected Revision
+        title:
+          anyOf:
+          - type: string
+            maxLength: 500
+            minLength: 1
+          - type: 'null'
+          title: Title
+        description:
+          anyOf:
+          - type: string
+            maxLength: 20000
+            minLength: 1
+          - type: 'null'
+          title: Description
+        scope:
+          anyOf:
+          - type: string
+            maxLength: 20000
+            minLength: 1
+          - type: 'null'
+          title: Scope
+        status:
+          anyOf:
+          - $ref: '#/components/schemas/ParentObjectiveStatus'
+          - type: 'null'
+        evaluation_state:
+          anyOf:
+          - $ref: '#/components/schemas/ParentObjectiveEvaluationState'
+          - type: 'null'
+        review_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Review Summary
+        reviewer_actor_key:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Reviewer Actor Key
+        linked_artifact_ids:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Linked Artifact Ids
+        linked_entry_ids:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Linked Entry Ids
+        progress:
+          anyOf:
+          - $ref: '#/components/schemas/SmrObjectiveProgressSnapshot'
+          - type: 'null'
+        budget:
+          anyOf:
+          - $ref: '#/components/schemas/SmrObjectiveBudget'
+          - type: 'null'
+        tasks:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/SmrObjectiveTaskLink'
+            type: array
+          - type: 'null'
+          title: Tasks
+        metadata:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Metadata
+      type: object
+      required:
+      - expected_revision
+      title: SmrObjectivePatchRequest
+    SmrObjectiveProgressClaim:
+      properties:
+        claim_id:
+          type: string
+          title: Claim Id
+        objective_id:
+          type: string
+          title: Objective Id
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        actor_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor Id
+        task_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Id
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        summary:
+          type: string
+          title: Summary
+        claim_kind:
+          $ref: '#/components/schemas/ObjectiveProgressClaimKind'
+          default: progress
+        percent_complete:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: Percent Complete
+        status:
+          $ref: '#/components/schemas/ObjectiveProgressClaimStatus'
+          default: pending
+        evidence_refs:
+          items:
+            type: string
+          type: array
+          title: Evidence Refs
+        expected_remaining_work:
+          items:
+            type: string
+          type: array
+          title: Expected Remaining Work
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - claim_id
+      - objective_id
+      - summary
+      - created_at
+      title: SmrObjectiveProgressClaim
+    SmrObjectiveProgressClaimCreateRequest:
+      properties:
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        actor_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor Id
+        task_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Id
+        title:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Title
+        summary:
+          type: string
+          maxLength: 20000
+          minLength: 1
+          title: Summary
+        claim_kind:
+          $ref: '#/components/schemas/ObjectiveProgressClaimKind'
+          default: progress
+        percent_complete:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: Percent Complete
+        status:
+          $ref: '#/components/schemas/ObjectiveProgressClaimStatus'
+          default: pending
+        evidence_refs:
+          items:
+            type: string
+          type: array
+          title: Evidence Refs
+        expected_remaining_work:
+          items:
+            type: string
+          type: array
+          title: Expected Remaining Work
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      type: object
+      required:
+      - summary
+      title: SmrObjectiveProgressClaimCreateRequest
+    SmrObjectiveProgressSnapshot:
+      properties:
+        latest_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Latest Summary
+        progress_count:
+          type: integer
+          title: Progress Count
+          default: 0
+        achievement_count:
+          type: integer
+          title: Achievement Count
+          default: 0
+        percent_complete:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: Percent Complete
+        expected_remaining_work:
+          items:
+            type: string
+          type: array
+          title: Expected Remaining Work
+        evidence_refs:
+          items:
+            type: string
+          type: array
+          title: Evidence Refs
+        budget:
+          anyOf:
+          - $ref: '#/components/schemas/SmrObjectiveBudget'
+          - type: 'null'
+        updated_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Updated At
+      type: object
+      title: SmrObjectiveProgressSnapshot
+    SmrObjectiveRequestReviewRequest:
+      properties:
+        expected_revision:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Expected Revision
+        review_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Review Summary
+        reviewer_actor_key:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Reviewer Actor Key
+        evidence_refs:
+          items:
+            type: string
+          type: array
+          title: Evidence Refs
+      type: object
+      title: SmrObjectiveRequestReviewRequest
+    SmrObjectiveResponse:
+      properties:
+        objective_id:
+          type: string
+          title: Objective Id
+        objective_kind:
+          $ref: '#/components/schemas/ParentObjectiveKind'
+        org_id:
+          type: string
+          title: Org Id
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        scope_kind:
+          $ref: '#/components/schemas/ParentScopeKind'
+        status:
+          $ref: '#/components/schemas/ParentObjectiveStatus'
+        title:
+          type: string
+          title: Title
+        description:
+          type: string
+          title: Description
+        scope:
+          type: string
+          title: Scope
+        body:
+          type: string
+          title: Body
+        question_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Question Text
+        outcome_text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Outcome Text
+        evidence_requirements:
+          items:
+            type: string
+          type: array
+          title: Evidence Requirements
+        resolution_criteria:
+          items:
+            type: string
+          type: array
+          title: Resolution Criteria
+        success_criteria:
+          items:
+            type: string
+          type: array
+          title: Success Criteria
+        deliverable_requirements:
+          items:
+            type: string
+          type: array
+          title: Deliverable Requirements
+        evaluation_state:
+          $ref: '#/components/schemas/ParentObjectiveEvaluationState'
+        evaluation_iteration:
+          type: integer
+          title: Evaluation Iteration
+        max_evaluation_iterations:
+          type: integer
+          title: Max Evaluation Iterations
+        review_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Review Summary
+        reviewed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Reviewed At
+        reviewer_actor_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reviewer Actor Key
+        linked_artifact_ids:
+          items:
+            type: string
+          type: array
+          title: Linked Artifact Ids
+        linked_entry_ids:
+          items:
+            type: string
+          type: array
+          title: Linked Entry Ids
+        progress:
+          $ref: '#/components/schemas/SmrObjectiveProgressSnapshot'
+        tasks:
+          items:
+            $ref: '#/components/schemas/SmrObjectiveTaskLink'
+          type: array
+          title: Tasks
+        claims:
+          items:
+            $ref: '#/components/schemas/SmrObjectiveProgressClaim'
+          type: array
+          title: Claims
+        related_runs:
+          items:
+            $ref: '#/components/schemas/SmrObjectiveRunLink'
+          type: array
+          title: Related Runs
+        reviewer_decisions:
+          items:
+            $ref: '#/components/schemas/SmrObjectiveReviewDecision'
+          type: array
+          title: Reviewer Decisions
+        revision:
+          type: integer
+          title: Revision
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - objective_id
+      - objective_kind
+      - org_id
+      - project_id
+      - scope_kind
+      - status
+      - title
+      - description
+      - scope
+      - body
+      - evaluation_state
+      - evaluation_iteration
+      - max_evaluation_iterations
+      - revision
+      - created_at
+      - updated_at
+      title: SmrObjectiveResponse
+    SmrObjectiveReviewDecision:
+      properties:
+        decision_id:
+          type: string
+          title: Decision Id
+        objective_id:
+          type: string
+          title: Objective Id
+        evaluation_state:
+          $ref: '#/components/schemas/ParentObjectiveEvaluationState'
+        review_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Review Summary
+        reviewer_actor_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reviewer Actor Key
+        evidence_refs:
+          items:
+            type: string
+          type: array
+          title: Evidence Refs
+        decided_at:
+          type: string
+          format: date-time
+          title: Decided At
+      type: object
+      required:
+      - decision_id
+      - objective_id
+      - evaluation_state
+      - decided_at
+      title: SmrObjectiveReviewDecision
+    SmrObjectiveRunLink:
+      properties:
+        run_id:
+          type: string
+          title: Run Id
+        role:
+          $ref: '#/components/schemas/ObjectiveRunScopeRole'
+          default: primary
+        state:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: State
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+        updated_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Updated At
+      type: object
+      required:
+      - run_id
+      title: SmrObjectiveRunLink
+    SmrObjectiveRunScopeRequest:
+      properties:
+        objective_id:
+          type: string
+          title: Objective Id
+        objective_kind:
+          $ref: '#/components/schemas/ParentObjectiveKind'
+        scope_role:
+          $ref: '#/components/schemas/ObjectiveRunScopeRole'
+        registered_by_actor_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Registered By Actor Id
+        reason:
+          anyOf:
+          - type: string
+            maxLength: 20000
+          - type: 'null'
+          title: Reason
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      type: object
+      required:
+      - objective_id
+      - objective_kind
+      - scope_role
+      title: SmrObjectiveRunScopeRequest
+    SmrObjectiveRunScopeResponse:
+      properties:
+        objective_run_scope_id:
+          type: string
+          title: Objective Run Scope Id
+        objective_id:
+          type: string
+          title: Objective Id
+        objective_kind:
+          $ref: '#/components/schemas/ParentObjectiveKind'
+        run_id:
+          type: string
+          title: Run Id
+        scope_role:
+          $ref: '#/components/schemas/ObjectiveRunScopeRole'
+        registered_by_actor_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Registered By Actor Id
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - objective_run_scope_id
+      - objective_id
+      - objective_kind
+      - run_id
+      - scope_role
+      - created_at
+      - updated_at
+      title: SmrObjectiveRunScopeResponse
+    SmrObjectiveTaskLink:
+      properties:
+        task_id:
+          type: string
+          title: Task Id
+        objective_id:
+          type: string
+          title: Objective Id
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        actor_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor Id
+        title:
+          type: string
+          title: Title
+        status:
+          $ref: '#/components/schemas/ObjectiveTaskLinkStatus'
+          default: queued
+        task_kind:
+          $ref: '#/components/schemas/ObjectiveTaskKind'
+          default: worker
+        assigned_to:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Assigned To
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+        latest_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Latest Summary
+        evidence_refs:
+          items:
+            type: string
+          type: array
+          title: Evidence Refs
+      type: object
+      required:
+      - task_id
+      - objective_id
+      - title
+      title: SmrObjectiveTaskLink
     SmrOnboardingCompleteStepRequest:
       properties:
         step:
@@ -32653,6 +34953,9 @@ components:
             type: string
           type: array
           title: Resolution Criteria
+        status:
+          $ref: '#/components/schemas/ParentObjectiveStatus'
+          default: active
         evaluation_state:
           $ref: '#/components/schemas/ParentObjectiveEvaluationState'
         evaluation_iteration:
@@ -33008,13 +35311,14 @@ components:
     SmrPrimaryParentRefRequest:
       properties:
         kind:
-          $ref: '#/components/schemas/ParentObjectiveKind'
+          anyOf:
+          - $ref: '#/components/schemas/ParentObjectiveKind'
+          - type: 'null'
         id:
           type: string
           title: Id
       type: object
       required:
-      - kind
       - id
       title: SmrPrimaryParentRefRequest
     SmrPrimaryParentRefResponse:
@@ -36419,6 +38723,10 @@ components:
           $ref: '#/components/schemas/SmrRunTaskGraphResponse'
         execution_results:
           $ref: '#/components/schemas/SmrRunExecutionResultsResponse'
+        workspace_archive:
+          anyOf:
+          - $ref: '#/components/schemas/SmrRunWorkspaceArchive'
+          - type: 'null'
       type: object
       required:
       - project_id
@@ -36514,6 +38822,19 @@ components:
           default: 0
       type: object
       title: SmrRunDurableTraceSummaryResponse
+    SmrRunEventCursorResponse:
+      properties:
+        order:
+          type: string
+          title: Order
+          default: occurred_at_asc_event_id_asc
+        next:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next
+      type: object
+      title: SmrRunEventCursorResponse
     SmrRunEventLogEntryResponse:
       properties:
         event_log_id:
@@ -37405,6 +39726,7 @@ components:
           enum:
           - project_repo
           - branch_artifact
+          - workspace_push
           - none
           title: Source
           default: none
@@ -37773,6 +40095,114 @@ components:
       - created_at
       - updated_at
       title: SmrRunManualTickRequestResponse
+    SmrRunObjectiveEventResponse:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+        event_kind:
+          type: string
+          title: Event Kind
+        objective_kind:
+          type: string
+          title: Objective Kind
+        objective_id:
+          type: string
+          title: Objective Id
+        actor_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor Id
+        task_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Id
+        previous_status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Previous Status
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+        previous_evaluation_state:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Previous Evaluation State
+        evaluation_state:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Evaluation State
+        summary:
+          type: string
+          title: Summary
+        source:
+          type: string
+          title: Source
+        source_row_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Row Kind
+        source_row_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Row Id
+        payload:
+          additionalProperties: true
+          type: object
+          title: Payload
+        occurred_at:
+          type: string
+          format: date-time
+          title: Occurred At
+      type: object
+      required:
+      - event_id
+      - event_kind
+      - objective_kind
+      - objective_id
+      - summary
+      - source
+      - occurred_at
+      title: SmrRunObjectiveEventResponse
+    SmrRunObjectiveEventsResponse:
+      properties:
+        schema_version:
+          type: string
+          title: Schema Version
+          default: smr_objective_events.v1
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        generated_at:
+          type: string
+          format: date-time
+          title: Generated At
+        events:
+          items:
+            $ref: '#/components/schemas/SmrRunObjectiveEventResponse'
+          type: array
+          title: Events
+        cursor:
+          $ref: '#/components/schemas/SmrRunEventCursorResponse'
+      type: object
+      required:
+      - project_id
+      - generated_at
+      title: SmrRunObjectiveEventsResponse
     SmrRunObservabilityActorCollectionResponse:
       properties:
         total_count:
@@ -38924,6 +41354,114 @@ components:
       - http_status
       - message
       title: SmrRunStartBlockerResponse
+    SmrRunTaskEventResponse:
+      properties:
+        event_id:
+          type: string
+          title: Event Id
+        event_kind:
+          type: string
+          title: Event Kind
+        display_kind:
+          type: string
+          title: Display Kind
+        task_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Id
+        task_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Task Key
+        actor_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor Id
+        actor_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor Label
+        participant_role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Participant Role
+        previous_state:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Previous State
+        state:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: State
+        summary:
+          type: string
+          title: Summary
+        source:
+          type: string
+          title: Source
+        source_row_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Row Kind
+        source_row_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Row Id
+        payload:
+          additionalProperties: true
+          type: object
+          title: Payload
+        occurred_at:
+          type: string
+          format: date-time
+          title: Occurred At
+      type: object
+      required:
+      - event_id
+      - event_kind
+      - display_kind
+      - summary
+      - source
+      - occurred_at
+      title: SmrRunTaskEventResponse
+    SmrRunTaskEventsResponse:
+      properties:
+        schema_version:
+          type: string
+          title: Schema Version
+          default: smr_run_task_events.v1
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          type: string
+          title: Run Id
+        generated_at:
+          type: string
+          format: date-time
+          title: Generated At
+        events:
+          items:
+            $ref: '#/components/schemas/SmrRunTaskEventResponse'
+          type: array
+          title: Events
+        cursor:
+          $ref: '#/components/schemas/SmrRunEventCursorResponse'
+      type: object
+      required:
+      - project_id
+      - run_id
+      - generated_at
+      title: SmrRunTaskEventsResponse
     SmrRunTaskGraphResponse:
       properties:
         project_id:
@@ -39358,6 +41896,37 @@ components:
       - total_charged_cents
       title: SmrRunUsageResponse
       description: 'Ledger-backed usage for one run: money + token rollup + breakdown.'
+    SmrRunWorkGraphResponse:
+      properties:
+        schema_version:
+          type: string
+          title: Schema Version
+          default: smr_run_work_graph.v1
+        project_id:
+          type: string
+          title: Project Id
+        run_id:
+          type: string
+          title: Run Id
+        generated_at:
+          type: string
+          format: date-time
+          title: Generated At
+        execution:
+          $ref: '#/components/schemas/SmrRunExecutionProjectionResponse'
+        task_events:
+          $ref: '#/components/schemas/SmrRunTaskEventsResponse'
+        objective_events:
+          $ref: '#/components/schemas/SmrRunObjectiveEventsResponse'
+      type: object
+      required:
+      - project_id
+      - run_id
+      - generated_at
+      - execution
+      - task_events
+      - objective_events
+      title: SmrRunWorkGraphResponse
     SmrRunWorkerListResponse:
       properties:
         project_id:
@@ -39527,6 +42096,49 @@ components:
       - run_id
       - state
       title: SmrRunWorkerResponse
+    SmrRunWorkspaceArchive:
+      properties:
+        download_url:
+          type: string
+          title: Download Url
+        size_bytes:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Size Bytes
+        commit_sha:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Commit Sha
+        digest:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Digest
+        archive_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Archive Key
+        last_push_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Push At
+      type: object
+      required:
+      - download_url
+      title: SmrRunWorkspaceArchive
+      description: 'Summary of the workspace tarball pushed for a run.
+
+
+        Surfaced when a run''s git state was captured by pushing the workspace
+
+        archive (source="workspace_push") so the run page can offer the archive
+
+        download even when /outputs only carries checkpoint manifests.'
     SmrRunbookPresetCatalogEntry:
       properties:
         id:
@@ -39630,6 +42242,13 @@ components:
             type: string
           type: array
           title: Worker Profile Ids
+        actor_profile_id:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Actor Profile Id
         actor_model_assignments:
           items:
             $ref: '#/components/schemas/SmrActorModelSelectionRequest'
@@ -42948,6 +45567,49 @@ components:
       - urls
       - images
       title: TraceRetrievalMode
+    TrainedModelAdapterUploadUrlBody:
+      properties:
+        expires_in:
+          type: integer
+          maximum: 86400.0
+          minimum: 60.0
+          title: Expires In
+          default: 3600
+        content_type:
+          type: string
+          title: Content Type
+          default: application/gzip
+      type: object
+      title: TrainedModelAdapterUploadUrlBody
+    TrainedModelAdapterUploadUrlResponse:
+      properties:
+        model_id:
+          type: string
+          title: Model Id
+        bucket:
+          type: string
+          title: Bucket
+        key:
+          type: string
+          title: Key
+        upload_url:
+          type: string
+          title: Upload Url
+        expires_in:
+          type: integer
+          title: Expires In
+        content_type:
+          type: string
+          title: Content Type
+      type: object
+      required:
+      - model_id
+      - bucket
+      - key
+      - upload_url
+      - expires_in
+      - content_type
+      title: TrainedModelAdapterUploadUrlResponse
     TrainedModelExportResponse:
       properties:
         model_id:
@@ -43106,6 +45768,17 @@ components:
         status:
           type: string
           title: Status
+        readiness:
+          type: string
+          title: Readiness
+        export_status:
+          type: string
+          title: Export Status
+        export_error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Export Error
         metadata:
           additionalProperties: true
           type: object
@@ -43150,6 +45823,8 @@ components:
       - uplift_abs
       - train_cost_usd
       - status
+      - readiness
+      - export_status
       - metadata
       - created_at
       - updated_at
@@ -44032,6 +46707,35 @@ components:
             limit: 50000
             remaining: 47600
             used: 2400
+    UsageSummaryResponse:
+      properties:
+        org_id:
+          type: string
+          title: Org Id
+        date_range:
+          type: string
+          title: Date Range
+        total_cost_cents:
+          type: integer
+          title: Total Cost Cents
+        total_cost_dollars:
+          type: number
+          title: Total Cost Dollars
+        gpu_events_count:
+          type: integer
+          title: Gpu Events Count
+        total_gpu_seconds:
+          type: number
+          title: Total Gpu Seconds
+      type: object
+      required:
+      - org_id
+      - date_range
+      - total_cost_cents
+      - total_cost_dollars
+      - gpu_events_count
+      - total_gpu_seconds
+      title: UsageSummaryResponse
     UsageType:
       type: string
       enum:
@@ -44450,35 +47154,6 @@ components:
       required:
       - commit_sha
       title: WorkspaceConfirmPushRequest
-    app__api__v1__admin__UsageSummaryResponse:
-      properties:
-        org_id:
-          type: string
-          title: Org Id
-        date_range:
-          type: string
-          title: Date Range
-        total_cost_cents:
-          type: integer
-          title: Total Cost Cents
-        total_cost_dollars:
-          type: number
-          title: Total Cost Dollars
-        gpu_events_count:
-          type: integer
-          title: Gpu Events Count
-        total_gpu_seconds:
-          type: number
-          title: Total Gpu Seconds
-      type: object
-      required:
-      - org_id
-      - date_range
-      - total_cost_cents
-      - total_cost_dollars
-      - gpu_events_count
-      - total_gpu_seconds
-      title: UsageSummaryResponse
     app__api__v1__routes_balance__UsageSummaryResponse:
       properties:
         org_id:

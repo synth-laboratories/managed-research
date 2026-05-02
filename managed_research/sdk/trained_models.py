@@ -74,6 +74,45 @@ class TrainedModelsAPI(_ClientNamespace):
             "POST", f"/smr/trained_models/{model_id}/exports", json_body=body
         )
 
+    def create_adapter_upload_url(
+        self,
+        model_id: str,
+        *,
+        expires_in: int = 3600,
+        content_type: str = "application/gzip",
+    ) -> dict[str, Any]:
+        body = {
+            "expires_in": expires_in,
+            "content_type": content_type,
+        }
+        return self._client._request_json(
+            "POST",
+            f"/smr/trained_models/{model_id}/adapter_upload_url",
+            json_body=body,
+        )
+
+    def complete_adapter_upload(
+        self,
+        model_id: str,
+        *,
+        bucket: str,
+        key: str,
+        adapter_size_bytes: int,
+        metadata_patch: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        body = {
+            "bucket": bucket,
+            "key": key,
+            "adapter_size_bytes": adapter_size_bytes,
+        }
+        if metadata_patch is not None:
+            body["metadata_patch"] = dict(metadata_patch)
+        return self._client._request_json(
+            "POST",
+            f"/smr/trained_models/{model_id}/adapter_uploads/complete",
+            json_body=body,
+        )
+
     def update(
         self,
         model_id: str,

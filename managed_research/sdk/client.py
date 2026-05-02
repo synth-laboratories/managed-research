@@ -1727,6 +1727,50 @@ class ManagedResearchClient:
             label="export_trained_model",
         )
 
+    def create_trained_model_adapter_upload_url(
+        self,
+        model_id: str,
+        *,
+        expires_in: int = 3600,
+        content_type: str = "application/gzip",
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/trained_models/{model_id}/adapter_upload_url",
+                json_body={
+                    "expires_in": expires_in,
+                    "content_type": content_type,
+                },
+            ),
+            label="create_trained_model_adapter_upload_url",
+        )
+
+    def complete_trained_model_adapter_upload(
+        self,
+        model_id: str,
+        *,
+        bucket: str,
+        key: str,
+        adapter_size_bytes: int,
+        metadata_patch: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {
+            "bucket": bucket,
+            "key": key,
+            "adapter_size_bytes": adapter_size_bytes,
+        }
+        if metadata_patch is not None:
+            body["metadata_patch"] = dict(metadata_patch)
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/trained_models/{model_id}/adapter_uploads/complete",
+                json_body=body,
+            ),
+            label="complete_trained_model_adapter_upload",
+        )
+
     def get_work_product_export(self, export_id: str) -> dict[str, Any]:
         return _coerce_dict(
             self._request_json("GET", f"/smr/work-product-exports/{export_id}"),
@@ -2429,7 +2473,7 @@ class ManagedResearchClient:
             self._request_json("GET", "/smr/runbook-presets"),
             label="list_runbook_presets",
         )
-        raw_presets = payload["runbook_presets"] if "runbook_presets" in payload else []
+        raw_presets = payload.get("runbook_presets", [])
         if not isinstance(raw_presets, list):
             raise SmrApiError("Invalid runbook preset catalog payload: runbook_presets must be a list")
         presets: list[SmrRunbookPreset] = []
@@ -3968,6 +4012,31 @@ class ManagedResearchClient:
             label="get_run_cost_summary",
         )
         return SmrRunCostSummary.from_wire(payload)
+
+    def report_tinker_training_usage(
+        self,
+        run_id: str,
+        *,
+        actual_cost_usd: float | None = None,
+        estimated_cost_usd: float | None = None,
+        model: str | None = None,
+        task_id: str | None = None,
+        idempotency_key: str | None = None,
+        provider_result_id: str | None = None,
+        request_id: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self.run_cost.report_tinker_training_usage(
+            run_id,
+            actual_cost_usd=actual_cost_usd,
+            estimated_cost_usd=estimated_cost_usd,
+            model=model,
+            task_id=task_id,
+            idempotency_key=idempotency_key,
+            provider_result_id=provider_result_id,
+            request_id=request_id,
+            metadata=metadata,
+        )
 
     def branch_run_from_checkpoint(
         self,
