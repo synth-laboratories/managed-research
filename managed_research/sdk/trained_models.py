@@ -12,6 +12,11 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from managed_research.models.work_products import (
+    ManagedResearchTrainedModel,
+    ManagedResearchTrainedModelAdapterUploadUrl,
+    ManagedResearchTrainedModelExport,
+)
 from managed_research.sdk._base import _ClientNamespace
 
 
@@ -31,7 +36,7 @@ class TrainedModelsAPI(_ClientNamespace):
         uplift_abs: float | None = None,
         train_cost_usd: float | None = None,
         metadata: Mapping[str, Any] | None = None,
-    ) -> dict[str, Any]:
+    ) -> ManagedResearchTrainedModel:
         body = {
             "run_id": run_id,
             "base_model": base_model,
@@ -48,16 +53,24 @@ class TrainedModelsAPI(_ClientNamespace):
             "train_cost_usd": train_cost_usd,
             "metadata": dict(metadata or {}),
         }
-        return self._client._request_json("POST", "/smr/trained_models", json_body=body)
+        return ManagedResearchTrainedModel.from_wire(
+            self._client._request_json("POST", "/smr/trained_models", json_body=body)
+        )
 
-    def get(self, model_id: str) -> dict[str, Any]:
-        return self._client._request_json("GET", f"/smr/trained_models/{model_id}")
+    def get(self, model_id: str) -> ManagedResearchTrainedModel:
+        return ManagedResearchTrainedModel.from_wire(
+            self._client._request_json("GET", f"/smr/trained_models/{model_id}")
+        )
 
-    def list_for_run(self, run_id: str) -> list[dict[str, Any]]:
+    def list_for_run(self, run_id: str) -> list[ManagedResearchTrainedModel]:
         result = self._client._request_json(
             "GET", f"/smr/runs/{run_id}/trained_models"
         )
-        return list(result) if isinstance(result, list) else []
+        return [
+            ManagedResearchTrainedModel.from_wire(item)
+            for item in (list(result) if isinstance(result, list) else [])
+            if isinstance(item, Mapping)
+        ]
 
     def export(
         self,
@@ -65,13 +78,15 @@ class TrainedModelsAPI(_ClientNamespace):
         *,
         destination: Mapping[str, Any],
         idempotency_key: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> ManagedResearchTrainedModelExport:
         body = {
             "destination": dict(destination),
             "idempotency_key": idempotency_key,
         }
-        return self._client._request_json(
-            "POST", f"/smr/trained_models/{model_id}/exports", json_body=body
+        return ManagedResearchTrainedModelExport.from_wire(
+            self._client._request_json(
+                "POST", f"/smr/trained_models/{model_id}/exports", json_body=body
+            )
         )
 
     def create_adapter_upload_url(
@@ -80,15 +95,17 @@ class TrainedModelsAPI(_ClientNamespace):
         *,
         expires_in: int = 3600,
         content_type: str = "application/gzip",
-    ) -> dict[str, Any]:
+    ) -> ManagedResearchTrainedModelAdapterUploadUrl:
         body = {
             "expires_in": expires_in,
             "content_type": content_type,
         }
-        return self._client._request_json(
-            "POST",
-            f"/smr/trained_models/{model_id}/adapter_upload_url",
-            json_body=body,
+        return ManagedResearchTrainedModelAdapterUploadUrl.from_wire(
+            self._client._request_json(
+                "POST",
+                f"/smr/trained_models/{model_id}/adapter_upload_url",
+                json_body=body,
+            )
         )
 
     def complete_adapter_upload(
@@ -99,7 +116,7 @@ class TrainedModelsAPI(_ClientNamespace):
         key: str,
         adapter_size_bytes: int,
         metadata_patch: Mapping[str, Any] | None = None,
-    ) -> dict[str, Any]:
+    ) -> ManagedResearchTrainedModel:
         body = {
             "bucket": bucket,
             "key": key,
@@ -107,10 +124,12 @@ class TrainedModelsAPI(_ClientNamespace):
         }
         if metadata_patch is not None:
             body["metadata_patch"] = dict(metadata_patch)
-        return self._client._request_json(
-            "POST",
-            f"/smr/trained_models/{model_id}/adapter_uploads/complete",
-            json_body=body,
+        return ManagedResearchTrainedModel.from_wire(
+            self._client._request_json(
+                "POST",
+                f"/smr/trained_models/{model_id}/adapter_uploads/complete",
+                json_body=body,
+            )
         )
 
     def update(
@@ -122,7 +141,7 @@ class TrainedModelsAPI(_ClientNamespace):
         train_cost_usd: float | None = None,
         status: str | None = None,
         metadata_patch: Mapping[str, Any] | None = None,
-    ) -> dict[str, Any]:
+    ) -> ManagedResearchTrainedModel:
         body: dict[str, Any] = {}
         if tuned_metric is not None:
             body["tuned_metric"] = tuned_metric
@@ -134,13 +153,17 @@ class TrainedModelsAPI(_ClientNamespace):
             body["status"] = status
         if metadata_patch is not None:
             body["metadata_patch"] = dict(metadata_patch)
-        return self._client._request_json(
-            "PATCH", f"/smr/trained_models/{model_id}", json_body=body
+        return ManagedResearchTrainedModel.from_wire(
+            self._client._request_json(
+                "PATCH", f"/smr/trained_models/{model_id}", json_body=body
+            )
         )
 
-    def delete(self, model_id: str) -> dict[str, Any]:
-        return self._client._request_json(
-            "DELETE", f"/smr/trained_models/{model_id}"
+    def delete(self, model_id: str) -> ManagedResearchTrainedModel:
+        return ManagedResearchTrainedModel.from_wire(
+            self._client._request_json(
+                "DELETE", f"/smr/trained_models/{model_id}"
+            )
         )
 
 

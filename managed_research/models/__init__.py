@@ -141,6 +141,10 @@ from managed_research.models.run_state import (
     ManagedResearchRunTerminalOutcome,
     RunState,
 )
+from managed_research.models.work_products import (
+    ManagedResearchTrainedModelAdapterUploadUrl,
+    ManagedResearchTrainedModelExport,
+)
 from managed_research.models.run_timeline import (
     SmrAuthorityReadouts,
     SmrBranchMode,
@@ -372,6 +376,8 @@ __all__ = [
     "ManagedResearchRunWorkProductArtifactLink",
     "ManagedResearchRunWorkProducts",
     "ManagedResearchTrainedModel",
+    "ManagedResearchTrainedModelAdapterUploadUrl",
+    "ManagedResearchTrainedModelExport",
     "ManagedResearchRunControlAck",
     "ManagedResearchRunControlEnqueueStatus",
     "ManagedResearchRunControlError",
