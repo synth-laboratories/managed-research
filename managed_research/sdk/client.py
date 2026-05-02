@@ -1671,6 +1671,25 @@ class ManagedResearchClient:
             label="export_run_work_product",
         )
 
+    def export_trained_model(
+        self,
+        model_id: str,
+        *,
+        destination: Mapping[str, Any],
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/trained_models/{model_id}/exports",
+                json_body={
+                    "destination": dict(destination),
+                    "idempotency_key": idempotency_key,
+                },
+            ),
+            label="export_trained_model",
+        )
+
     def get_work_product_export(self, export_id: str) -> dict[str, Any]:
         return _coerce_dict(
             self._request_json("GET", f"/smr/work-product-exports/{export_id}"),

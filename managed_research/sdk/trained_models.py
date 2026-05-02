@@ -1,9 +1,10 @@
 """Trained-model registry SDK namespace.
 
 Wraps the ``/smr/trained_models`` and ``/smr/runs/{run_id}/trained_models``
-routes. Used by agents to register a Tinker LoRA after training, update its
-metrics once offline eval is done, and tear down the adapter (Tinker + Wasabi
-+ PG) at end of run.
+routes. Used by agents to register a Tinker LoRA after training, publish it
+as a model WorkProduct, update metrics once offline eval is done, queue exports
+to Hugging Face or S3-compatible storage, and deliberately tear down temporary
+adapters when they are not user-facing deliverables.
 """
 
 from __future__ import annotations
@@ -57,6 +58,21 @@ class TrainedModelsAPI(_ClientNamespace):
             "GET", f"/smr/runs/{run_id}/trained_models"
         )
         return list(result) if isinstance(result, list) else []
+
+    def export(
+        self,
+        model_id: str,
+        *,
+        destination: Mapping[str, Any],
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        body = {
+            "destination": dict(destination),
+            "idempotency_key": idempotency_key,
+        }
+        return self._client._request_json(
+            "POST", f"/smr/trained_models/{model_id}/exports", json_body=body
+        )
 
     def update(
         self,

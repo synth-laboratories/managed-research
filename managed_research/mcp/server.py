@@ -9,20 +9,20 @@ from typing import Any
 
 from managed_research.auth import get_api_key
 from managed_research.errors import SmrApiError
+from managed_research.mcp.objective_tools import (
+    CompatObjectiveToolOperation,
+    ObjectiveToolOperation,
+    RunObjectiveScopeToolOperation,
+    compat_objective_tool_operation_from_wire,
+    objective_tool_operation_from_wire,
+    run_objective_scope_tool_operation_from_wire,
+)
 from managed_research.mcp.registry import (
     JSONDict,
     ToolDefinition,
     build_tool_registry,
     call_tool,
     list_tool_payload,
-)
-from managed_research.mcp.objective_tools import (
-    CompatObjectiveToolOperation,
-    compat_objective_tool_operation_from_wire,
-    ObjectiveToolOperation,
-    objective_tool_operation_from_wire,
-    RunObjectiveScopeToolOperation,
-    run_objective_scope_tool_operation_from_wire,
 )
 from managed_research.mcp.request_models import (
     OneOffRunLaunchRequest,
@@ -763,6 +763,18 @@ class ManagedResearchMcpServer:
         run_id = require_string(args, "run_id")
         with self._client_from_args(args) as client:
             return client.trained_models.list_for_run(run_id)
+
+    def _tool_export_trained_model(self, args: JSONDict) -> Any:
+        model_id = require_string(args, "model_id")
+        destination = args.get("destination")
+        if not isinstance(destination, dict):
+            raise ValueError("destination must be an object")
+        with self._client_from_args(args) as client:
+            return client.trained_models.export(
+                model_id,
+                destination=destination,
+                idempotency_key=optional_string(args, "idempotency_key"),
+            )
 
     def _tool_update_trained_model(self, args: JSONDict) -> Any:
         model_id = require_string(args, "model_id")

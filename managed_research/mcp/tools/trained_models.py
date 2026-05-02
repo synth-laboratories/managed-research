@@ -71,6 +71,32 @@ def build_trained_model_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_list_trained_models_for_run,
         ),
         ToolDefinition(
+            name="smr_export_trained_model",
+            description=(
+                "Queue export of a registered trained-model WorkProduct to an "
+                "external destination. Use destination.kind='huggingface' for a "
+                "Hugging Face model repository request, or 'wasabi_s3'/'s3' for "
+                "S3-compatible storage. The response contains the WorkProduct "
+                "export id and queued status."
+            ),
+            input_schema=tool_schema(
+                {
+                    "model_id": {"type": "string"},
+                    "destination": {
+                        "type": "object",
+                        "description": (
+                            "Destination descriptor. For Hugging Face include "
+                            "repo_id and optional private; for S3 include bucket "
+                            "and prefix/key."
+                        ),
+                    },
+                    "idempotency_key": {"type": "string"},
+                },
+                required=["model_id", "destination"],
+            ),
+            handler=server._tool_export_trained_model,
+        ),
+        ToolDefinition(
             name="smr_update_trained_model",
             description=(
                 "Patch metrics on a trained-model record — typically called after "
