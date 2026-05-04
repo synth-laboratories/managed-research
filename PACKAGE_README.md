@@ -8,6 +8,12 @@ Use Managed Research when you want a repeatable run instead of an untraceable
 chat transcript: attach repositories and context, launch work from Python or
 MCP, and read back logs, checkpoints, artifacts, PRs, usage, and final reports.
 
+## Engineering style
+
+Contributors should follow **Synth Style** (engineering rules for contracts,
+errors, and structure). The canonical Markdown copy lives in the **backend**
+repository: [`specifications/tanha/references/synthstyle.md`](https://github.com/synth-laboratories/backend/blob/dev/specifications/tanha/references/synthstyle.md).
+
 ## Installation
 
 ```bash

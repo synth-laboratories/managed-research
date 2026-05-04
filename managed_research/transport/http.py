@@ -1,7 +1,14 @@
-"""HTTP transport helpers for the Managed Research SDK."""
+"""HTTP transport helpers for the Managed Research SDK.
+
+Maps backend error bodies to typed SDK exceptions; non-JSON bodies fall back to
+generic messages rather than failing the transport with a parse error.
+
+# See: Synth Style — translate at the edge; preserve causes with ``from exc``.
+"""
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -23,7 +30,7 @@ from managed_research.errors import (
 def _error_message(response: httpx.Response) -> str:
     try:
         payload = response.json()
-    except Exception:
+    except json.JSONDecodeError:
         payload = None
     if isinstance(payload, dict):
         detail = payload.get("detail")
@@ -45,7 +52,7 @@ def _raise_for_error_response(response: httpx.Response) -> None:
     """Map FastAPI ``{"detail": {"error_code": ...}}`` bodies to typed SDK errors."""
     try:
         payload = response.json()
-    except Exception:
+    except json.JSONDecodeError:
         payload = None
     if isinstance(payload, dict):
         detail = payload.get("detail")
@@ -172,7 +179,7 @@ class SmrHttpTransport:
             return {}
         try:
             return response.json()
-        except Exception as exc:
+        except json.JSONDecodeError as exc:
             raise SmrApiError(
                 f"{method} {path} returned a non-JSON response",
                 status_code=response.status_code,

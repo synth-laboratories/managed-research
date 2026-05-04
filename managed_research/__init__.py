@@ -1,4 +1,9 @@
-"""Public Managed Research package."""
+"""Public Managed Research package.
+
+# See: Synth Style — ``specifications/tanha/references/synthstyle.md`` in the
+# backend repo (synth-laboratories/backend). This package mirrors those rules for
+# errors, contracts, and naming where they apply to the Python SDK surface.
+"""
 
 from managed_research.errors import (
     ManagedResearchError,

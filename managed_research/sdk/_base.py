@@ -1,4 +1,10 @@
-"""Shared base for SDK namespace wrappers."""
+"""Shared base for SDK namespace wrappers.
+
+Namespaces close over the public client so transport and request shaping stay in
+one place (principle: sparse interconnects from SDK subtrees to the control client).
+
+# See: Synth Style — ``specifications/tanha/references/synthstyle.md`` (backend repo).
+"""
 
 from __future__ import annotations
 

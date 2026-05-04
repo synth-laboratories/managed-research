@@ -1,22 +1,42 @@
-"""Package version derived from package metadata or pyproject.toml."""
+"""Package version derived from package metadata or pyproject.toml.
+
+Order: installed distribution metadata (normal installs), then parsing this repo's
+``pyproject.toml`` (editable checkouts), then ``0.0.0.dev0`` only when both fail.
+The last case is explicitly degraded; enable logging at DEBUG to see the cause.
+
+# See: Synth Style — avoid silent failure; degradation is logged, not swallowed quietly.
+"""
 
 from __future__ import annotations
 
+import logging
+import tomllib
 from importlib import metadata as _metadata
 from importlib.metadata import PackageNotFoundError
 from pathlib import Path
+
+_logger = logging.getLogger(__name__)
 
 try:
     __version__ = _metadata.version("managed-research")
 except PackageNotFoundError:
     try:
-        import tomllib as _toml
-
         pyproject_path = Path(__file__).resolve().parents[1] / "pyproject.toml"
         with pyproject_path.open("rb") as fh:
-            _pyproject = _toml.load(fh)
+            _pyproject = tomllib.load(fh)
         __version__ = str(_pyproject["project"]["version"])
-    except Exception:
+    except (
+        OSError,
+        TypeError,
+        KeyError,
+        ValueError,
+        UnicodeDecodeError,
+        tomllib.TOMLDecodeError,
+    ) as exc:
+        _logger.debug(
+            "managed-research: could not read version from pyproject.toml; using dev placeholder",
+            exc_info=exc,
+        )
         __version__ = "0.0.0.dev0"
 
 __all__ = ["__version__"]

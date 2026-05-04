@@ -1,4 +1,11 @@
-"""Public models for the remigration surface."""
+"""Public models for Managed Research wire shapes (kickoff contracts, workspace, preflight).
+
+Parse and validate JSON-like payloads at the trust boundary into dataclasses; callers
+should use typed attributes after ``from_wire`` rather than probing raw mappings.
+
+# See: Synth Style — ``specifications/tanha/references/synthstyle.md`` in the
+# backend repo; backend SMR owns authoritative kickoff and work-product contracts.
+"""
 
 from __future__ import annotations
 
@@ -275,6 +282,14 @@ class KickoffContractFile:
 
 @dataclass(frozen=True)
 class RequiredWorkProductSpec:
+    """Structured obligation the run must publish (report, model, or container eval).
+
+    Replaces legacy path-or-filename kickoff fields so completion criteria stay
+    aligned with backend ``WorkProduct`` kinds instead of ad-hoc file lists.
+
+    # See: backend ``services/smr/work_products`` and Synth Style "contracts" rules.
+    """
+
     kind: str
     subtype: str | None = None
     title: str | None = None
@@ -321,6 +336,14 @@ class RequiredWorkProductSpec:
 
 @dataclass(frozen=True)
 class KickoffContract:
+    """Run kickoff contract mirrored from the backend SMR API.
+
+    Legacy fields such as ``required_output_files`` are rejected so SDK clients
+    cannot accidentally emit shapes the server stopped accepting.
+
+    # See: backend run/kickoff handlers; Synth Style — fail fast on unknown contract keys.
+    """
+
     schema_version: int
     contract_kind: str
     run_objective: str
@@ -416,6 +439,12 @@ class KickoffContract:
 
 
 def _reject_legacy_file_contract_fields(mapping: Mapping[str, object]) -> None:
+    """Fail fast when wire payloads still use removed kickoff file-list keys.
+
+    Backend migrated to ``required_work_products``; keeping the old keys silent would
+    let callers think outputs were specified when the server ignores those fields.
+    """
+
     for field_name in (
         "required_output_files",
         "required_output_paths",
