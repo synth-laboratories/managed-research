@@ -341,8 +341,7 @@ def _primary_objective_ref_payload(
         return None
     if primary_parent_ref is not None or primary_parent is not None:
         raise ValueError(
-            "primary_objective_id cannot be combined with primary_parent_ref "
-            "or primary_parent"
+            "primary_objective_id cannot be combined with primary_parent_ref or primary_parent"
         )
     payload: dict[str, Any] = {"id": objective_id}
     if objective_kind:
@@ -354,8 +353,7 @@ def _build_project_run_payload(
     *,
     host_kind: SmrHostKind | str | None = None,
     work_mode: SmrWorkMode | str | None = None,
-    providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]]
-    | None = None,
+    providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]] | None = None,
     limit: UsageLimit | Mapping[str, Any] | dict[str, Any] | None = None,
     worker_pool_id: str | None = None,
     runbook: SmrRunbookKind | str | None = None,
@@ -530,10 +528,12 @@ def _build_project_run_payload(
         if isinstance(kickoff_contract, KickoffContract):
             payload["kickoff_contract"] = kickoff_contract.to_wire()
         else:
-            payload["kickoff_contract"] = _optional_mapping(
-                kickoff_contract,
-                field_name="kickoff_contract",
-            )
+            payload["kickoff_contract"] = KickoffContract.from_wire(
+                _optional_mapping(
+                    kickoff_contract,
+                    field_name="kickoff_contract",
+                )
+            ).to_wire()
     if resource_bindings is not None:
         if isinstance(resource_bindings, RunResourceBindings):
             normalized_resource_bindings = resource_bindings.to_wire()
@@ -1673,13 +1673,9 @@ class ManagedResearchClient:
             label="list_project_outputs",
         )
 
-    def list_run_work_products(
-        self, project_id: str, run_id: str
-    ) -> list[dict[str, Any]]:
+    def list_run_work_products(self, project_id: str, run_id: str) -> list[dict[str, Any]]:
         return _coerce_dict_list(
-            self._request_json(
-                "GET", f"/smr/projects/{project_id}/runs/{run_id}/work-products"
-            ),
+            self._request_json("GET", f"/smr/projects/{project_id}/runs/{run_id}/work-products"),
             label="list_run_work_products",
         )
 
@@ -2475,11 +2471,15 @@ class ManagedResearchClient:
         )
         raw_presets = payload.get("runbook_presets", [])
         if not isinstance(raw_presets, list):
-            raise SmrApiError("Invalid runbook preset catalog payload: runbook_presets must be a list")
+            raise SmrApiError(
+                "Invalid runbook preset catalog payload: runbook_presets must be a list"
+            )
         presets: list[SmrRunbookPreset] = []
         for item in raw_presets:
             if not isinstance(item, Mapping):
-                raise SmrApiError("Invalid runbook preset catalog payload: preset entries must be objects")
+                raise SmrApiError(
+                    "Invalid runbook preset catalog payload: preset entries must be objects"
+                )
             try:
                 presets.append(SmrRunbookPreset.from_wire(item))
             except ValueError as exc:
@@ -3715,9 +3715,7 @@ class ManagedResearchClient:
             self._request_json(
                 "GET",
                 f"/smr/runs/{run_id}/authority-readouts",
-                params=build_query_params(
-                    include_runtime_authority=include_runtime_authority
-                ),
+                params=build_query_params(include_runtime_authority=include_runtime_authority),
             ),
             label="get_run_authority_readouts",
         )
@@ -3734,9 +3732,7 @@ class ManagedResearchClient:
             self._request_json(
                 "GET",
                 f"/smr/projects/{project_id}/runs/{run_id}/authority-readouts",
-                params=build_query_params(
-                    include_runtime_authority=include_runtime_authority
-                ),
+                params=build_query_params(include_runtime_authority=include_runtime_authority),
             ),
             label="get_project_run_authority_readouts",
         )

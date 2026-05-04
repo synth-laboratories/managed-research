@@ -273,6 +273,52 @@ class KickoffContractFile:
 
 
 @dataclass(frozen=True)
+class RequiredWorkProductSpec:
+    kind: str
+    subtype: str | None = None
+    title: str | None = None
+    description: str | None = None
+    required: bool = True
+
+    @classmethod
+    def from_wire(cls, payload: object) -> RequiredWorkProductSpec:
+        mapping = _require_mapping(payload, label="kickoff contract required_work_product")
+        kind = _require_string(
+            mapping,
+            "kind",
+            label="kickoff contract required_work_product.kind",
+        )
+        if kind not in {"report", "model", "container_eval"}:
+            raise ValueError(
+                "kickoff contract required_work_product.kind must be one of "
+                "report, model, container_eval"
+            )
+        required_value = mapping.get("required", True)
+        if not isinstance(required_value, bool):
+            raise ValueError("kickoff contract required_work_product.required must be a boolean")
+        return cls(
+            kind=kind,
+            subtype=_optional_string(mapping, "subtype"),
+            title=_optional_string(mapping, "title") or _optional_string(mapping, "label"),
+            description=_optional_string(mapping, "description"),
+            required=required_value,
+        )
+
+    def to_wire(self) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "kind": self.kind,
+            "required": self.required,
+        }
+        if self.subtype is not None:
+            payload["subtype"] = self.subtype
+        if self.title is not None:
+            payload["title"] = self.title
+        if self.description is not None:
+            payload["description"] = self.description
+        return payload
+
+
+@dataclass(frozen=True)
 class KickoffContract:
     schema_version: int
     contract_kind: str
@@ -287,8 +333,7 @@ class KickoffContract:
     dispatch_requirements: dict[str, object] = field(default_factory=dict)
     tasks: list[dict[str, object]] = field(default_factory=list)
     task_briefs: list[str] = field(default_factory=list)
-    required_output_files: list[str] = field(default_factory=list)
-    allowed_repo_paths: list[str] = field(default_factory=list)
+    required_work_products: list[RequiredWorkProductSpec] = field(default_factory=list)
     model_visible_contract_files: list[KickoffContractFile] = field(default_factory=list)
     kickoff_contract_file: str | None = None
     kickoff_contract_ref: str | None = None
@@ -296,8 +341,10 @@ class KickoffContract:
     @classmethod
     def from_wire(cls, payload: object) -> KickoffContract:
         mapping = _require_mapping(payload, label="kickoff contract")
+        _reject_legacy_file_contract_fields(mapping)
         task_payload = _optional_array(mapping, "tasks")
         file_payload = _optional_array(mapping, "model_visible_contract_files")
+        required_work_products_payload = _optional_array(mapping, "required_work_products")
         return cls(
             schema_version=_int_value(mapping, "schema_version"),
             contract_kind=_require_string(
@@ -323,14 +370,9 @@ class KickoffContract:
                 mapping.get("task_briefs"),
                 label="kickoff contract.task_briefs",
             ),
-            required_output_files=_string_list(
-                mapping.get("required_output_files"),
-                label="kickoff contract.required_output_files",
-            ),
-            allowed_repo_paths=_string_list(
-                mapping.get("allowed_repo_paths"),
-                label="kickoff contract.allowed_repo_paths",
-            ),
+            required_work_products=[
+                RequiredWorkProductSpec.from_wire(item) for item in required_work_products_payload
+            ],
             model_visible_contract_files=[
                 KickoffContractFile.from_wire(item) for item in file_payload
             ],
@@ -346,8 +388,7 @@ class KickoffContract:
             "dispatch_requirements": dict(self.dispatch_requirements),
             "tasks": [dict(item) for item in self.tasks],
             "task_briefs": list(self.task_briefs),
-            "required_output_files": list(self.required_output_files),
-            "allowed_repo_paths": list(self.allowed_repo_paths),
+            "required_work_products": [item.to_wire() for item in self.required_work_products],
             "model_visible_contract_files": [
                 item.to_wire() for item in self.model_visible_contract_files
             ],
@@ -371,6 +412,21 @@ class KickoffContract:
         if self.kickoff_contract_ref is not None:
             payload["kickoff_contract_ref"] = self.kickoff_contract_ref
         return payload
+
+
+def _reject_legacy_file_contract_fields(mapping: Mapping[str, object]) -> None:
+    for field_name in (
+        "required_output_files",
+        "required_output_paths",
+        "allowed_repo_paths",
+        "required_files",
+        "required_file_paths",
+    ):
+        if field_name in mapping:
+            raise ValueError(
+                f"kickoff contract.{field_name} is no longer supported; "
+                "use required_work_products instead"
+            )
 
 
 @dataclass(frozen=True)
@@ -1046,7 +1102,8 @@ class SmrLaunchPreflight:
                 else ()
             ),
             capabilities=frozenset(
-                ActorResourceCapability(str(item)) for item in _optional_array(mapping, "capabilities")
+                ActorResourceCapability(str(item))
+                for item in _optional_array(mapping, "capabilities")
             ),
             required_capabilities=frozenset(
                 ActorResourceCapability(str(item))

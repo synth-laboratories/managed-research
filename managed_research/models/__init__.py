@@ -225,6 +225,7 @@ from managed_research.models.types import (
     ProjectSetupAuthorityStatus,
     ProviderKeyStatus,
     RecommendedAction,
+    RequiredWorkProductSpec,
     ResourceUploadResult,
     RunCredentialBinding,
     RunFileMount,
@@ -250,6 +251,7 @@ from managed_research.models.types import (
 __all__ = [
     "KickoffContract",
     "KickoffContractFile",
+    "RequiredWorkProductSpec",
     "CredentialRef",
     "ExternalRepository",
     "ExperimentProgress",
