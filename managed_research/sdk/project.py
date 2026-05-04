@@ -12,8 +12,8 @@ from typing import Any
 from managed_research.models.project import ManagedResearchProject
 from managed_research.models.project_workspace import ProjectWorkspaceProjection
 from managed_research.models.run_control import (
-    ManagedResearchActorControlAction,
     ManagedResearchActorControlAck,
+    ManagedResearchActorControlAction,
 )
 from managed_research.models.run_state import ManagedResearchRun
 from managed_research.models.types import SmrLaunchPreflight, SmrProjectSetup
@@ -293,9 +293,7 @@ class _BoundProjectSetupAPI:
         return SmrProjectSetup.from_wire(self._client.get_project_setup(self.project_id))
 
     def get_authority(self) -> SmrProjectSetup:
-        return SmrProjectSetup.from_wire(
-            self._client.get_project_setup_authority(self.project_id)
-        )
+        return SmrProjectSetup.from_wire(self._client.get_project_setup_authority(self.project_id))
 
     def prepare(self) -> SmrProjectSetup:
         return SmrProjectSetup.from_wire(self._client.prepare_project_setup(self.project_id))

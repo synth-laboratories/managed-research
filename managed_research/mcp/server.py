@@ -504,9 +504,7 @@ class ManagedResearchMcpServer:
         project_id = require_string(args, "project_id")
         changeset_id = require_string(args, "changeset_id")
         payload = {
-            key: value
-            for key, value in args.items()
-            if key not in {"project_id", "changeset_id"}
+            key: value for key, value in args.items() if key not in {"project_id", "changeset_id"}
         }
         with self._client_from_args(args) as client:
             return client.decide_project_changeset(project_id, changeset_id, payload)
@@ -788,8 +786,7 @@ class ManagedResearchMcpServer:
             result = client.trained_models.create_adapter_upload_url(
                 model_id,
                 expires_in=optional_int(args, "expires_in") or 3600,
-                content_type=optional_string(args, "content_type")
-                or "application/gzip",
+                content_type=optional_string(args, "content_type") or "application/gzip",
             )
             return asdict(result) if is_dataclass(result) else result
 
@@ -847,9 +844,7 @@ class ManagedResearchMcpServer:
             return client.run_cost.report_tinker_training_usage(
                 run_id,
                 actual_cost_usd=self._optional_float_arg(args, "actual_cost_usd"),
-                estimated_cost_usd=self._optional_float_arg(
-                    args, "estimated_cost_usd"
-                ),
+                estimated_cost_usd=self._optional_float_arg(args, "estimated_cost_usd"),
                 model=optional_string(args, "model"),
                 task_id=optional_string(args, "task_id"),
                 idempotency_key=optional_string(args, "idempotency_key"),
@@ -1160,9 +1155,7 @@ class ManagedResearchMcpServer:
             return client.get_run_primary_parent(run_id)
 
     def _tool_run_objective_scopes(self, args: JSONDict) -> Any:
-        operation = run_objective_scope_tool_operation_from_wire(
-            require_string(args, "operation")
-        )
+        operation = run_objective_scope_tool_operation_from_wire(require_string(args, "operation"))
         run_id = require_string(args, "run_id")
         payload = args.get("payload")
         if payload is not None and not isinstance(payload, dict):
@@ -1667,9 +1660,7 @@ class ManagedResearchMcpServer:
             )
 
     def _tool_open_ended_questions(self, args: JSONDict) -> Any:
-        operation = compat_objective_tool_operation_from_wire(
-            require_string(args, "operation")
-        )
+        operation = compat_objective_tool_operation_from_wire(require_string(args, "operation"))
         project_id = require_string(args, "project_id")
         objective_id = optional_string(args, "objective_id")
         payload = args.get("payload")
@@ -1689,9 +1680,7 @@ class ManagedResearchMcpServer:
             if operation is CompatObjectiveToolOperation.PATCH:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for patch")
-                return client.patch_open_ended_question(
-                    project_id, objective_id, payload or {}
-                )
+                return client.patch_open_ended_question(project_id, objective_id, payload or {})
             if operation is CompatObjectiveToolOperation.TRANSITION:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for transition")
@@ -1757,9 +1746,7 @@ class ManagedResearchMcpServer:
         raise ValueError(f"Unsupported objective operation: {operation.value}")
 
     def _tool_directed_effort_outcomes(self, args: JSONDict) -> Any:
-        operation = compat_objective_tool_operation_from_wire(
-            require_string(args, "operation")
-        )
+        operation = compat_objective_tool_operation_from_wire(require_string(args, "operation"))
         project_id = require_string(args, "project_id")
         objective_id = optional_string(args, "objective_id")
         payload = args.get("payload")
@@ -1779,18 +1766,14 @@ class ManagedResearchMcpServer:
             if operation is CompatObjectiveToolOperation.PATCH:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for patch")
-                return client.patch_directed_effort_outcome(
-                    project_id, objective_id, payload or {}
-                )
+                return client.patch_directed_effort_outcome(project_id, objective_id, payload or {})
             if operation is CompatObjectiveToolOperation.TRANSITION:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for transition")
                 return client.transition_directed_effort_outcome(
                     project_id, objective_id, payload or {}
                 )
-        raise ValueError(
-            f"Unsupported directed-effort-outcome operation: {operation.value}"
-        )
+        raise ValueError(f"Unsupported directed-effort-outcome operation: {operation.value}")
 
     def serve_stdio(self) -> None:
         framing = "jsonl"

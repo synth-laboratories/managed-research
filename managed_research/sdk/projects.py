@@ -99,9 +99,7 @@ class ProjectsAPI(_ClientNamespace):
         return self._client.get_project_status_snapshot(project_id)
 
     def get_workspace(self, project_id: str) -> ProjectWorkspaceProjection:
-        return ProjectWorkspaceProjection.from_wire(
-            self._client.get_project_workspace(project_id)
-        )
+        return ProjectWorkspaceProjection.from_wire(self._client.get_project_workspace(project_id))
 
     def list_changesets(
         self,
@@ -176,19 +174,13 @@ class ProjectsAPI(_ClientNamespace):
         return SmrProjectSetup.from_wire(self._client.get_project_setup(project_id))
 
     def get_setup_authority(self, project_id: str) -> SmrProjectSetup:
-        return SmrProjectSetup.from_wire(
-            self._client.get_project_setup_authority(project_id)
-        )
+        return SmrProjectSetup.from_wire(self._client.get_project_setup_authority(project_id))
 
     def prepare_setup(self, project_id: str) -> SmrProjectSetup:
-        return SmrProjectSetup.from_wire(
-            self._client.prepare_project_setup(project_id)
-        )
+        return SmrProjectSetup.from_wire(self._client.prepare_project_setup(project_id))
 
     def prepare_setup_authority(self, project_id: str) -> SmrProjectSetup:
-        return SmrProjectSetup.from_wire(
-            self._client.prepare_project_setup_authority(project_id)
-        )
+        return SmrProjectSetup.from_wire(self._client.prepare_project_setup_authority(project_id))
 
     def start_onboarding(self, project_id: str) -> dict[str, Any]:
         return self._client.start_project_onboarding(project_id)
@@ -215,9 +207,7 @@ class ProjectsAPI(_ClientNamespace):
         return self._client.get_project_onboarding_status(project_id)
 
     def get_launch_preflight(self, project_id: str, **kwargs: Any) -> SmrLaunchPreflight:
-        return SmrLaunchPreflight.from_wire(
-            self._client.get_launch_preflight(project_id, **kwargs)
-        )
+        return SmrLaunchPreflight.from_wire(self._client.get_launch_preflight(project_id, **kwargs))
 
     def get_run_start_blockers(self, project_id: str, **kwargs: Any) -> SmrLaunchPreflight:
         """Backward-compatible alias for launch preflight readiness checks."""
@@ -227,9 +217,7 @@ class ProjectsAPI(_ClientNamespace):
     def list_open_ended_questions(
         self, project_id: str, *, run_id: str | None = None, limit: int | None = None
     ) -> list[dict[str, Any]]:
-        return self._client.list_open_ended_questions(
-            project_id, run_id=run_id, limit=limit
-        )
+        return self._client.list_open_ended_questions(project_id, run_id=run_id, limit=limit)
 
     def list_objectives(
         self,
@@ -292,40 +280,30 @@ class ProjectsAPI(_ClientNamespace):
     def transition_open_ended_question(
         self, project_id: str, objective_id: str, payload: dict[str, Any]
     ) -> dict[str, Any]:
-        return self._client.transition_open_ended_question(
-            project_id, objective_id, payload
-        )
+        return self._client.transition_open_ended_question(project_id, objective_id, payload)
 
     def list_directed_effort_outcomes(
         self, project_id: str, *, run_id: str | None = None, limit: int | None = None
     ) -> list[dict[str, Any]]:
-        return self._client.list_directed_effort_outcomes(
-            project_id, run_id=run_id, limit=limit
-        )
+        return self._client.list_directed_effort_outcomes(project_id, run_id=run_id, limit=limit)
 
     def create_directed_effort_outcome(
         self, project_id: str, payload: dict[str, Any]
     ) -> dict[str, Any]:
         return self._client.create_directed_effort_outcome(project_id, payload)
 
-    def get_directed_effort_outcome(
-        self, project_id: str, objective_id: str
-    ) -> dict[str, Any]:
+    def get_directed_effort_outcome(self, project_id: str, objective_id: str) -> dict[str, Any]:
         return self._client.get_directed_effort_outcome(project_id, objective_id)
 
     def patch_directed_effort_outcome(
         self, project_id: str, objective_id: str, payload: dict[str, Any]
     ) -> dict[str, Any]:
-        return self._client.patch_directed_effort_outcome(
-            project_id, objective_id, payload
-        )
+        return self._client.patch_directed_effort_outcome(project_id, objective_id, payload)
 
     def transition_directed_effort_outcome(
         self, project_id: str, objective_id: str, payload: dict[str, Any]
     ) -> dict[str, Any]:
-        return self._client.transition_directed_effort_outcome(
-            project_id, objective_id, payload
-        )
+        return self._client.transition_directed_effort_outcome(project_id, objective_id, payload)
 
     def list_milestones(
         self,
@@ -364,9 +342,7 @@ class ProjectsAPI(_ClientNamespace):
         return self._client.get_project_experiment(project_id, experiment_id)
 
     def set_provider_key(self, project_id: str, **kwargs: Any) -> ProviderKeyStatus:
-        return ProviderKeyStatus.from_wire(
-            self._client.set_provider_key(project_id, **kwargs)
-        )
+        return ProviderKeyStatus.from_wire(self._client.set_provider_key(project_id, **kwargs))
 
     def get_provider_key_status(self, project_id: str, **kwargs: Any) -> ProviderKeyStatus:
         return ProviderKeyStatus.from_wire(

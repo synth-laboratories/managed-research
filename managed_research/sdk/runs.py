@@ -12,8 +12,8 @@ from managed_research.errors import SmrApiError
 from managed_research.models.canonical_usage import SmrRunUsage
 from managed_research.models.checkpoints import Checkpoint
 from managed_research.models.run_control import (
-    ManagedResearchActorControlAction,
     ManagedResearchActorControlAck,
+    ManagedResearchActorControlAction,
     ManagedResearchRunControlAck,
 )
 from managed_research.models.run_diagnostics import (
@@ -1574,9 +1574,7 @@ class RunsAPI(_ClientNamespace):
         project_id: str,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        return self._client.publish_manderqueue_message(
-            run_id, project_id=project_id, **kwargs
-        )
+        return self._client.publish_manderqueue_message(run_id, project_id=project_id, **kwargs)
 
     def list_manderqueue_messages(
         self,
@@ -1585,9 +1583,7 @@ class RunsAPI(_ClientNamespace):
         project_id: str,
         **kwargs: Any,
     ) -> list[dict[str, Any]]:
-        return self._client.list_manderqueue_messages(
-            run_id, project_id=project_id, **kwargs
-        )
+        return self._client.list_manderqueue_messages(run_id, project_id=project_id, **kwargs)
 
     def list_manderqueue_threads(
         self,
@@ -1596,9 +1592,7 @@ class RunsAPI(_ClientNamespace):
         project_id: str,
         **kwargs: Any,
     ) -> list[dict[str, Any]]:
-        return self._client.list_manderqueue_threads(
-            run_id, project_id=project_id, **kwargs
-        )
+        return self._client.list_manderqueue_threads(run_id, project_id=project_id, **kwargs)
 
     def list_manderqueue_interactions(
         self,
@@ -1607,9 +1601,7 @@ class RunsAPI(_ClientNamespace):
         project_id: str,
         **kwargs: Any,
     ) -> list[dict[str, Any]]:
-        return self._client.list_manderqueue_interactions(
-            run_id, project_id=project_id, **kwargs
-        )
+        return self._client.list_manderqueue_interactions(run_id, project_id=project_id, **kwargs)
 
     def transcript(
         self,

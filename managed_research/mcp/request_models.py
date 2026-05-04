@@ -245,9 +245,7 @@ def _require_explicit_launch_axes(
     if providers is None:
         missing.append("providers")
     if missing:
-        raise ValueError(
-            "Provide runbook_preset or explicit launch fields: " + ", ".join(missing)
-        )
+        raise ValueError("Provide runbook_preset or explicit launch fields: " + ", ".join(missing))
 
 
 @dataclass(frozen=True)

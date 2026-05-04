@@ -55,11 +55,11 @@ from managed_research.models.project_workspace import (
     ProjectWorkspaceChangeSet,
     ProjectWorkspaceContextPack,
     ProjectWorkspaceEvent,
-    ProjectWorkspaceNextAction,
     ProjectWorkspaceExperiment,
     ProjectWorkspaceKnowledge,
     ProjectWorkspaceLaunchRisk,
     ProjectWorkspaceLinks,
+    ProjectWorkspaceNextAction,
     ProjectWorkspaceObjective,
     ProjectWorkspaceProjection,
     ProjectWorkspaceReport,
@@ -68,8 +68,8 @@ from managed_research.models.project_workspace import (
     ProjectWorkspaceSummary,
 )
 from managed_research.models.run_control import (
-    ManagedResearchActorControlAction,
     ManagedResearchActorControlAck,
+    ManagedResearchActorControlAction,
     ManagedResearchRunControlAck,
     ManagedResearchRunControlEnqueueStatus,
     ManagedResearchRunControlError,
@@ -140,10 +140,6 @@ from managed_research.models.run_state import (
     ManagedResearchRunState,
     ManagedResearchRunTerminalOutcome,
     RunState,
-)
-from managed_research.models.work_products import (
-    ManagedResearchTrainedModelAdapterUploadUrl,
-    ManagedResearchTrainedModelExport,
 )
 from managed_research.models.run_timeline import (
     SmrAuthorityReadouts,
@@ -247,6 +243,10 @@ from managed_research.models.types import (
     WorkspaceSourceRepo,
     WorkspaceUploadResult,
 )
+from managed_research.models.work_products import (
+    ManagedResearchTrainedModelAdapterUploadUrl,
+    ManagedResearchTrainedModelExport,
+)
 
 __all__ = [
     "KickoffContract",
@@ -301,6 +301,14 @@ __all__ = [
     "RunAnomalyKind",
     "RunProgress",
     "RunCredentialBinding",
+    "RunExecutionActor",
+    "RunExecutionCursor",
+    "RunExecutionEvent",
+    "RunExecutionMessage",
+    "RunExecutionProjection",
+    "RunExecutionRun",
+    "RunExecutionTask",
+    "RunExecutionWorkProductRef",
     "RunFileMount",
     "RunLifecycleDispatch",
     "RunLifecycleFailure",

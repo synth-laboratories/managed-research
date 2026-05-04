@@ -57,9 +57,7 @@ def run_objective_scope_tool_operation_from_wire(
     try:
         return RunObjectiveScopeToolOperation(value.strip().lower())
     except ValueError as exc:
-        allowed = ", ".join(
-            operation.value for operation in RunObjectiveScopeToolOperation
-        )
+        allowed = ", ".join(operation.value for operation in RunObjectiveScopeToolOperation)
         raise ValueError(f"'operation' must be one of: {allowed}") from exc
 
 

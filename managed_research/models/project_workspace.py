@@ -106,9 +106,7 @@ def _actor_control_status(
         raise ValueError(f"{key} has unknown actor control status {value!r}") from exc
 
 
-def _objective_status(
-    payload: Mapping[str, object], key: str
-) -> ProjectWorkspaceObjectiveStatus:
+def _objective_status(payload: Mapping[str, object], key: str) -> ProjectWorkspaceObjectiveStatus:
     value = _optional_string(payload, key) or ProjectWorkspaceObjectiveStatus.ACTIVE.value
     return ProjectWorkspaceObjectiveStatus(value)
 
@@ -255,13 +253,9 @@ class ProjectWorkspaceEvent:
         return cls(
             event_id=_require_string(mapping, "event_id", label="event.event_id"),
             event_kind=_require_string(mapping, "event_kind", label="event.event_kind"),
-            source_family=_require_string(
-                mapping, "source_family", label="event.source_family"
-            ),
+            source_family=_require_string(mapping, "source_family", label="event.source_family"),
             status=_require_string(mapping, "status", label="event.status"),
-            review_policy=_require_string(
-                mapping, "review_policy", label="event.review_policy"
-            ),
+            review_policy=_require_string(mapping, "review_policy", label="event.review_policy"),
             truth_status=_truth_status(mapping, "truth_status"),
             observed_at=_require_string(mapping, "observed_at", label="event.observed_at"),
             summary=_optional_string(mapping, "summary"),
@@ -313,9 +307,7 @@ class ProjectWorkspaceCanonChange:
         mapping = _require_mapping(payload, label="project workspace canon change")
         return cls(
             change_id=_require_string(mapping, "change_id", label="canon_change.change_id"),
-            change_kind=_require_string(
-                mapping, "change_kind", label="canon_change.change_kind"
-            ),
+            change_kind=_require_string(mapping, "change_kind", label="canon_change.change_kind"),
             title=_require_string(mapping, "title", label="canon_change.title"),
             source_run_id=_optional_string(mapping, "source_run_id"),
             accepted_at=_optional_string(mapping, "accepted_at"),
@@ -340,9 +332,7 @@ class ProjectWorkspaceChangeSet:
     def from_wire(cls, payload: object) -> ProjectWorkspaceChangeSet:
         mapping = _require_mapping(payload, label="project workspace changeset")
         return cls(
-            changeset_id=_require_string(
-                mapping, "changeset_id", label="changeset.changeset_id"
-            ),
+            changeset_id=_require_string(mapping, "changeset_id", label="changeset.changeset_id"),
             title=_require_string(mapping, "title", label="changeset.title"),
             status=_require_string(mapping, "status", label="changeset.status"),
             truth_status=_truth_status(mapping, "truth_status"),
@@ -480,7 +470,9 @@ class ProjectWorkspaceExperiment:
     def from_wire(cls, payload: object) -> ProjectWorkspaceExperiment:
         mapping = _require_mapping(payload, label="project workspace experiment")
         return cls(
-            experiment_id=_require_string(mapping, "experiment_id", label="experiment.experiment_id"),
+            experiment_id=_require_string(
+                mapping, "experiment_id", label="experiment.experiment_id"
+            ),
             title=_require_string(mapping, "title", label="experiment.title"),
             hypothesis=_require_string(mapping, "hypothesis", label="experiment.hypothesis"),
             status=_require_string(mapping, "status", label="experiment.status"),
@@ -644,9 +636,7 @@ class ProjectWorkspaceProjection:
             authority=ProjectWorkspaceAuthority.from_wire(mapping.get("authority")),
             summary=ProjectWorkspaceSummary.from_wire(mapping.get("summary")),
             knowledge=ProjectWorkspaceKnowledge.from_wire(mapping.get("knowledge")),
-            context_pack=ProjectWorkspaceContextPack.from_wire(
-                mapping.get("context_pack")
-            ),
+            context_pack=ProjectWorkspaceContextPack.from_wire(mapping.get("context_pack")),
             links=ProjectWorkspaceLinks.from_wire(mapping.get("links")),
             runs=[
                 ProjectWorkspaceRun.from_wire(item)
@@ -670,9 +660,7 @@ class ProjectWorkspaceProjection:
             ],
             changesets=[
                 ProjectWorkspaceChangeSet.from_wire(item)
-                for item in _mapping_list(
-                    mapping.get("changesets"), label="workspace.changesets"
-                )
+                for item in _mapping_list(mapping.get("changesets"), label="workspace.changesets")
             ],
             canon_changes=[
                 ProjectWorkspaceCanonChange.from_wire(item)
@@ -688,7 +676,9 @@ class ProjectWorkspaceProjection:
             ],
             review_queue=[
                 ProjectWorkspaceReviewItem.from_wire(item)
-                for item in _mapping_list(mapping.get("review_queue"), label="workspace.review_queue")
+                for item in _mapping_list(
+                    mapping.get("review_queue"), label="workspace.review_queue"
+                )
             ],
             reports=[
                 ProjectWorkspaceReport.from_wire(item)
@@ -696,7 +686,9 @@ class ProjectWorkspaceProjection:
             ],
             launch_risks=[
                 ProjectWorkspaceLaunchRisk.from_wire(item)
-                for item in _mapping_list(mapping.get("launch_risks"), label="workspace.launch_risks")
+                for item in _mapping_list(
+                    mapping.get("launch_risks"), label="workspace.launch_risks"
+                )
             ],
             raw=dict(mapping),
         )

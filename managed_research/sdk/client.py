@@ -10,7 +10,7 @@ import time
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -170,7 +170,7 @@ def _coerce_dict_list(payload: Any, *, label: str) -> list[dict[str, Any]]:
     if isinstance(payload, list):
         if not all(isinstance(item, dict) for item in payload):
             raise SmrApiError(f"Expected {label} entries to be objects")
-        return list(payload)
+        return cast(list[dict[str, Any]], payload)
     raise SmrApiError(f"Expected list response for {label}, received {type(payload).__name__}")
 
 
@@ -294,11 +294,8 @@ def _merge_execution_actor_model_assignments(
     )
     if not assignment_payloads:
         return normalized_payload
-    execution = (
-        dict(normalized_payload.get("execution"))
-        if isinstance(normalized_payload.get("execution"), Mapping)
-        else {}
-    )
+    raw_execution = normalized_payload.get("execution")
+    execution: dict[str, Any] = dict(raw_execution) if isinstance(raw_execution, Mapping) else {}
     if any(
         execution.get(key)
         for key in (
@@ -2314,7 +2311,7 @@ class ManagedResearchClient:
         if redirect_uri is not None:
             payload["redirect_uri"] = redirect_uri
         return _coerce_dict(
-            self._request_json("POST", "/smr/github/oauth/start", json=payload),
+            self._request_json("POST", "/smr/github/oauth/start", json_body=payload),
             label="start_github_oauth",
         )
 

@@ -83,9 +83,7 @@ class SmrRunBranchRequest:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "checkpoint_id", _optional_text(self.checkpoint_id))
-        object.__setattr__(
-            self, "checkpoint_record_id", _optional_text(self.checkpoint_record_id)
-        )
+        object.__setattr__(self, "checkpoint_record_id", _optional_text(self.checkpoint_record_id))
         object.__setattr__(self, "checkpoint_uri", _optional_text(self.checkpoint_uri))
         object.__setattr__(self, "message", _optional_text(self.message))
         object.__setattr__(self, "reason", _optional_text(self.reason))
@@ -155,26 +153,18 @@ class SmrRunBranchResponse:
             _optional_text(self.source_checkpoint_record_id),
         )
         object.__setattr__(self, "source_node_id", _optional_text(self.source_node_id))
-        object.__setattr__(
-            self, "branch_message_id", _optional_text(self.branch_message_id)
-        )
+        object.__setattr__(self, "branch_message_id", _optional_text(self.branch_message_id))
 
     @classmethod
     def from_wire(cls, payload: dict[str, Any]) -> SmrRunBranchResponse:
         return cls(
             accepted=bool(payload.get("accepted")),
-            parent_run_id=_require_text(
-                payload.get("parent_run_id"), field_name="parent_run_id"
-            ),
-            child_run_id=_require_text(
-                payload.get("child_run_id"), field_name="child_run_id"
-            ),
+            parent_run_id=_require_text(payload.get("parent_run_id"), field_name="parent_run_id"),
+            child_run_id=_require_text(payload.get("child_run_id"), field_name="child_run_id"),
             source_checkpoint_id=_require_text(
                 payload.get("source_checkpoint_id"), field_name="source_checkpoint_id"
             ),
-            source_checkpoint_record_id=_optional_text(
-                payload.get("source_checkpoint_record_id")
-            ),
+            source_checkpoint_record_id=_optional_text(payload.get("source_checkpoint_record_id")),
             source_node_id=_optional_text(payload.get("source_node_id")),
             branch_message_id=_optional_text(payload.get("branch_message_id")),
             created_at=_parse_datetime(payload.get("created_at"), field_name="created_at")
@@ -231,9 +221,7 @@ class SmrLogicalTimelineNode:
         object.__setattr__(self, "task_key", _optional_text(self.task_key))
         object.__setattr__(self, "worker_id", _optional_text(self.worker_id))
         object.__setattr__(self, "checkpoint_id", _optional_text(self.checkpoint_id))
-        object.__setattr__(
-            self, "checkpoint_record_id", _optional_text(self.checkpoint_record_id)
-        )
+        object.__setattr__(self, "checkpoint_record_id", _optional_text(self.checkpoint_record_id))
         object.__setattr__(self, "checkpoint_uri", _optional_text(self.checkpoint_uri))
         object.__setattr__(
             self,
@@ -245,15 +233,9 @@ class SmrLogicalTimelineNode:
         object.__setattr__(self, "artifact_id", _optional_text(self.artifact_id))
         object.__setattr__(self, "launch_id", _optional_text(self.launch_id))
         object.__setattr__(self, "parent_node_id", _optional_text(self.parent_node_id))
-        object.__setattr__(
-            self, "branch_parent_run_id", _optional_text(self.branch_parent_run_id)
-        )
-        object.__setattr__(
-            self, "branch_child_run_id", _optional_text(self.branch_child_run_id)
-        )
-        object.__setattr__(
-            self, "detail", _coerce_string_dict(self.detail, field_name="detail")
-        )
+        object.__setattr__(self, "branch_parent_run_id", _optional_text(self.branch_parent_run_id))
+        object.__setattr__(self, "branch_child_run_id", _optional_text(self.branch_child_run_id))
+        object.__setattr__(self, "detail", _coerce_string_dict(self.detail, field_name="detail"))
         if self.logical_index < 0:
             raise ValueError("logical_index must be >= 0")
 
@@ -307,9 +289,7 @@ class SmrLogicalTimeline:
             self, "project_id", _require_text(self.project_id, field_name="project_id")
         )
         object.__setattr__(self, "run_id", _require_text(self.run_id, field_name="run_id"))
-        object.__setattr__(
-            self, "run_state", _require_text(self.run_state, field_name="run_state")
-        )
+        object.__setattr__(self, "run_state", _require_text(self.run_state, field_name="run_state"))
         object.__setattr__(self, "latest_node_id", _optional_text(self.latest_node_id))
 
     @classmethod
@@ -358,22 +338,16 @@ class SmrRunEventLogEntry:
     @classmethod
     def from_wire(cls, payload: dict[str, Any]) -> SmrRunEventLogEntry:
         return cls(
-            event_log_id=_require_text(
-                payload.get("event_log_id"), field_name="event_log_id"
-            ),
+            event_log_id=_require_text(payload.get("event_log_id"), field_name="event_log_id"),
             project_id=_require_text(payload.get("project_id"), field_name="project_id"),
             run_id=_require_text(payload.get("run_id"), field_name="run_id"),
-            occurred_at=_parse_datetime(
-                payload.get("occurred_at"), field_name="occurred_at"
-            ),
+            occurred_at=_parse_datetime(payload.get("occurred_at"), field_name="occurred_at"),
             source=_require_text(payload.get("source"), field_name="source"),
             event_kind=_require_text(payload.get("event_kind"), field_name="event_kind"),
             title=_require_text(payload.get("title"), field_name="title"),
             summary=_require_text(payload.get("summary"), field_name="summary"),
             status=_optional_text(payload.get("status")),
-            logical_timeline_node_id=_optional_text(
-                payload.get("logical_timeline_node_id")
-            ),
+            logical_timeline_node_id=_optional_text(payload.get("logical_timeline_node_id")),
             context_event_id=_optional_text(payload.get("context_event_id")),
             disposition_id=_optional_text(payload.get("disposition_id")),
             task_id=_optional_text(payload.get("task_id")),
@@ -412,9 +386,7 @@ class SmrRunEventLog:
             run_id=_require_text(payload.get("run_id"), field_name="run_id"),
             generated_at=_parse_datetime(payload.get("generated_at"), field_name="generated_at"),
             sources=_coerce_string_list(payload.get("sources"), field_name="sources"),
-            event_kinds=_coerce_string_list(
-                payload.get("event_kinds"), field_name="event_kinds"
-            ),
+            event_kinds=_coerce_string_list(payload.get("event_kinds"), field_name="event_kinds"),
             statuses=_coerce_string_list(payload.get("statuses"), field_name="statuses"),
             entries=entries,
         )

@@ -87,7 +87,9 @@ class BillingEntitlementAsset:
     def from_wire(cls, payload: object) -> BillingEntitlementAsset:
         mapping = _require_mapping(payload, label="billing entitlement asset")
         return cls(
-            asset_id=_require_string(mapping, "asset_id", label="billing entitlement asset.asset_id"),
+            asset_id=_require_string(
+                mapping, "asset_id", label="billing entitlement asset.asset_id"
+            ),
             display_name=_require_string(
                 mapping,
                 "display_name",
@@ -122,7 +124,9 @@ class BillingEntitlementSnapshot:
         mapping = _require_mapping(payload, label="billing entitlement snapshot")
         return cls(
             org_id=_require_string(mapping, "org_id", label="billing entitlement snapshot.org_id"),
-            provider=_require_string(mapping, "provider", label="billing entitlement snapshot.provider"),
+            provider=_require_string(
+                mapping, "provider", label="billing entitlement snapshot.provider"
+            ),
             profile=BillingEntitlementProfile.from_wire(mapping.get("profile")),
             assets=[
                 BillingEntitlementAsset.from_wire(item)
@@ -174,14 +178,8 @@ class SmrRunUsage:
             totals={str(key): int(value) for key, value in totals_mapping.items()},
             tokens=_optional_object_dict(mapping.get("tokens")),
             breakdown=_optional_object_dict(mapping.get("breakdown")),
-            entries=[
-                _object_dict(item)
-                for item in _optional_array(mapping, "entries")
-            ],
-            rows=[
-                _object_dict(item)
-                for item in _optional_array(mapping, "rows")
-            ],
+            entries=[_object_dict(item) for item in _optional_array(mapping, "entries")],
+            rows=[_object_dict(item) for item in _optional_array(mapping, "rows")],
         )
 
 
@@ -200,10 +198,7 @@ class SmrProjectUsage:
             project_id=_require_string(mapping, "project_id", label="project usage.project_id"),
             month_to_date=_optional_object_dict(mapping.get("month_to_date")),
             last_7_days=_optional_object_dict(mapping.get("last_7_days")),
-            per_run=[
-                _object_dict(item)
-                for item in _optional_array(mapping, "per_run")
-            ],
+            per_run=[_object_dict(item) for item in _optional_array(mapping, "per_run")],
             budgets=_optional_object_dict(mapping.get("budgets")),
         )
 
@@ -246,12 +241,8 @@ class SmrProjectEconomics:
                 label="project economics.project_id",
             ),
             usage=SmrProjectUsage.from_wire(mapping.get("usage")),
-            entitlements=BillingEntitlementSnapshot.from_wire(
-                mapping.get("entitlements")
-            ),
-            project_overlay=SmrProjectEntitlementOverlay.from_wire(
-                mapping.get("project_overlay")
-            ),
+            entitlements=BillingEntitlementSnapshot.from_wire(mapping.get("entitlements")),
+            project_overlay=SmrProjectEntitlementOverlay.from_wire(mapping.get("project_overlay")),
             budgets=_optional_object_dict(mapping.get("budgets")),
         )
 
@@ -317,10 +308,7 @@ class OrgResourceUsage:
             description=_optional_string(m, "description") or "",
             unit=_optional_string(m, "unit") or "usd",
             provider=_optional_string(m, "provider"),
-            limits=[
-                OrgLimitItem.from_wire(item)
-                for item in _optional_array(m, "limits")
-            ],
+            limits=[OrgLimitItem.from_wire(item) for item in _optional_array(m, "limits")],
         )
 
 
@@ -342,8 +330,7 @@ class OrgLimits:
             org_id=_require_string(m, "org_id", label="org limits"),
             plan=_optional_string(m, "plan") or "unknown",
             resources=[
-                OrgResourceUsage.from_wire(item)
-                for item in _optional_array(m, "resources")
+                OrgResourceUsage.from_wire(item) for item in _optional_array(m, "resources")
             ],
         )
 

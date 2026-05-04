@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from managed_research.mcp.registry import ToolDefinition, tool_schema
 from managed_research.mcp.objective_tools import RunObjectiveScopeToolOperation
+from managed_research.mcp.registry import ToolDefinition, tool_schema
 from managed_research.mcp.tools.smr_policy_schemas import run_policy_input_schema
 from managed_research.models.run_control import ManagedResearchActorControlAction
 from managed_research.models.runtime_intent import (
@@ -901,10 +901,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                 {
                     "operation": {
                         "type": "string",
-                        "enum": [
-                            operation.value
-                            for operation in RunObjectiveScopeToolOperation
-                        ],
+                        "enum": [operation.value for operation in RunObjectiveScopeToolOperation],
                     },
                     "run_id": {"type": "string", "description": "Run id."},
                     "payload": {

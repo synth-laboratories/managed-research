@@ -52,11 +52,11 @@ from managed_research.models.project_workspace import (
     ProjectWorkspaceChangeSet,
     ProjectWorkspaceContextPack,
     ProjectWorkspaceEvent,
-    ProjectWorkspaceNextAction,
     ProjectWorkspaceExperiment,
     ProjectWorkspaceKnowledge,
     ProjectWorkspaceLaunchRisk,
     ProjectWorkspaceLinks,
+    ProjectWorkspaceNextAction,
     ProjectWorkspaceObjective,
     ProjectWorkspaceProjection,
     ProjectWorkspaceReport,
@@ -65,8 +65,8 @@ from managed_research.models.project_workspace import (
     ProjectWorkspaceSummary,
 )
 from managed_research.models.run_control import (
-    ManagedResearchActorControlAction,
     ManagedResearchActorControlAck,
+    ManagedResearchActorControlAction,
     ManagedResearchRunControlAck,
     ManagedResearchRunControlEnqueueStatus,
 )

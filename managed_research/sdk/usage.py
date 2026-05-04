@@ -45,9 +45,7 @@ class UsageAPI(_ClientNamespace):
 
     def get_run_usage(self, run_id: str) -> SmrRunUsage:
         return SmrRunUsage.from_wire(
-            _raise_on_error_payload(
-                self._client._request_json("GET", f"/smr/runs/{run_id}/usage")
-            )
+            _raise_on_error_payload(self._client._request_json("GET", f"/smr/runs/{run_id}/usage"))
         )
 
     def get_project_usage(self, project_id: str) -> SmrProjectUsage:
@@ -63,5 +61,6 @@ class UsageAPI(_ClientNamespace):
                 self._client._request_json("GET", f"/smr/projects/{project_id}/economics")
             )
         )
+
 
 __all__ = ["UsageAPI"]

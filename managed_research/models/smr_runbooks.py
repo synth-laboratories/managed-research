@@ -10,7 +10,6 @@ from typing import TypeAlias
 from managed_research.models.smr_host_kinds import SmrHostKind, coerce_smr_host_kind
 from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_mode
 
-
 JsonObject: TypeAlias = Mapping[str, object]
 
 
@@ -53,7 +52,7 @@ class SmrRunbookLimitSummary:
     max_tokens: int | None = None
 
     @classmethod
-    def from_wire(cls, payload: JsonObject | None) -> "SmrRunbookLimitSummary":
+    def from_wire(cls, payload: JsonObject | None) -> SmrRunbookLimitSummary:
         if payload is None:
             return cls()
         return cls(
@@ -86,13 +85,11 @@ class SmrRunbookPreset:
     default_work_mode: SmrWorkMode
     host_kind: SmrHostKind
     visibility: str = "public"
-    limit_summary: SmrRunbookLimitSummary = field(
-        default_factory=SmrRunbookLimitSummary
-    )
+    limit_summary: SmrRunbookLimitSummary = field(default_factory=SmrRunbookLimitSummary)
     capabilities: tuple[str, ...] = ()
 
     @classmethod
-    def from_wire(cls, payload: JsonObject) -> "SmrRunbookPreset":
+    def from_wire(cls, payload: JsonObject) -> SmrRunbookPreset:
         preset_id = _required_text(payload, "id")
         raw_runbook = _optional_value(payload, "runbook_kind")
         if raw_runbook is None:
@@ -211,7 +208,7 @@ def _optional_int(payload: JsonObject, key: str) -> int | None:
 
 
 def _optional_value(payload: JsonObject, key: str) -> object | None:
-    return payload[key] if key in payload else None
+    return payload.get(key)
 
 
 __all__ = [

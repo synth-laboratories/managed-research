@@ -323,22 +323,12 @@ class RunExecutionProjection:
             ),
             run=RunExecutionRun.from_wire(mapping.get("run")),
             cursor=RunExecutionCursor.from_wire(mapping.get("cursor")),
-            actors=[
-                RunExecutionActor.from_wire(item)
-                for item in _object_list(mapping, "actors")
-            ],
-            tasks=[
-                RunExecutionTask.from_wire(item)
-                for item in _object_list(mapping, "tasks")
-            ],
+            actors=[RunExecutionActor.from_wire(item) for item in _object_list(mapping, "actors")],
+            tasks=[RunExecutionTask.from_wire(item) for item in _object_list(mapping, "tasks")],
             messages=[
-                RunExecutionMessage.from_wire(item)
-                for item in _object_list(mapping, "messages")
+                RunExecutionMessage.from_wire(item) for item in _object_list(mapping, "messages")
             ],
-            events=[
-                RunExecutionEvent.from_wire(item)
-                for item in _object_list(mapping, "events")
-            ],
+            events=[RunExecutionEvent.from_wire(item) for item in _object_list(mapping, "events")],
             work_products=[
                 RunExecutionWorkProductRef.from_wire(item)
                 for item in _object_list(mapping, "work_products")

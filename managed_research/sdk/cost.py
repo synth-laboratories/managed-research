@@ -15,9 +15,7 @@ from managed_research.sdk._base import _ClientNamespace
 
 class RunCostAPI(_ClientNamespace):
     def summary(self, run_id: str) -> dict[str, Any]:
-        return self._client._request_json(
-            "GET", f"/smr/runs/{run_id}/cost_summary"
-        )
+        return self._client._request_json("GET", f"/smr/runs/{run_id}/cost_summary")
 
     def report_tinker_training_usage(
         self,

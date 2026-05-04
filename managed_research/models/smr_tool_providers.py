@@ -11,9 +11,7 @@ class SmrToolProvider(StrEnum):
     LINEAR = "linear"
 
 
-SMR_TOOL_PROVIDER_VALUES: tuple[str, ...] = tuple(
-    provider.value for provider in SmrToolProvider
-)
+SMR_TOOL_PROVIDER_VALUES: tuple[str, ...] = tuple(provider.value for provider in SmrToolProvider)
 
 
 def coerce_smr_tool_provider(

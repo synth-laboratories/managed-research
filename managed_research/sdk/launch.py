@@ -94,7 +94,10 @@ def build_project_run_payload(
     metadata: Mapping[str, Any] | dict[str, Any] | None = None,
     host_kind: SmrHostKind | str | None = None,
     work_mode: SmrWorkMode | str | None = None,
-    provider_bindings: ProviderBinding | Mapping[str, Any] | list[ProviderBinding | Mapping[str, Any]] | None = None,
+    provider_bindings: ProviderBinding
+    | Mapping[str, Any]
+    | list[ProviderBinding | Mapping[str, Any]]
+    | None = None,
     funding_source: SmrFundingSource | str | None = None,
     usage_limit: UsageLimit | Mapping[str, Any] | None = None,
     run_policy: SmrRunPolicy | str | None = None,
@@ -103,7 +106,10 @@ def build_project_run_payload(
     agent_model_params: Mapping[str, Any] | dict[str, Any] | None = None,
     agent_harness: SmrAgentHarness | str | None = None,
     agent_kind: SmrAgentKind | str | None = None,
-    actor_model_overrides: Mapping[str, Any] | dict[str, Any] | list[Mapping[str, Any]] | None = None,
+    actor_model_overrides: Mapping[str, Any]
+    | dict[str, Any]
+    | list[Mapping[str, Any]]
+    | None = None,
     roles: SmrRoleBindings | Mapping[str, Any] | dict[str, Any] | None = None,
     uploaded_files: list[Mapping[str, Any]] | None = None,
     resource_files: list[Mapping[str, Any]] | None = None,

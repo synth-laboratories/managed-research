@@ -107,9 +107,7 @@ class SmrControlClientMixin:
             openai_transport_mode=resolve_openai_transport_mode(
                 transport_mode or self.openai_transport_mode
             ),
-            openai_organization=optional_str(
-                openai_organization or self.openai_organization
-            ),
+            openai_organization=optional_str(openai_organization or self.openai_organization),
             openai_project=optional_str(openai_project or self.openai_project),
             openai_request_id=optional_str(request_id or self.openai_request_id),
         ).openai_agents_sdk

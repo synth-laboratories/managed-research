@@ -684,10 +684,7 @@ class ManagedResearchRunWorkProductArtifactLink:
             work_product_artifact_id=_require_string(
                 mapping,
                 "work_product_artifact_id",
-                label=(
-                    "run_contract.work_products.items.artifact_links."
-                    "work_product_artifact_id"
-                ),
+                label=("run_contract.work_products.items.artifact_links.work_product_artifact_id"),
             ),
             work_product_id=_require_string(
                 mapping,
@@ -724,9 +721,7 @@ class ManagedResearchRunWorkProduct:
     subtype_kind: str | None = None
     subtype_id: str | None = None
     artifact_id: str | None = None
-    artifact_links: list[ManagedResearchRunWorkProductArtifactLink] = field(
-        default_factory=list
-    )
+    artifact_links: list[ManagedResearchRunWorkProductArtifactLink] = field(default_factory=list)
     detail_url: str | None = None
     content_url: str | None = None
     supported_export_destinations: list[str] = field(default_factory=list)
@@ -749,18 +744,14 @@ class ManagedResearchRunWorkProduct:
         blocker = mapping.get("blocker")
         artifact_links = mapping.get("artifact_links")
         if artifact_links is None:
-            normalized_artifact_links: list[
-                ManagedResearchRunWorkProductArtifactLink
-            ] = []
+            normalized_artifact_links: list[ManagedResearchRunWorkProductArtifactLink] = []
         elif isinstance(artifact_links, list):
             normalized_artifact_links = [
-                ManagedResearchRunWorkProductArtifactLink.from_wire(item)
-                for item in artifact_links
+                ManagedResearchRunWorkProductArtifactLink.from_wire(item) for item in artifact_links
             ]
         else:
             raise ValueError(
-                "run_contract.work_products.items.artifact_links must be an array "
-                "when provided"
+                "run_contract.work_products.items.artifact_links must be an array when provided"
             )
         return cls(
             work_product_id=_require_string(

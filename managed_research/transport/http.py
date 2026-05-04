@@ -159,9 +159,7 @@ class SmrHttpTransport:
                 json=json_body,
             )
         except httpx.TimeoutException as exc:
-            raise SmrApiError(
-                f"{method} {path} timed out"
-            ) from exc
+            raise SmrApiError(f"{method} {path} timed out") from exc
         except httpx.TransportError as exc:
             raise SmrApiError(
                 f"{method} {path} failed: network error ({type(exc).__name__})"

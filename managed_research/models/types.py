@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
+from typing import Any, cast
 
 from managed_research.models.smr_actor_models import (
     SmrActorModelAssignment,
@@ -34,7 +35,7 @@ from managed_research.models.smr_runtime_kinds import (
 def _require_mapping(payload: object, *, label: str) -> Mapping[str, object]:
     if not isinstance(payload, Mapping):
         raise ValueError(f"{label} must be an object")
-    return payload
+    return cast(Mapping[str, object], payload)
 
 
 def _optional_string(
@@ -93,7 +94,7 @@ def _require_array(payload: Mapping[str, object], key: str, *, label: str) -> li
     value = payload.get(key)
     if not isinstance(value, list):
         raise ValueError(f"{label} must be an array")
-    return value
+    return cast(list[object], value)
 
 
 def _optional_array(payload: Mapping[str, object], key: str) -> list[object]:
@@ -102,7 +103,7 @@ def _optional_array(payload: Mapping[str, object], key: str) -> list[object]:
         return []
     if not isinstance(value, list):
         raise ValueError(f"{key} must be an array when provided")
-    return value
+    return cast(list[object], value)
 
 
 def _optional_int(payload: Mapping[str, object], key: str) -> int | None:
@@ -1097,7 +1098,10 @@ class SmrLaunchPreflight:
             using_synth_free_mode=_optional_bool(mapping, "using_synth_free_mode"),
             compute_pool_payload=_optional_object_dict(mapping.get("compute_pool_payload")),
             providers=(
-                coerce_provider_bindings(mapping.get("providers"), field_name="providers")
+                coerce_provider_bindings(
+                    cast(Any, mapping.get("providers")),
+                    field_name="providers",
+                )
                 if mapping.get("providers") is not None
                 else ()
             ),
@@ -1110,7 +1114,7 @@ class SmrLaunchPreflight:
                 for item in _optional_array(mapping, "required_capabilities")
             ),
             limit=coerce_usage_limit(
-                mapping.get("limit"),
+                cast(Any, mapping.get("limit")),
                 field_name="limit",
             ),
         )

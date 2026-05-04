@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from managed_research.mcp.registry import ToolDefinition, tool_schema
 from managed_research.mcp.objective_tools import (
     CompatObjectiveToolOperation,
     ObjectiveToolOperation,
 )
+from managed_research.mcp.registry import ToolDefinition, tool_schema
 from managed_research.models.smr_actor_models import (
     SMR_ACTOR_SUBTYPE_VALUES,
     SMR_ACTOR_TYPE_VALUES,
@@ -701,14 +701,17 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
                 {
                     "operation": {
                         "type": "string",
-                        "enum": [
-                            operation.value
-                            for operation in CompatObjectiveToolOperation
-                        ],
+                        "enum": [operation.value for operation in CompatObjectiveToolOperation],
                     },
                     "project_id": {"type": "string", "description": "Managed research project id."},
-                    "objective_id": {"type": "string", "description": "Parent objective id for get/patch/transition."},
-                    "run_id": {"type": "string", "description": "Optional run filter when listing or creating."},
+                    "objective_id": {
+                        "type": "string",
+                        "description": "Parent objective id for get/patch/transition.",
+                    },
+                    "run_id": {
+                        "type": "string",
+                        "description": "Optional run filter when listing or creating.",
+                    },
                     "payload": {"type": "object", "description": "Create or patch payload."},
                 },
                 required=["operation", "project_id"],
@@ -728,14 +731,23 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
                         "enum": [operation.value for operation in ObjectiveToolOperation],
                     },
                     "project_id": {"type": "string", "description": "Managed research project id."},
-                    "objective_id": {"type": "string", "description": "Objective id for item operations."},
+                    "objective_id": {
+                        "type": "string",
+                        "description": "Objective id for item operations.",
+                    },
                     "kind": {
                         "type": "string",
                         "enum": ["open_ended_question", "directed_effort_outcome"],
                         "description": "Optional objective kind discriminator.",
                     },
-                    "run_id": {"type": "string", "description": "Optional run filter when listing."},
-                    "payload": {"type": "object", "description": "Create, patch, claim, or review payload."},
+                    "run_id": {
+                        "type": "string",
+                        "description": "Optional run filter when listing.",
+                    },
+                    "payload": {
+                        "type": "object",
+                        "description": "Create, patch, claim, or review payload.",
+                    },
                 },
                 required=["operation", "project_id"],
             ),
@@ -748,14 +760,17 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
                 {
                     "operation": {
                         "type": "string",
-                        "enum": [
-                            operation.value
-                            for operation in CompatObjectiveToolOperation
-                        ],
+                        "enum": [operation.value for operation in CompatObjectiveToolOperation],
                     },
                     "project_id": {"type": "string", "description": "Managed research project id."},
-                    "objective_id": {"type": "string", "description": "Parent objective id for get/patch/transition."},
-                    "run_id": {"type": "string", "description": "Optional run filter when listing or creating."},
+                    "objective_id": {
+                        "type": "string",
+                        "description": "Parent objective id for get/patch/transition.",
+                    },
+                    "run_id": {
+                        "type": "string",
+                        "description": "Optional run filter when listing or creating.",
+                    },
                     "payload": {"type": "object", "description": "Create or patch payload."},
                 },
                 required=["operation", "project_id"],

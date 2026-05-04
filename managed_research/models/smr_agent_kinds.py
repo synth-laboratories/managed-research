@@ -40,9 +40,7 @@ def coerce_smr_agent_kind(
     alias = _AGENT_KIND_ALIASES.get(normalized.lower())
     if alias is not None:
         return alias
-    raise ValueError(
-        f"{field_name} must be one of: {', '.join(SMR_AGENT_KIND_VALUES)}"
-    )
+    raise ValueError(f"{field_name} must be one of: {', '.join(SMR_AGENT_KIND_VALUES)}")
 
 
 __all__ = ["SMR_AGENT_KIND_VALUES", "SmrAgentKind", "coerce_smr_agent_kind"]

@@ -53,9 +53,7 @@ class OpenResearchVisualManifest:
     def from_wire(cls, payload: Mapping[str, object]) -> OpenResearchVisualManifest:
         schema_version = str(payload["schema_version"])
         if schema_version != OPEN_RESEARCH_VISUAL_SCHEMA_VERSION:
-            raise ValueError(
-                f"unsupported Open Research visual schema: {schema_version}"
-            )
+            raise ValueError(f"unsupported Open Research visual schema: {schema_version}")
         raw_claims = payload.get("claims", [])
         claims = [
             OpenResearchVisualClaim.from_wire(item)

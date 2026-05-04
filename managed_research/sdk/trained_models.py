@@ -63,9 +63,7 @@ class TrainedModelsAPI(_ClientNamespace):
         )
 
     def list_for_run(self, run_id: str) -> list[ManagedResearchTrainedModel]:
-        result = self._client._request_json(
-            "GET", f"/smr/runs/{run_id}/trained_models"
-        )
+        result = self._client._request_json("GET", f"/smr/runs/{run_id}/trained_models")
         return [
             ManagedResearchTrainedModel.from_wire(item)
             for item in (list(result) if isinstance(result, list) else [])
@@ -154,16 +152,12 @@ class TrainedModelsAPI(_ClientNamespace):
         if metadata_patch is not None:
             body["metadata_patch"] = dict(metadata_patch)
         return ManagedResearchTrainedModel.from_wire(
-            self._client._request_json(
-                "PATCH", f"/smr/trained_models/{model_id}", json_body=body
-            )
+            self._client._request_json("PATCH", f"/smr/trained_models/{model_id}", json_body=body)
         )
 
     def delete(self, model_id: str) -> ManagedResearchTrainedModel:
         return ManagedResearchTrainedModel.from_wire(
-            self._client._request_json(
-                "DELETE", f"/smr/trained_models/{model_id}"
-            )
+            self._client._request_json("DELETE", f"/smr/trained_models/{model_id}")
         )
 
 

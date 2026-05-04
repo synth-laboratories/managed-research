@@ -13,9 +13,7 @@ class SetupAPI(_ClientNamespace):
         return SmrProjectSetup.from_wire(self._client.get_project_setup(project_id))
 
     def prepare(self, project_id: str) -> SmrProjectSetup:
-        return SmrProjectSetup.from_wire(
-            self._client.prepare_project_setup(project_id)
-        )
+        return SmrProjectSetup.from_wire(self._client.prepare_project_setup(project_id))
 
     def start_onboarding(self, project_id: str) -> dict[str, Any]:
         return self._client.start_project_onboarding(project_id)

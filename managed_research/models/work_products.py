@@ -48,9 +48,7 @@ class ManagedResearchRunWorkProduct:
     subtype_kind: str | None = None
     subtype_id: str | None = None
     artifact_id: str | None = None
-    artifact_links: list[ManagedResearchWorkProductArtifactLink] = field(
-        default_factory=list
-    )
+    artifact_links: list[ManagedResearchWorkProductArtifactLink] = field(default_factory=list)
     content_url: str | None = None
     metadata: dict[str, object] = field(default_factory=dict)
     blocker: dict[str, object] | None = None
@@ -68,9 +66,7 @@ class ManagedResearchRunWorkProduct:
             status=str(payload["status"]),
             readiness=str(payload["readiness"]),
             summary=str(payload["summary"]) if payload.get("summary") else None,
-            subtype_kind=str(payload["subtype_kind"])
-            if payload.get("subtype_kind")
-            else None,
+            subtype_kind=str(payload["subtype_kind"]) if payload.get("subtype_kind") else None,
             subtype_id=str(payload["subtype_id"]) if payload.get("subtype_id") else None,
             artifact_id=str(payload["artifact_id"]) if payload.get("artifact_id") else None,
             artifact_links=[
@@ -78,9 +74,7 @@ class ManagedResearchRunWorkProduct:
                 for item in payload.get("artifact_links", [])
                 if isinstance(item, Mapping)
             ],
-            content_url=str(payload["content_url"])
-            if payload.get("content_url")
-            else None,
+            content_url=str(payload["content_url"]) if payload.get("content_url") else None,
             metadata=_as_dict(payload.get("metadata")),  # type: ignore[arg-type]
             blocker=_as_dict(payload.get("blocker")) if payload.get("blocker") else None,  # type: ignore[arg-type]
             latest_export_id=str(payload["latest_export_id"])
@@ -134,32 +128,18 @@ class ManagedResearchTrainedModel:
             run_id=str(payload["run_id"]),
             base_model=str(payload["base_model"]),
             method=str(payload["method"]),
-            tinker_path=str(payload["tinker_path"])
-            if payload.get("tinker_path")
-            else None,
-            wasabi_uri=str(payload["wasabi_uri"])
-            if payload.get("wasabi_uri")
-            else None,
-            wasabi_bucket=str(payload["wasabi_bucket"])
-            if payload.get("wasabi_bucket")
-            else None,
-            wasabi_key=str(payload["wasabi_key"])
-            if payload.get("wasabi_key")
-            else None,
+            tinker_path=str(payload["tinker_path"]) if payload.get("tinker_path") else None,
+            wasabi_uri=str(payload["wasabi_uri"]) if payload.get("wasabi_uri") else None,
+            wasabi_bucket=str(payload["wasabi_bucket"]) if payload.get("wasabi_bucket") else None,
+            wasabi_key=str(payload["wasabi_key"]) if payload.get("wasabi_key") else None,
             adapter_size_bytes=int(payload["adapter_size_bytes"])
             if payload.get("adapter_size_bytes") is not None
             else None,
-            lora_rank=int(payload["lora_rank"])
-            if payload.get("lora_rank") is not None
-            else None,
+            lora_rank=int(payload["lora_rank"]) if payload.get("lora_rank") is not None else None,
             status=str(payload["status"]),
             readiness=str(payload["readiness"]) if payload.get("readiness") else None,
-            export_status=str(payload["export_status"])
-            if payload.get("export_status")
-            else None,
-            export_error=str(payload["export_error"])
-            if payload.get("export_error")
-            else None,
+            export_status=str(payload["export_status"]) if payload.get("export_status") else None,
+            export_error=str(payload["export_error"]) if payload.get("export_error") else None,
             metrics=metrics,
             metadata=_as_dict(payload.get("metadata")),  # type: ignore[arg-type]
             created_at=str(payload["created_at"]) if payload.get("created_at") else None,

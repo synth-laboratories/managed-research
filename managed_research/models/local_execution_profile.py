@@ -55,11 +55,7 @@ def _capabilities(payload: Mapping[str, Any]) -> dict[str, bool]:
         return {}
     if not isinstance(raw, Mapping):
         raise ValueError("capabilities must be an object")
-    return {
-        str(key).strip(): bool(value)
-        for key, value in raw.items()
-        if str(key).strip()
-    }
+    return {str(key).strip(): bool(value) for key, value in raw.items() if str(key).strip()}
 
 
 def _repo_ref_from_url(value: str) -> str:
@@ -136,8 +132,7 @@ class LocalExecutionProfile:
             LOCAL_EXECUTION_PROFILE_SCHEMA_VERSION,
         }:
             raise ValueError(
-                "unsupported local execution profile schema_version: "
-                f"{self.schema_version}"
+                f"unsupported local execution profile schema_version: {self.schema_version}"
             )
         host_kind = self.host_kind.strip().lower()
         if host_kind not in {"docker", "daytona"}:
@@ -152,17 +147,13 @@ class LocalExecutionProfile:
             SOURCE_BINDING_KIND_TOOL_REPO,
             SOURCE_BINDING_KIND_LOCAL_PRODUCT_SOURCE,
         }:
-            raise ValueError(
-                "unsupported source_binding_kind: " f"{self.source_binding_kind}"
-            )
+            raise ValueError(f"unsupported source_binding_kind: {self.source_binding_kind}")
         local_source_kind = str(self.local_source_kind or "").strip().lower()
         if local_source_kind and local_source_kind not in {
             LOCAL_SOURCE_KIND_SLOT_GIT_MIRROR,
             LOCAL_SOURCE_KIND_EXTERNAL_REPO,
         }:
-            raise ValueError(
-                f"unsupported local_source_kind: {self.local_source_kind}"
-            )
+            raise ValueError(f"unsupported local_source_kind: {self.local_source_kind}")
         required_repo = str(self.required_repo or "").strip()
         required_product = str(self.required_product or "").strip().lower()
         if source_binding_kind == SOURCE_BINDING_KIND_TOOL_REPO and not required_repo:
@@ -217,9 +208,7 @@ class LocalPublicationReadiness:
             status=_required_string(payload, "status"),
             repo=_optional_string(payload, "repo"),
             credential_name=_optional_string(payload, "credential_name"),
-            writable_repo_binding_present=bool(
-                payload.get("writable_repo_binding_present")
-            ),
+            writable_repo_binding_present=bool(payload.get("writable_repo_binding_present")),
             project_connected=bool(payload.get("project_connected")),
         )
 
@@ -271,11 +260,7 @@ class LocalEvalContract:
             }
         raw_task_env = payload.get("task_env")
         task_env = (
-            {
-                str(key): str(value)
-                for key, value in raw_task_env.items()
-                if isinstance(key, str)
-            }
+            {str(key): str(value) for key, value in raw_task_env.items() if isinstance(key, str)}
             if isinstance(raw_task_env, Mapping)
             else {}
         )
@@ -345,11 +330,7 @@ def default_local_eval_contract_path() -> Path | None:
 
 
 def load_local_eval_contract(path: str | Path | None = None) -> LocalEvalContract:
-    resolved = (
-        Path(path).expanduser()
-        if path is not None
-        else default_local_eval_contract_path()
-    )
+    resolved = Path(path).expanduser() if path is not None else default_local_eval_contract_path()
     if resolved is None:
         raise ValueError(
             "missing local eval contract path; set SYNTH_DEV_LOCAL_EVAL_CONTRACT_PATH "
@@ -465,9 +446,7 @@ def local_execution_profile_payload(
         if snapshot:
             profile["daytona_snapshot"] = snapshot
     else:
-        raise ValueError(
-            f"unsupported local execution profile host kind: {normalized_host_kind}"
-        )
+        raise ValueError(f"unsupported local execution profile host kind: {normalized_host_kind}")
     return profile
 
 
