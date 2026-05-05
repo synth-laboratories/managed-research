@@ -1179,10 +1179,52 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "type": "string",
                         "description": "Optional filter to a single participant session.",
                     },
+                    "view": {
+                        "type": "string",
+                        "enum": ["operator", "debug", "public"],
+                        "description": "Backend redaction view. Defaults to operator.",
+                    },
                 },
                 required=["run_id"],
             ),
             handler=server._tool_get_run_transcript,
+        ),
+        ToolDefinition(
+            name="smr_watch_run_events",
+            description=(
+                "Read a bounded batch from the live run SSE stream. Returns typed "
+                "snapshot/transcript events, including backend-redacted reasoning "
+                "summary and tool-call lifecycle events. Use max_events and "
+                "timeout_seconds to keep MCP calls finite."
+            ),
+            input_schema=tool_schema(
+                {
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "transcript_cursor": {
+                        "type": "string",
+                        "description": "Optional live transcript cursor to resume from.",
+                    },
+                    "last_event_id": {
+                        "type": "string",
+                        "description": "Optional SSE Last-Event-ID resume token.",
+                    },
+                    "view": {
+                        "type": "string",
+                        "enum": ["operator", "debug", "public"],
+                        "description": "Backend redaction view. Defaults to operator.",
+                    },
+                    "max_events": {
+                        "type": "integer",
+                        "description": "Maximum events to return, capped at 50.",
+                    },
+                    "timeout_seconds": {
+                        "type": "integer",
+                        "description": "Stream timeout for this bounded MCP call.",
+                    },
+                },
+                required=["run_id"],
+            ),
+            handler=server._tool_watch_run_events,
         ),
         ToolDefinition(
             name="smr_list_run_questions",

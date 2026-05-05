@@ -9,6 +9,7 @@ generic messages rather than failing the transport with a parse error.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -25,6 +26,7 @@ from managed_research.errors import (
     SmrProjectMonthlyBudgetExhaustedError,
     SmrStructuredDenialError,
 )
+from managed_research.transport.streaming import SseEvent, iter_sse_events
 
 
 def _error_message(response: httpx.Response) -> str:
@@ -184,6 +186,36 @@ class SmrHttpTransport:
                 f"{method} {path} returned a non-JSON response",
                 status_code=response.status_code,
                 response_text=response.text,
+            ) from exc
+
+    def stream_sse(
+        self,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        last_event_id: str | None = None,
+        timeout: float | None = None,
+    ) -> Iterator[SseEvent]:
+        headers = {"Accept": "text/event-stream"}
+        if last_event_id:
+            headers["Last-Event-ID"] = last_event_id
+        try:
+            with self.client.stream(
+                "GET",
+                path,
+                params=params,
+                headers=headers,
+                timeout=timeout,
+            ) as response:
+                if response.is_error:
+                    response.read()
+                    _raise_for_error_response(response)
+                yield from iter_sse_events(response.iter_lines())
+        except httpx.TimeoutException as exc:
+            raise SmrApiError(f"GET {path} SSE stream timed out") from exc
+        except httpx.TransportError as exc:
+            raise SmrApiError(
+                f"GET {path} SSE stream failed: network error ({type(exc).__name__})"
             ) from exc
 
 

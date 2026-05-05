@@ -222,6 +222,38 @@ class RunHandle:
             self.run_id,
         ).actors.counts_by_state
 
+    def transcript(
+        self,
+        *,
+        cursor: str | None = None,
+        limit: int = 200,
+        participant_session_id: str | None = None,
+        view: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.runs.transcript(
+            self.run_id,
+            cursor=cursor,
+            limit=limit,
+            participant_session_id=participant_session_id,
+            view=view,
+        )
+
+    def stream_events(
+        self,
+        *,
+        transcript_cursor: str | None = None,
+        view: str = "operator",
+        last_event_id: str | None = None,
+        timeout: float | None = None,
+    ):
+        return self._client.runs.stream_events(
+            self.run_id,
+            transcript_cursor=transcript_cursor,
+            view=view,
+            last_event_id=last_event_id,
+            timeout=timeout,
+        )
+
     def messages(
         self,
         *,
@@ -1610,6 +1642,7 @@ class RunsAPI(_ClientNamespace):
         cursor: str | None = None,
         limit: int = 200,
         participant_session_id: str | None = None,
+        view: str | None = None,
     ) -> dict[str, Any]:
         """Fetch one page of transcript events.
 
@@ -1625,6 +1658,29 @@ class RunsAPI(_ClientNamespace):
             cursor=cursor,
             limit=limit,
             participant_session_id=participant_session_id,
+            view=view,
+        )
+
+    def stream_events(
+        self,
+        run_id: str,
+        *,
+        transcript_cursor: str | None = None,
+        view: str = "operator",
+        last_event_id: str | None = None,
+        timeout: float | None = None,
+    ):
+        """Stream live runtime events for a run over backend SSE.
+
+        Yields typed ``RunRuntimeStreamEvent`` instances. Transcript payloads are
+        already projected by backend policy for the requested view.
+        """
+        return self._client.stream_run_events(
+            run_id,
+            transcript_cursor=transcript_cursor,
+            view=view,
+            last_event_id=last_event_id,
+            timeout=timeout,
         )
 
     def stream_transcript(
@@ -1634,6 +1690,7 @@ class RunsAPI(_ClientNamespace):
         cursor: str | None = None,
         page_size: int = 200,
         participant_session_id: str | None = None,
+        view: str | None = None,
     ):
         """Iterate over all persisted transcript events for a run.
 
@@ -1648,6 +1705,7 @@ class RunsAPI(_ClientNamespace):
                 cursor=current_cursor,
                 limit=page_size,
                 participant_session_id=participant_session_id,
+                view=view,
             )
             yield from page.get("events") or []
             next_cursor = page.get("next_cursor")

@@ -88,6 +88,12 @@ from managed_research.models.run_diagnostics import (
     SmrRunTraceItem,
     SmrRunTraces,
 )
+from managed_research.models.run_events import (
+    RunRuntimeStreamEvent,
+    RunRuntimeStreamEventKind,
+    TranscriptEvent,
+    TranscriptEventKind,
+)
 from managed_research.models.run_execution import (
     RunExecutionActor,
     RunExecutionCursor,
@@ -319,6 +325,8 @@ __all__ = [
     "RunObservabilitySnapshot",
     "RunRepositoryMount",
     "RunResourceBindings",
+    "RunRuntimeStreamEvent",
+    "RunRuntimeStreamEventKind",
     "RuntimeDeliveryView",
     "RuntimeIntent",
     "RuntimeIntentKind",
@@ -450,6 +458,8 @@ __all__ = [
     "StoredFile",
     "TaskCollectionSnapshot",
     "TaskSnapshot",
+    "TranscriptEvent",
+    "TranscriptEventKind",
     "load_local_execution_profile",
     "load_local_execution_profiles",
     "local_execution_payload",

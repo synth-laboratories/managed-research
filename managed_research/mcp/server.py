@@ -1643,13 +1643,49 @@ class ManagedResearchMcpServer:
         cursor = optional_string(args, "cursor")
         limit = optional_int(args, "limit") or 100
         participant_session_id = optional_string(args, "participant_session_id")
+        view = optional_string(args, "view")
         with self._client_from_args(args) as client:
             return client.runs.transcript(
                 run_id,
                 cursor=cursor,
                 limit=min(limit, 200),
                 participant_session_id=participant_session_id,
+                view=view,
             )
+
+    def _tool_watch_run_events(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        transcript_cursor = optional_string(args, "transcript_cursor")
+        last_event_id = optional_string(args, "last_event_id")
+        view = optional_string(args, "view") or "operator"
+        max_events = min(optional_int(args, "max_events") or 20, 50)
+        timeout_seconds = optional_int(args, "timeout_seconds") or 30
+        events: list[dict[str, Any]] = []
+        with self._client_from_args(args) as client:
+            for event in client.runs.stream_events(
+                run_id,
+                transcript_cursor=transcript_cursor,
+                view=view,
+                last_event_id=last_event_id,
+                timeout=float(timeout_seconds),
+            ):
+                row = asdict(event)
+                occurred_at = row.get("occurred_at")
+                if hasattr(occurred_at, "isoformat"):
+                    row["occurred_at"] = occurred_at.isoformat()
+                events.append(row)
+                if len(events) >= max_events:
+                    break
+        return {
+            "run_id": run_id,
+            "view": view,
+            "event_count": len(events),
+            "events": events,
+            "next_last_event_id": events[-1].get("event_id") if events else last_event_id,
+            "next_transcript_cursor": (
+                events[-1].get("transcript_cursor") if events else transcript_cursor
+            ),
+        }
 
     def _tool_get_launch_preflight(self, args: JSONDict) -> Any:
         request = RunLaunchRequest.from_payload(args)

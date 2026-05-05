@@ -35,6 +35,7 @@ from managed_research.models.run_diagnostics import (
     SmrRunParticipants,
     SmrRunTraces,
 )
+from managed_research.models.run_events import RunRuntimeStreamEvent
 from managed_research.models.run_execution import RunExecutionProjection
 from managed_research.models.run_observability import (
     ManagedResearchRunContract,
@@ -843,6 +844,21 @@ class ManagedResearchClient:
             params=params,
             json_body=json_body,
             allow_not_found=allow_not_found,
+        )
+
+    def _stream_sse(
+        self,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        last_event_id: str | None = None,
+        timeout: float | None = None,
+    ):
+        return self._transport.stream_sse(
+            path,
+            params=params,
+            last_event_id=last_event_id,
+            timeout=timeout,
         )
 
     def get_backend_version(self) -> dict[str, Any]:
@@ -2805,11 +2821,13 @@ class ManagedResearchClient:
         cursor: str | None = None,
         limit: int = 200,
         participant_session_id: str | None = None,
+        view: str | None = None,
     ) -> dict[str, Any]:
         params = build_query_params(
             cursor=cursor,
             limit=limit,
             participant_session_id=participant_session_id,
+            view=view,
         )
         return _coerce_dict(
             self._request_json(
@@ -2819,6 +2837,27 @@ class ManagedResearchClient:
             ),
             label="get_run_transcript",
         )
+
+    def stream_run_events(
+        self,
+        run_id: str,
+        *,
+        transcript_cursor: str | None = None,
+        view: str = "operator",
+        last_event_id: str | None = None,
+        timeout: float | None = None,
+    ):
+        params = build_query_params(
+            transcript_cursor=transcript_cursor,
+            view=view,
+        )
+        for event in self._stream_sse(
+            f"/smr/runs/{run_id}/runtime/stream",
+            params=params,
+            last_event_id=last_event_id,
+            timeout=timeout,
+        ):
+            yield RunRuntimeStreamEvent.from_sse(event)
 
     def get_run_primary_parent(self, run_id: str) -> dict[str, Any]:
         return _coerce_dict(
