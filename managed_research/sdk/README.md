@@ -2,6 +2,11 @@
 
 This subtree owns the Python control-plane client and the typed namespace wrappers built on top of it.
 
+Surface note: this SDK targets the authenticated Managed Research API. Public
+Open Research web limits, such as `lite` plus `open_ended_discovery` only, are
+documented in the top-level `PACKAGE_README.md` and enforced by backend web
+admission policy rather than by a separate SDK client fork.
+
 Ownership:
 - `client.py` owns transport-facing request building and raw backend interaction
 - namespace modules such as `progress.py`, `runs.py`, and `workspace_inputs.py` own higher-level typed return surfaces

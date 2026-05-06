@@ -20,6 +20,10 @@ from managed_research.models import (
     Checkpoint,
     SmrProjectEconomics,
     SmrProjectUsage,
+    SmrResourceLimitExtension,
+    SmrResourceLimitProgress,
+    SmrResourceLimitSelector,
+    SmrResourceLimits,
     SmrRunUsage,
 )
 from managed_research.models.local_execution_profile import (
@@ -35,6 +39,7 @@ from managed_research.models.run_diagnostics import (
     SmrRunParticipants,
     SmrRunTraces,
 )
+from managed_research.models.run_events import RunRuntimeStreamEvent
 from managed_research.models.run_execution import RunExecutionProjection
 from managed_research.models.run_observability import (
     ManagedResearchRunContract,
@@ -822,8 +827,132 @@ class ManagedResearchClient:
     def get_run_usage(self, run_id: str) -> SmrRunUsage:
         return self.usage.get_run_usage(run_id)
 
+    def get_run_resource_limits(self, run_id: str) -> SmrResourceLimits:
+        return self.usage.get_run_resource_limits(run_id)
+
+    def get_run_progress_toward_resource_limits(
+        self,
+        run_id: str,
+    ) -> SmrResourceLimitProgress:
+        return self.usage.get_run_progress_toward_resource_limits(run_id)
+
+    def extend_run_resource_limit(
+        self,
+        run_id: str,
+        *,
+        limit_value: float | None = None,
+        additional_value: float | None = None,
+        reason: str | None = None,
+        selector: SmrResourceLimitSelector | Mapping[str, object] | None = None,
+        resource_limit_id: str | None = None,
+        metric: str = "spend_usd",
+        unit: str = "usd",
+        resolve_blockers: bool = True,
+        resume: bool = True,
+        idempotency_key: str | None = None,
+    ) -> SmrResourceLimitExtension:
+        return self.usage.extend_run_resource_limit(
+            run_id,
+            limit_value=limit_value,
+            additional_value=additional_value,
+            reason=reason,
+            selector=selector,
+            resource_limit_id=resource_limit_id,
+            metric=metric,
+            unit=unit,
+            resolve_blockers=resolve_blockers,
+            resume=resume,
+            idempotency_key=idempotency_key,
+        )
+
+    def get_project_run_resource_limits(
+        self,
+        project_id: str,
+        run_id: str,
+    ) -> SmrResourceLimits:
+        return self.usage.get_project_run_resource_limits(project_id, run_id)
+
+    def get_project_run_progress_toward_resource_limits(
+        self,
+        project_id: str,
+        run_id: str,
+    ) -> SmrResourceLimitProgress:
+        return self.usage.get_project_run_progress_toward_resource_limits(
+            project_id,
+            run_id,
+        )
+
+    def extend_project_run_resource_limit(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        limit_value: float | None = None,
+        additional_value: float | None = None,
+        reason: str | None = None,
+        selector: SmrResourceLimitSelector | Mapping[str, object] | None = None,
+        resource_limit_id: str | None = None,
+        metric: str = "spend_usd",
+        unit: str = "usd",
+        resolve_blockers: bool = True,
+        resume: bool = True,
+        idempotency_key: str | None = None,
+    ) -> SmrResourceLimitExtension:
+        return self.usage.extend_project_run_resource_limit(
+            project_id,
+            run_id,
+            limit_value=limit_value,
+            additional_value=additional_value,
+            reason=reason,
+            selector=selector,
+            resource_limit_id=resource_limit_id,
+            metric=metric,
+            unit=unit,
+            resolve_blockers=resolve_blockers,
+            resume=resume,
+            idempotency_key=idempotency_key,
+        )
+
     def get_project_usage(self, project_id: str) -> SmrProjectUsage:
         return self.usage.get_project_usage(project_id)
+
+    def get_project_resource_limits(self, project_id: str) -> SmrResourceLimits:
+        return self.usage.get_project_resource_limits(project_id)
+
+    def get_project_progress_toward_resource_limits(
+        self,
+        project_id: str,
+    ) -> SmrResourceLimitProgress:
+        return self.usage.get_project_progress_toward_resource_limits(project_id)
+
+    def extend_project_resource_limit(
+        self,
+        project_id: str,
+        *,
+        limit_value: float | None = None,
+        additional_value: float | None = None,
+        reason: str | None = None,
+        selector: SmrResourceLimitSelector | Mapping[str, object] | None = None,
+        resource_limit_id: str | None = None,
+        metric: str = "spend_usd",
+        unit: str = "usd",
+        resolve_blockers: bool = True,
+        resume: bool = True,
+        idempotency_key: str | None = None,
+    ) -> SmrResourceLimitExtension:
+        return self.usage.extend_project_resource_limit(
+            project_id,
+            limit_value=limit_value,
+            additional_value=additional_value,
+            reason=reason,
+            selector=selector,
+            resource_limit_id=resource_limit_id,
+            metric=metric,
+            unit=unit,
+            resolve_blockers=resolve_blockers,
+            resume=resume,
+            idempotency_key=idempotency_key,
+        )
 
     def get_project_economics(self, project_id: str) -> SmrProjectEconomics:
         return self.usage.get_project_economics(project_id)
@@ -843,6 +972,21 @@ class ManagedResearchClient:
             params=params,
             json_body=json_body,
             allow_not_found=allow_not_found,
+        )
+
+    def _stream_sse(
+        self,
+        path: str,
+        *,
+        params: dict[str, Any] | None = None,
+        last_event_id: str | None = None,
+        timeout: float | None = None,
+    ):
+        return self._transport.stream_sse(
+            path,
+            params=params,
+            last_event_id=last_event_id,
+            timeout=timeout,
         )
 
     def get_backend_version(self) -> dict[str, Any]:
@@ -2805,11 +2949,13 @@ class ManagedResearchClient:
         cursor: str | None = None,
         limit: int = 200,
         participant_session_id: str | None = None,
+        view: str | None = None,
     ) -> dict[str, Any]:
         params = build_query_params(
             cursor=cursor,
             limit=limit,
             participant_session_id=participant_session_id,
+            view=view,
         )
         return _coerce_dict(
             self._request_json(
@@ -2819,6 +2965,27 @@ class ManagedResearchClient:
             ),
             label="get_run_transcript",
         )
+
+    def stream_run_events(
+        self,
+        run_id: str,
+        *,
+        transcript_cursor: str | None = None,
+        view: str = "operator",
+        last_event_id: str | None = None,
+        timeout: float | None = None,
+    ):
+        params = build_query_params(
+            transcript_cursor=transcript_cursor,
+            view=view,
+        )
+        for event in self._stream_sse(
+            f"/smr/runs/{run_id}/runtime/stream",
+            params=params,
+            last_event_id=last_event_id,
+            timeout=timeout,
+        ):
+            yield RunRuntimeStreamEvent.from_sse(event)
 
     def get_run_primary_parent(self, run_id: str) -> dict[str, Any]:
         return _coerce_dict(

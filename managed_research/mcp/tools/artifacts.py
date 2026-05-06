@@ -11,7 +11,7 @@ def build_artifact_tools(server: Any) -> list[ToolDefinition]:
     return [
         ToolDefinition(
             name="smr_list_run_artifacts",
-            description="List artifacts for a run from the public artifact contract.",
+            description="List artifacts for a run from the stable API artifact contract.",
             input_schema=tool_schema(
                 {
                     "run_id": {"type": "string"},

@@ -128,7 +128,7 @@ def _write_message(stream: Any, payload: JSONDict, *, framing: str) -> None:
 
 
 class ManagedResearchMcpServer:
-    """Managed Research MCP server for the public noun-first tool surface."""
+    """Managed Research MCP server for the authenticated noun-first API surface."""
 
     def __init__(
         self,
@@ -652,10 +652,81 @@ class ManagedResearchMcpServer:
             result = client.get_run_usage(run_id)
             return asdict(result) if is_dataclass(result) else result
 
+    def _tool_get_run_resource_limits(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            result = (
+                client.get_project_run_resource_limits(project_id, run_id)
+                if project_id
+                else client.get_run_resource_limits(run_id)
+            )
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_get_run_progress_toward_resource_limits(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            result = (
+                client.get_project_run_progress_toward_resource_limits(project_id, run_id)
+                if project_id
+                else client.get_run_progress_toward_resource_limits(run_id)
+            )
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_request_resource_limit_extension(self, args: JSONDict) -> Any:
+        scope = require_string(args, "scope").strip().lower()
+        if scope not in {"run", "project"}:
+            raise ValueError("scope must be 'run' or 'project'")
+        limit_value = self._optional_float_arg(args, "limit_value")
+        additional_value = self._optional_float_arg(args, "additional_value")
+        resolve_blockers = optional_bool(args, "resolve_blockers", default=True)
+        resume = optional_bool(args, "resume", default=True)
+        kwargs = {
+            "limit_value": limit_value,
+            "additional_value": additional_value,
+            "reason": optional_string(args, "reason"),
+            "resource_limit_id": optional_string(args, "resource_limit_id"),
+            "resolve_blockers": resolve_blockers,
+            "resume": resume,
+            "idempotency_key": optional_string(args, "idempotency_key"),
+        }
+        with self._client_from_args(args) as client:
+            if scope == "project":
+                result = client.extend_project_resource_limit(
+                    require_string(args, "project_id"),
+                    **kwargs,
+                )
+            else:
+                run_id = require_string(args, "run_id")
+                project_id = optional_string(args, "project_id")
+                result = (
+                    client.extend_project_run_resource_limit(
+                        project_id,
+                        run_id,
+                        **kwargs,
+                    )
+                    if project_id
+                    else client.extend_run_resource_limit(run_id, **kwargs)
+                )
+            return asdict(result) if is_dataclass(result) else result
+
     def _tool_get_project_usage(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             result = client.get_project_usage(project_id)
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_get_project_resource_limits(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            result = client.get_project_resource_limits(project_id)
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_get_project_progress_toward_resource_limits(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            result = client.get_project_progress_toward_resource_limits(project_id)
             return asdict(result) if is_dataclass(result) else result
 
     def _tool_get_project_economics(self, args: JSONDict) -> Any:
@@ -1643,13 +1714,49 @@ class ManagedResearchMcpServer:
         cursor = optional_string(args, "cursor")
         limit = optional_int(args, "limit") or 100
         participant_session_id = optional_string(args, "participant_session_id")
+        view = optional_string(args, "view")
         with self._client_from_args(args) as client:
             return client.runs.transcript(
                 run_id,
                 cursor=cursor,
                 limit=min(limit, 200),
                 participant_session_id=participant_session_id,
+                view=view,
             )
+
+    def _tool_watch_run_events(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        transcript_cursor = optional_string(args, "transcript_cursor")
+        last_event_id = optional_string(args, "last_event_id")
+        view = optional_string(args, "view") or "operator"
+        max_events = min(optional_int(args, "max_events") or 20, 50)
+        timeout_seconds = optional_int(args, "timeout_seconds") or 30
+        events: list[dict[str, Any]] = []
+        with self._client_from_args(args) as client:
+            for event in client.runs.stream_events(
+                run_id,
+                transcript_cursor=transcript_cursor,
+                view=view,
+                last_event_id=last_event_id,
+                timeout=float(timeout_seconds),
+            ):
+                row = asdict(event)
+                occurred_at = row.get("occurred_at")
+                if hasattr(occurred_at, "isoformat"):
+                    row["occurred_at"] = occurred_at.isoformat()
+                events.append(row)
+                if len(events) >= max_events:
+                    break
+        return {
+            "run_id": run_id,
+            "view": view,
+            "event_count": len(events),
+            "events": events,
+            "next_last_event_id": events[-1].get("event_id") if events else last_event_id,
+            "next_transcript_cursor": (
+                events[-1].get("transcript_cursor") if events else transcript_cursor
+            ),
+        }
 
     def _tool_get_launch_preflight(self, args: JSONDict) -> Any:
         request = RunLaunchRequest.from_payload(args)

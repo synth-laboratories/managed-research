@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
 import httpx
 
 from managed_research.errors import SmrApiError
-from managed_research.models.canonical_usage import SmrRunUsage
+from managed_research.models.canonical_usage import (
+    SmrResourceLimitExtension,
+    SmrResourceLimitProgress,
+    SmrResourceLimitSelector,
+    SmrResourceLimits,
+    SmrRunUsage,
+)
 from managed_research.models.checkpoints import Checkpoint
 from managed_research.models.run_control import (
     ManagedResearchActorControlAck,
@@ -221,6 +228,38 @@ class RunHandle:
             self.project_id,
             self.run_id,
         ).actors.counts_by_state
+
+    def transcript(
+        self,
+        *,
+        cursor: str | None = None,
+        limit: int = 200,
+        participant_session_id: str | None = None,
+        view: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.runs.transcript(
+            self.run_id,
+            cursor=cursor,
+            limit=limit,
+            participant_session_id=participant_session_id,
+            view=view,
+        )
+
+    def stream_events(
+        self,
+        *,
+        transcript_cursor: str | None = None,
+        view: str = "operator",
+        last_event_id: str | None = None,
+        timeout: float | None = None,
+    ):
+        return self._client.runs.stream_events(
+            self.run_id,
+            transcript_cursor=transcript_cursor,
+            view=view,
+            last_event_id=last_event_id,
+            timeout=timeout,
+        )
 
     def messages(
         self,
@@ -534,6 +573,44 @@ class RunHandle:
 
     def actor_usage(self) -> SmrRunActorUsage:
         return self._client.get_project_run_actor_usage(self.project_id, self.run_id)
+
+    def resource_limits(self) -> SmrResourceLimits:
+        return self._client.get_project_run_resource_limits(self.project_id, self.run_id)
+
+    def progress_toward_resource_limits(self) -> SmrResourceLimitProgress:
+        return self._client.get_project_run_progress_toward_resource_limits(
+            self.project_id,
+            self.run_id,
+        )
+
+    def extend_resource_limit(
+        self,
+        *,
+        limit_value: float | None = None,
+        additional_value: float | None = None,
+        reason: str | None = None,
+        selector: SmrResourceLimitSelector | Mapping[str, object] | None = None,
+        resource_limit_id: str | None = None,
+        metric: str = "spend_usd",
+        unit: str = "usd",
+        resolve_blockers: bool = True,
+        resume: bool = True,
+        idempotency_key: str | None = None,
+    ) -> SmrResourceLimitExtension:
+        return self._client.extend_project_run_resource_limit(
+            self.project_id,
+            self.run_id,
+            limit_value=limit_value,
+            additional_value=additional_value,
+            reason=reason,
+            selector=selector,
+            resource_limit_id=resource_limit_id,
+            metric=metric,
+            unit=unit,
+            resolve_blockers=resolve_blockers,
+            resume=resume,
+            idempotency_key=idempotency_key,
+        )
 
     def checkpoints(self) -> list[Checkpoint]:
         return self._client.list_run_checkpoints(
@@ -863,6 +940,74 @@ class RunsAPI(_ClientNamespace):
 
     def get_usage(self, run_id: str) -> SmrRunUsage:
         return self._client.get_run_usage(run_id)
+
+    def get_resource_limits(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> SmrResourceLimits:
+        if project_id:
+            return self._client.get_project_run_resource_limits(project_id, run_id)
+        return self._client.get_run_resource_limits(run_id)
+
+    def get_progress_toward_resource_limits(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> SmrResourceLimitProgress:
+        if project_id:
+            return self._client.get_project_run_progress_toward_resource_limits(
+                project_id,
+                run_id,
+            )
+        return self._client.get_run_progress_toward_resource_limits(run_id)
+
+    def extend_resource_limit(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+        limit_value: float | None = None,
+        additional_value: float | None = None,
+        reason: str | None = None,
+        selector: SmrResourceLimitSelector | Mapping[str, object] | None = None,
+        resource_limit_id: str | None = None,
+        metric: str = "spend_usd",
+        unit: str = "usd",
+        resolve_blockers: bool = True,
+        resume: bool = True,
+        idempotency_key: str | None = None,
+    ) -> SmrResourceLimitExtension:
+        if project_id:
+            return self._client.extend_project_run_resource_limit(
+                project_id,
+                run_id,
+                limit_value=limit_value,
+                additional_value=additional_value,
+                reason=reason,
+                selector=selector,
+                resource_limit_id=resource_limit_id,
+                metric=metric,
+                unit=unit,
+                resolve_blockers=resolve_blockers,
+                resume=resume,
+                idempotency_key=idempotency_key,
+            )
+        return self._client.extend_run_resource_limit(
+            run_id,
+            limit_value=limit_value,
+            additional_value=additional_value,
+            reason=reason,
+            selector=selector,
+            resource_limit_id=resource_limit_id,
+            metric=metric,
+            unit=unit,
+            resolve_blockers=resolve_blockers,
+            resume=resume,
+            idempotency_key=idempotency_key,
+        )
 
     def get_observability_snapshot(
         self,
@@ -1610,6 +1755,7 @@ class RunsAPI(_ClientNamespace):
         cursor: str | None = None,
         limit: int = 200,
         participant_session_id: str | None = None,
+        view: str | None = None,
     ) -> dict[str, Any]:
         """Fetch one page of transcript events.
 
@@ -1625,6 +1771,29 @@ class RunsAPI(_ClientNamespace):
             cursor=cursor,
             limit=limit,
             participant_session_id=participant_session_id,
+            view=view,
+        )
+
+    def stream_events(
+        self,
+        run_id: str,
+        *,
+        transcript_cursor: str | None = None,
+        view: str = "operator",
+        last_event_id: str | None = None,
+        timeout: float | None = None,
+    ):
+        """Stream live runtime events for a run over backend SSE.
+
+        Yields typed ``RunRuntimeStreamEvent`` instances. Transcript payloads are
+        already projected by backend policy for the requested view.
+        """
+        return self._client.stream_run_events(
+            run_id,
+            transcript_cursor=transcript_cursor,
+            view=view,
+            last_event_id=last_event_id,
+            timeout=timeout,
         )
 
     def stream_transcript(
@@ -1634,6 +1803,7 @@ class RunsAPI(_ClientNamespace):
         cursor: str | None = None,
         page_size: int = 200,
         participant_session_id: str | None = None,
+        view: str | None = None,
     ):
         """Iterate over all persisted transcript events for a run.
 
@@ -1648,6 +1818,7 @@ class RunsAPI(_ClientNamespace):
                 cursor=current_cursor,
                 limit=page_size,
                 participant_session_id=participant_session_id,
+                view=view,
             )
             yield from page.get("events") or []
             next_cursor = page.get("next_cursor")

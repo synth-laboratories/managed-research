@@ -63,6 +63,21 @@ pause, resume, or request interruption for one actor inside a project-scoped
 run. Responses are typed as `ManagedResearchActorControlAck` and include the
 actor id/type, previous state, target state, and runtime control receipt id.
 
+Runtime transcript and live events are first-class. Use
+`client.runs.transcript(run_id, view="operator")` for replay and
+`client.runs.stream_events(run_id, view="operator")` for SSE. Stream events are
+typed as `RunRuntimeStreamEvent`; transcript payloads include backend-redacted
+reasoning summaries and tool-call lifecycle metadata. Hidden model reasoning and
+raw provider reasoning are not exposed by the SDK.
+
+```python
+for event in client.runs.stream_events(run.run_id, view="operator"):
+    if event.kind == "transcript":
+        transcript_event = event.transcript_event
+        if transcript_event and transcript_event.kind == "reasoning.summary":
+            print(transcript_event.payload.get("summary"))
+```
+
 ## Misc Default Project Flow
 
 ```python
@@ -98,9 +113,11 @@ Canonical harness values:
 
 Canonical OpenCode launch models:
 
-- `anthropic/claude-sonnet-4-6`
-- `anthropic/claude-haiku-4-5-20251001`
-- `x-ai/grok-4.1-fast`
+| Model ID | Launch access |
+| --- | --- |
+| `anthropic/claude-sonnet-4-6` | Beta Access |
+| `anthropic/claude-haiku-4-5-20251001` | Standard |
+| `x-ai/grok-4.1-fast` | Standard |
 
 Example:
 
@@ -111,7 +128,7 @@ run = client.runs.start(
     work_mode="directed_effort",
     providers=[{"provider": "openrouter"}],
     agent_harness="opencode_sdk",
-    agent_model="anthropic/claude-sonnet-4-6",
+    agent_model="anthropic/claude-haiku-4-5-20251001",
 )
 ```
 
