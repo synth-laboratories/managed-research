@@ -578,7 +578,7 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
                     "funding_source": {
                         "type": "string",
                         "enum": list(SMR_FUNDING_SOURCE_VALUES),
-                        "description": "Funding source bucket for the credential. Usually customer_byok.",
+                        "description": "Funding source bucket for this credential.",
                     },
                     "api_key": {
                         "type": "string",
@@ -607,7 +607,7 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
                     "funding_source": {
                         "type": "string",
                         "enum": list(SMR_FUNDING_SOURCE_VALUES),
-                        "description": "Funding source bucket for the credential. Usually customer_byok.",
+                        "description": "Funding source bucket for this credential.",
                     },
                 },
                 required=["project_id", "provider", "funding_source"],

@@ -35,6 +35,10 @@ def _error_message(response: httpx.Response) -> str:
     except json.JSONDecodeError:
         payload = None
     if isinstance(payload, dict):
+        # New structured shape: top-level {failure_class, message, remediation, cause}
+        msg = payload.get("message")
+        if isinstance(msg, str) and msg.strip():
+            return msg.strip()
         detail = payload.get("detail")
         if isinstance(detail, str) and detail.strip():
             return detail.strip()
@@ -48,6 +52,46 @@ def _error_message(response: httpx.Response) -> str:
     return (
         f"{response.request.method} {response.request.url.path} failed with {response.status_code}"
     )
+
+
+def _structured_body_fields(response: httpx.Response) -> dict[str, Any]:
+    """Extract failure_class / remediation / cause from a backend error body.
+
+    Looks at both the new top-level shape (``{failure_class, remediation, cause, ...}``)
+    and the legacy ``{detail: {error, error_code, message, ...}}`` shape.
+    """
+    try:
+        payload = response.json()
+    except json.JSONDecodeError:
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    out: dict[str, Any] = {}
+    for key in (
+        "failure_class",
+        "remediation",
+        "cause",
+        "missing_object_name",
+        "missing_object_kind",
+        "constraint_name",
+        "constraint_kind",
+        "table",
+        "column",
+        "error",
+        "error_code",
+    ):
+        value = payload.get(key)
+        if value is not None:
+            out[key] = value
+    detail = payload.get("detail")
+    if isinstance(detail, dict):
+        for key in ("error_code", "error", "message", "remediation"):
+            value = detail.get(key)
+            if value is not None and key not in out:
+                out[key] = value
+    if "failure_class" not in out and isinstance(out.get("error"), str):
+        out["failure_class"] = out["error"]
+    return {"raw_body": payload, **out}
 
 
 def _raise_for_error_response(response: httpx.Response) -> None:
@@ -120,15 +164,25 @@ def _raise_for_error_response(response: httpx.Response) -> None:
                     response_text=response_text,
                     detail=detail,
                 )
+            structured = _structured_body_fields(response)
             raise SmrApiError(
                 _error_message(response),
                 status_code=response.status_code,
                 response_text=response.text,
+                failure_class=structured.get("failure_class"),
+                remediation=structured.get("remediation"),
+                cause=structured.get("cause") if isinstance(structured.get("cause"), list) else None,
+                body=structured.get("raw_body") if isinstance(structured.get("raw_body"), dict) else None,
             )
+    structured = _structured_body_fields(response)
     raise SmrApiError(
         _error_message(response),
         status_code=response.status_code,
         response_text=response.text,
+        failure_class=structured.get("failure_class"),
+        remediation=structured.get("remediation"),
+        cause=structured.get("cause") if isinstance(structured.get("cause"), list) else None,
+        body=structured.get("raw_body") if isinstance(structured.get("raw_body"), dict) else None,
     )
 
 

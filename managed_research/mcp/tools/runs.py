@@ -66,7 +66,7 @@ def _provider_bindings_schema() -> dict[str, Any]:
                 "provider": {
                     "type": "string",
                     "enum": list(PROVIDER_VALUES),
-                    "description": "Public launch provider.",
+                    "description": "Authenticated API launch provider.",
                 },
                 "config": {
                     "type": "object",
@@ -130,7 +130,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                     "host_kind": {
                         "type": "string",
                         "enum": list(SMR_HOST_KIND_VALUES),
-                        "description": "Public execution host kind for this run.",
+                        "description": "Authenticated API execution host kind for this run.",
                     },
                     "work_mode": {
                         "type": "string",
@@ -151,7 +151,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                     "agent_model": {
                         "type": "string",
                         "enum": list(SMR_AGENT_MODEL_VALUES),
-                        "description": "Optional run-level agent model override using a public model id such as gpt-5.4, gpt-5.4-nano, or gpt-oss-120b.",
+                        "description": "Optional run-level agent model override using a backend catalog model id such as gpt-5.4, gpt-5.4-nano, or gpt-oss-120b.",
                     },
                     "agent_harness": {
                         "type": "string",
@@ -393,7 +393,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             name="smr_get_run_execution",
             description=(
                 "Read the high-level execution projection for a run: actors, "
-                "tasks/objectives, public messages, timeline events, and output refs. "
+                "tasks/objectives, participant messages, timeline events, and output refs. "
                 "Use this for normal run inspection before falling back to raw "
                 "timeline, transcript, or operator evidence."
             ),

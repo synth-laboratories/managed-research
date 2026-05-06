@@ -57,7 +57,7 @@ paths:
   /health/db:
     get:
       summary: Health Db
-      description: DB health snapshot without touching the database.
+      description: DB health snapshot with pool and durable work-lease state.
       operationId: health_db_health_db_get
       responses:
         '200':
@@ -266,7 +266,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UsageSummaryResponse'
+                $ref: '#/components/schemas/app__api__v1__routes_balance__UsageSummaryResponse'
   /api/v1/balance/autumn-current:
     get:
       tags:
@@ -497,7 +497,7 @@ paths:
 
         - org_id: Organization identifier
 
-        - tier: Current tier (free, starter, growth, enterprise)
+        - tier: Current tier (free, free_beta, pro, pro_beta, team, team_beta, enterprise)
 
         - period: Start dates for daily and monthly periods
 
@@ -539,7 +539,9 @@ paths:
       description: 'Get default rate limits for all tiers.
 
 
-        Returns the default limits for each tier (free, starter, growth, enterprise).
+        Returns the default limits for each tier
+
+        (free, free_beta, pro, pro_beta, team, team_beta, enterprise).
 
         These are the base limits before any per-org overrides are applied.
 
@@ -562,8 +564,8 @@ paths:
       - usage
       summary: Get Tier Limit
       description: "Get default rate limits for a specific tier.\n\nArgs:\n    tier:\
-        \ Tier name (free, starter, growth, enterprise)\n\nReturns default limits\
-        \ for the specified tier."
+        \ Tier name (free, free_beta, pro, pro_beta, team, team_beta, enterprise)\n\
+        \nReturns default limits for the specified tier."
       operationId: get_tier_limit_api_v1_usage_tiers__tier__get
       parameters:
       - name: tier
@@ -768,7 +770,7 @@ paths:
       tags:
       - byok
       summary: List Byok Keys
-      description: 'List all stored BYOK keys for the organization.
+      description: 'List all stored provider keys for the organization.
 
 
         Returns key metadata (provider, prefix, status) without decrypted keys.'
@@ -784,7 +786,7 @@ paths:
       tags:
       - byok
       summary: Store Byok Key
-      description: "Store a new BYOK API key.\n\nThe key must be encrypted client-side\
+      description: "Store a new provider API key.\n\nThe key must be encrypted client-side\
         \ using the app's public key before\ntransmission. Use the /crypto/public-key\
         \ endpoint to get the public key.\n\nArgs:\n    provider: LLM provider (openai,\
         \ anthropic, google)\n    encrypted_key_b64: Base64-encoded ciphertext"
@@ -813,7 +815,7 @@ paths:
       tags:
       - byok
       summary: Get Byok Key Info
-      description: 'Get info about a specific BYOK key by provider.
+      description: 'Get info about a specific provider key.
 
 
         Returns key metadata without the decrypted key.'
@@ -841,7 +843,7 @@ paths:
       tags:
       - byok
       summary: Delete Byok Key
-      description: 'Delete a BYOK key for a provider.
+      description: 'Delete a provider key.
 
 
         After deletion, rollouts using that provider will use Synth credits.'
@@ -870,7 +872,7 @@ paths:
       tags:
       - byok
       summary: Validate Byok Key
-      description: 'Validate a stored BYOK key with the provider''s API.
+      description: 'Validate a stored provider key with the provider''s API.
 
 
         Makes a lightweight API call to verify the key is still valid.'
@@ -899,10 +901,10 @@ paths:
       tags:
       - byok
       summary: Get Byok Status
-      description: 'Get BYOK status including which providers have keys stored.
+      description: 'Get provider key status including which providers have keys stored.
 
 
-        Useful for checking BYOK availability and key coverage.'
+        Useful for checking provider key availability and key coverage.'
       operationId: get_byok_status_api_v1_byok_status_get
       responses:
         '200':
@@ -5794,6 +5796,13 @@ paths:
           minimum: 1
           default: 200
           title: Limit
+      - name: view
+        in: query
+        required: false
+        schema:
+          type: string
+          default: operator
+          title: View
       responses:
         '200':
           description: Successful Response
@@ -7310,6 +7319,13 @@ paths:
         schema:
           type: string
           title: Run Id
+      - name: include_status_bridge
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: true
+          title: Include Status Bridge
       responses:
         '200':
           description: Successful Response
@@ -7951,6 +7967,13 @@ paths:
         schema:
           type: string
           title: Run Id
+      - name: include_status_bridge
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: true
+          title: Include Status Bridge
       responses:
         '200':
           description: Successful Response
@@ -19988,7 +20011,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Environments
-      operationId: proxy_environments_api_managed_agents_anthropic_v1_environments_post
+      operationId: proxy_environments_api_managed_agents_anthropic_v1_environments_get
       responses:
         '200':
           description: Successful Response
@@ -19999,7 +20022,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Environments
-      operationId: proxy_environments_api_managed_agents_anthropic_v1_environments_post__post__1
+      operationId: proxy_environments_api_managed_agents_anthropic_v1_environments_get__post__1
       responses:
         '200':
           description: Successful Response
@@ -20011,7 +20034,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Environments Environment Id
-      operationId: proxy_environments_environment_id_api_managed_agents_anthropic_v1_environments__environment_id__post
+      operationId: proxy_environments_environment_id_api_managed_agents_anthropic_v1_environments__environment_id__get
       responses:
         '200':
           description: Successful Response
@@ -20022,7 +20045,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Environments Environment Id
-      operationId: proxy_environments_environment_id_api_managed_agents_anthropic_v1_environments__environment_id__post__post__1
+      operationId: proxy_environments_environment_id_api_managed_agents_anthropic_v1_environments__environment_id__get__post__1
       responses:
         '200':
           description: Successful Response
@@ -20046,7 +20069,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Agents
-      operationId: proxy_agents_api_managed_agents_anthropic_v1_agents_post
+      operationId: proxy_agents_api_managed_agents_anthropic_v1_agents_get
       responses:
         '200':
           description: Successful Response
@@ -20057,7 +20080,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Agents
-      operationId: proxy_agents_api_managed_agents_anthropic_v1_agents_post__post__1
+      operationId: proxy_agents_api_managed_agents_anthropic_v1_agents_get__post__1
       responses:
         '200':
           description: Successful Response
@@ -20069,7 +20092,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Agents Agent Id
-      operationId: proxy_agents_agent_id_api_managed_agents_anthropic_v1_agents__agent_id__post
+      operationId: proxy_agents_agent_id_api_managed_agents_anthropic_v1_agents__agent_id__get
       responses:
         '200':
           description: Successful Response
@@ -20080,7 +20103,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Agents Agent Id
-      operationId: proxy_agents_agent_id_api_managed_agents_anthropic_v1_agents__agent_id__post__post__1
+      operationId: proxy_agents_agent_id_api_managed_agents_anthropic_v1_agents__agent_id__get__post__1
       responses:
         '200':
           description: Successful Response
@@ -20104,7 +20127,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions
-      operationId: proxy_sessions_api_managed_agents_anthropic_v1_sessions_post
+      operationId: proxy_sessions_api_managed_agents_anthropic_v1_sessions_get
       responses:
         '200':
           description: Successful Response
@@ -20115,7 +20138,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions
-      operationId: proxy_sessions_api_managed_agents_anthropic_v1_sessions_post__post__1
+      operationId: proxy_sessions_api_managed_agents_anthropic_v1_sessions_get__post__1
       responses:
         '200':
           description: Successful Response
@@ -20127,7 +20150,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions Session Id
-      operationId: proxy_sessions_session_id_api_managed_agents_anthropic_v1_sessions__session_id__post
+      operationId: proxy_sessions_session_id_api_managed_agents_anthropic_v1_sessions__session_id__get
       responses:
         '200':
           description: Successful Response
@@ -20138,7 +20161,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions Session Id
-      operationId: proxy_sessions_session_id_api_managed_agents_anthropic_v1_sessions__session_id__post__post__1
+      operationId: proxy_sessions_session_id_api_managed_agents_anthropic_v1_sessions__session_id__get__post__1
       responses:
         '200':
           description: Successful Response
@@ -20162,7 +20185,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions Session Id Events
-      operationId: proxy_sessions_session_id_events_api_managed_agents_anthropic_v1_sessions__session_id__events_post
+      operationId: proxy_sessions_session_id_events_api_managed_agents_anthropic_v1_sessions__session_id__events_get
       responses:
         '200':
           description: Successful Response
@@ -20173,7 +20196,7 @@ paths:
       tags:
       - managed-agents-anthropic-proxy
       summary: Proxy Sessions Session Id Events
-      operationId: proxy_sessions_session_id_events_api_managed_agents_anthropic_v1_sessions__session_id__events_post__post__1
+      operationId: proxy_sessions_session_id_events_api_managed_agents_anthropic_v1_sessions__session_id__events_get__post__1
       responses:
         '200':
           description: Successful Response
@@ -20304,7 +20327,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__post
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__get
       responses:
         '200':
           description: Successful Response
@@ -20315,7 +20338,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__post__post__1
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__get__post__1
       responses:
         '200':
           description: Successful Response
@@ -20326,7 +20349,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id
-      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__post__delete__2
+      operationId: proxy_openai_conversations_conversation_id_api_managed_agents_openai_v1_conversations__conversation_id__get__delete__2
       responses:
         '200':
           description: Successful Response
@@ -20338,7 +20361,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id Items
-      operationId: proxy_openai_conversations_conversation_id_items_api_managed_agents_openai_v1_conversations__conversation_id__items_post
+      operationId: proxy_openai_conversations_conversation_id_items_api_managed_agents_openai_v1_conversations__conversation_id__items_get
       responses:
         '200':
           description: Successful Response
@@ -20349,7 +20372,7 @@ paths:
       tags:
       - managed-agents-openai-proxy
       summary: Proxy Openai Conversations Conversation Id Items
-      operationId: proxy_openai_conversations_conversation_id_items_api_managed_agents_openai_v1_conversations__conversation_id__items_post__post__1
+      operationId: proxy_openai_conversations_conversation_id_items_api_managed_agents_openai_v1_conversations__conversation_id__items_get__post__1
       responses:
         '200':
           description: Successful Response
@@ -20380,11 +20403,11 @@ paths:
             application/json:
               schema: {}
   /s/{route_token}/{path}:
-    get:
+    delete:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get
+      operationId: synthtunnel_gateway_s__route_token___path__delete
       parameters:
       - name: route_token
         in: path
@@ -20414,7 +20437,7 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get__patch__1
+      operationId: synthtunnel_gateway_s__route_token___path__delete__patch__1
       parameters:
       - name: route_token
         in: path
@@ -20440,71 +20463,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-    put:
+    get:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get__put__2
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    options:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get__options__3
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    delete:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get__delete__4
+      operationId: synthtunnel_gateway_s__route_token___path__delete__get__2
       parameters:
       - name: route_token
         in: path
@@ -20534,7 +20497,67 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__get__post__5
+      operationId: synthtunnel_gateway_s__route_token___path__delete__post__3
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__delete__put__4
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    options:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__delete__options__5
       parameters:
       - name: route_token
         in: path
@@ -21293,7 +21316,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/app__api__v1__admin__UsageSummaryResponse'
+                $ref: '#/components/schemas/UsageSummaryResponse'
         '422':
           description: Validation Error
           content:
@@ -24173,7 +24196,9 @@ components:
       - free_beta
       - startup
       - pro
+      - pro_beta
       - team
+      - team_beta
       - enterprise
       - demo_internal
       - other
@@ -24875,7 +24900,7 @@ components:
       - provider
       - message
       title: DeleteKeyResponse
-      description: Response after deleting a BYOK key.
+      description: Response after deleting a provider key.
     DeleteTunnelResponse:
       properties:
         id:
@@ -24974,6 +24999,10 @@ components:
       - managed_research
       - smr_spend
       - smr_active_projects
+      - smr_open_ended_discovery
+      - smr_heavy_preset
+      - smr_pro_models
+      - smr_all_models
       - other
       title: EntitlementAssetId
     EntitlementKind:
@@ -25554,7 +25583,7 @@ components:
       - provider
       - validated_at
       title: KeyValidationResult
-      description: Result of validating a BYOK key with the provider.
+      description: Result of validating a provider key with the provider.
     LaunchMetadataResponse:
       properties:
         id:
@@ -25946,7 +25975,7 @@ components:
       - keys
       - byok_enabled
       title: ListKeysResponse
-      description: Response containing list of stored BYOK keys.
+      description: Response containing list of stored provider keys.
     LocalTarget:
       properties:
         host:
@@ -28017,16 +28046,11 @@ components:
         readiness:
           type: string
           title: Readiness
-        subtype_kind:
+        instance_id:
           anyOf:
           - type: string
           - type: 'null'
-          title: Subtype Kind
-        subtype_id:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Subtype Id
+          title: Instance Id
         artifact_id:
           anyOf:
           - type: string
@@ -38498,16 +38522,11 @@ components:
         readiness:
           type: string
           title: Readiness
-        subtype_kind:
+        instance_id:
           anyOf:
           - type: string
           - type: 'null'
-          title: Subtype Kind
-        subtype_id:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Subtype Id
+          title: Instance Id
         artifact_id:
           anyOf:
           - type: string
@@ -38661,6 +38680,36 @@ components:
           title: Internal Cost Cents
           description: Internal nominal cost tracked for the run (USD cents).
           default: 0
+        total_pico_usd:
+          type: integer
+          title: Total Pico Usd
+          description: Precise ledger total cost in pico-USD.
+          default: 0
+        charged_pico_usd:
+          type: integer
+          title: Charged Pico Usd
+          description: Precise charged total in pico-USD.
+          default: 0
+        internal_cost_pico_usd:
+          type: integer
+          title: Internal Cost Pico Usd
+          description: Precise internal cost in pico-USD.
+          default: 0
+        total_usd:
+          type: number
+          title: Total Usd
+          description: Precise ledger total cost in USD.
+          default: 0.0
+        charged_usd:
+          type: number
+          title: Charged Usd
+          description: Precise charged total in USD.
+          default: 0.0
+        internal_cost_usd:
+          type: number
+          title: Internal Cost Usd
+          description: Precise internal cost in USD.
+          default: 0.0
       type: object
       required:
       - total_cents
@@ -39589,11 +39638,6 @@ components:
         kind:
           type: string
           title: Kind
-        subtype_kind:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Subtype Kind
         title:
           type: string
           title: Title
@@ -41965,6 +42009,36 @@ components:
           description: 'Deprecated: same as totals.internal_cost_cents; retained for
             older clients.'
           default: 0
+        total_cost_pico_usd:
+          type: integer
+          title: Total Cost Pico Usd
+          description: Precise ledger total cost in pico-USD.
+          default: 0
+        total_charged_pico_usd:
+          type: integer
+          title: Total Charged Pico Usd
+          description: Precise charged total in pico-USD.
+          default: 0
+        total_internal_cost_pico_usd:
+          type: integer
+          title: Total Internal Cost Pico Usd
+          description: Precise internal cost in pico-USD.
+          default: 0
+        total_cost_usd:
+          type: number
+          title: Total Cost Usd
+          description: Precise ledger total cost in USD.
+          default: 0.0
+        total_charged_usd:
+          type: number
+          title: Total Charged Usd
+          description: Precise charged total in USD.
+          default: 0.0
+        total_internal_cost_usd:
+          type: number
+          title: Total Internal Cost Usd
+          description: Precise internal cost in USD.
+          default: 0.0
         token_usage:
           additionalProperties: true
           type: object
@@ -43780,6 +43854,21 @@ components:
           type: boolean
           title: Run Terminal
           default: false
+        redaction_profile:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Redaction Profile
+        visibility_decision:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Visibility Decision
+        payload_classification:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Payload Classification
       type: object
       required:
       - run_id
@@ -45535,7 +45624,7 @@ components:
       - provider
       - encrypted_key_b64
       title: StoreKeyRequest
-      description: 'Request to store a BYOK key.
+      description: 'Request to store a provider key.
 
 
         The key should be encrypted client-side using the app''s public key
@@ -45562,7 +45651,7 @@ components:
       - provider
       - key_prefix
       title: StoreKeyResponse
-      description: Response after storing a BYOK key.
+      description: Response after storing a provider key.
     StoredKeyInfo:
       properties:
         id:
@@ -45601,7 +45690,7 @@ components:
       - key_prefix
       - created_at
       title: StoredKeyInfo
-      description: Information about a stored BYOK key (no decrypted key exposed).
+      description: Information about a stored provider key (no decrypted key exposed).
     SupportedProvider:
       type: string
       enum:
@@ -45609,7 +45698,7 @@ components:
       - anthropic
       - google
       title: SupportedProvider
-      description: Supported LLM providers for BYOK.
+      description: Supported LLM providers for encrypted provider-key storage.
     TierLimitsResponse:
       properties:
         tier:
@@ -46784,7 +46873,7 @@ components:
         period:
           daily_start: '2025-12-05T00:00:00Z'
           monthly_start: '2025-12-01T00:00:00Z'
-        tier: starter
+        tier: pro
         totals:
           spend_cents_per_month:
             limit: 50000
@@ -46795,21 +46884,30 @@ components:
         org_id:
           type: string
           title: Org Id
-        current_month:
-          additionalProperties: true
-          type: object
-          title: Current Month
-        last_30_days:
-          additionalProperties: true
-          type: object
-          title: Last 30 Days
+        date_range:
+          type: string
+          title: Date Range
+        total_cost_cents:
+          type: integer
+          title: Total Cost Cents
+        total_cost_dollars:
+          type: number
+          title: Total Cost Dollars
+        gpu_events_count:
+          type: integer
+          title: Gpu Events Count
+        total_gpu_seconds:
+          type: number
+          title: Total Gpu Seconds
       type: object
       required:
       - org_id
-      - current_month
-      - last_30_days
+      - date_range
+      - total_cost_cents
+      - total_cost_dollars
+      - gpu_events_count
+      - total_gpu_seconds
       title: UsageSummaryResponse
-      description: Response model for usage summary.
     UsageType:
       type: string
       enum:
@@ -47228,35 +47326,26 @@ components:
       required:
       - commit_sha
       title: WorkspaceConfirmPushRequest
-    app__api__v1__admin__UsageSummaryResponse:
+    app__api__v1__routes_balance__UsageSummaryResponse:
       properties:
         org_id:
           type: string
           title: Org Id
-        date_range:
-          type: string
-          title: Date Range
-        total_cost_cents:
-          type: integer
-          title: Total Cost Cents
-        total_cost_dollars:
-          type: number
-          title: Total Cost Dollars
-        gpu_events_count:
-          type: integer
-          title: Gpu Events Count
-        total_gpu_seconds:
-          type: number
-          title: Total Gpu Seconds
+        current_month:
+          additionalProperties: true
+          type: object
+          title: Current Month
+        last_30_days:
+          additionalProperties: true
+          type: object
+          title: Last 30 Days
       type: object
       required:
       - org_id
-      - date_range
-      - total_cost_cents
-      - total_cost_dollars
-      - gpu_events_count
-      - total_gpu_seconds
+      - current_month
+      - last_30_days
       title: UsageSummaryResponse
+      description: Response model for usage summary.
     app__api__v1__routes_usage_overview__UsageSummaryResponse:
       properties:
         total_nominal_usd:

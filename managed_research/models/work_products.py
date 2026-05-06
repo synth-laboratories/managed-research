@@ -45,8 +45,7 @@ class ManagedResearchRunWorkProduct:
     status: str
     readiness: str
     summary: str | None = None
-    subtype_kind: str | None = None
-    subtype_id: str | None = None
+    instance_id: str | None = None
     artifact_id: str | None = None
     artifact_links: list[ManagedResearchWorkProductArtifactLink] = field(default_factory=list)
     content_url: str | None = None
@@ -66,8 +65,7 @@ class ManagedResearchRunWorkProduct:
             status=str(payload["status"]),
             readiness=str(payload["readiness"]),
             summary=str(payload["summary"]) if payload.get("summary") else None,
-            subtype_kind=str(payload["subtype_kind"]) if payload.get("subtype_kind") else None,
-            subtype_id=str(payload["subtype_id"]) if payload.get("subtype_id") else None,
+            instance_id=str(payload["instance_id"]) if payload.get("instance_id") else None,
             artifact_id=str(payload["artifact_id"]) if payload.get("artifact_id") else None,
             artifact_links=[
                 ManagedResearchWorkProductArtifactLink.from_wire(item)

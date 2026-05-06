@@ -33,6 +33,8 @@ managed-research-mcp
 - `smr_get_run_event_log`
 - `smr_get_run_authority_readouts`
 - `smr_get_run_operator_evidence`
+- `smr_get_run_transcript`
+- `smr_watch_run_events`
 - `smr_control_project_run_actor`
 - `smr_stop_run`
 
@@ -60,6 +62,12 @@ objectives, and experiments. Decision responses include `applied_at` and
 one actor inside a project-scoped run. It is an operator control surface: it
 records a control receipt and audit metadata, but it does not promote project
 truth.
+
+`smr_get_run_transcript` returns replayable transcript events. `smr_watch_run_events`
+opens a bounded SSE read and returns a finite batch of snapshot/transcript
+events. Transcript events include backend-redacted reasoning summaries and
+tool-call lifecycle metadata; hidden model reasoning and raw provider reasoning
+are not exposed through MCP.
 
 ## Minimal Launch
 
@@ -90,7 +98,7 @@ truth.
     "work_mode": "directed_effort",
     "providers": [{"provider": "openrouter"}],
     "agent_harness": "opencode_sdk",
-    "agent_model": "anthropic/claude-sonnet-4-6",
+    "agent_model": "anthropic/claude-haiku-4-5-20251001",
     "initial_runtime_messages": [
       {
         "mode": "queue",
@@ -103,9 +111,11 @@ truth.
 
 Supported OpenCode models:
 
-- `anthropic/claude-sonnet-4-6`
-- `anthropic/claude-haiku-4-5-20251001`
-- `x-ai/grok-4.1-fast`
+| Model ID | Launch access |
+| --- | --- |
+| `anthropic/claude-sonnet-4-6` | Beta Access |
+| `anthropic/claude-haiku-4-5-20251001` | Standard |
+| `x-ai/grok-4.1-fast` | Standard |
 
 ## Denials
 

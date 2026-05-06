@@ -718,8 +718,7 @@ class ManagedResearchRunWorkProduct:
     title: str
     status: str
     readiness: str
-    subtype_kind: str | None = None
-    subtype_id: str | None = None
+    instance_id: str | None = None
     artifact_id: str | None = None
     artifact_links: list[ManagedResearchRunWorkProductArtifactLink] = field(default_factory=list)
     detail_url: str | None = None
@@ -779,8 +778,7 @@ class ManagedResearchRunWorkProduct:
                 "readiness",
                 label="run_contract.work_products.items.readiness",
             ),
-            subtype_kind=_optional_string(mapping, "subtype_kind"),
-            subtype_id=_optional_string(mapping, "subtype_id"),
+            instance_id=_optional_string(mapping, "instance_id"),
             artifact_id=_optional_string(mapping, "artifact_id"),
             artifact_links=normalized_artifact_links,
             detail_url=_optional_string(mapping, "detail_url"),

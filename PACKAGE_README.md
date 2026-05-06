@@ -14,6 +14,29 @@ Contributors should follow **Synth Style** (engineering rules for contracts,
 errors, and structure). The canonical Markdown copy lives in the **backend**
 repository: [`specifications/tanha/references/synthstyle.md`](https://github.com/synth-laboratories/backend/blob/dev/specifications/tanha/references/synthstyle.md).
 
+## Surfaces
+
+This package is for authenticated Managed Research integrations. The Python SDK
+and MCP server expose the backend catalog for project and run automation,
+including the runbook presets, work modes, model catalog, and usage state the
+authenticated org is entitled to use.
+
+## Surfaces and tiers
+
+- Open Research web: public lab surface with `lite` and
+  `open_ended_discovery`.
+- Authenticated Free: `lite`, `directed_effort`, standard model access, and
+  one-time Managed Research credits.
+- Authenticated Pro and Team: Free plus the paid GA model bundle and higher
+  Managed Research usage pools.
+- Beta Access: an overlay on Free, Pro, or Team that adds
+  `open_ended_discovery`, `heavy`, and all-model access.
+
+Open Research on the public web is a narrower lab surface: it accepts `lite`
+runs with `open_ended_discovery` only. Treat those limits as web admission
+policy, not as SDK or MCP client-side rules. See the customer docs for the
+current product split: https://docs.usesynth.ai/managed-research/intro
+
 ## Installation
 
 ```bash

@@ -2,6 +2,12 @@
 
 This package owns the canonical MCP surface for `managed-research`.
 
+Surface note: MCP tools call the authenticated Managed Research API. When tool
+or schema descriptions say public, they mean the stable API contract, not the
+public Open Research web lab. Web lab limits such as `lite` plus
+`open_ended_discovery` only are enforced by backend admission policy, not by
+narrowing the MCP tool list.
+
 What belongs here:
 - tool registration, schemas, and scope metadata
 - shared tool-list / call-tool primitives used by both stdio and hosted transport
@@ -11,7 +17,7 @@ What belongs here:
 
 What does not belong here:
 - general SDK request construction
-- broad public response-model ownership
+- broad API response-model ownership
 - backend contract decisions
 
 Primary entrypoints:

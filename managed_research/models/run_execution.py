@@ -269,7 +269,6 @@ class RunExecutionWorkProductRef:
     kind: str
     title: str
     status: str
-    subtype_kind: str | None = None
     task_id: str | None = None
     actor_id: str | None = None
 
@@ -283,7 +282,6 @@ class RunExecutionWorkProductRef:
                 label="work_product.work_product_id",
             ),
             kind=_require_text(mapping, "kind", label="work_product.kind"),
-            subtype_kind=_optional_text(mapping, "subtype_kind"),
             title=_require_text(mapping, "title", label="work_product.title"),
             status=_require_text(mapping, "status", label="work_product.status"),
             task_id=_optional_text(mapping, "task_id"),

@@ -72,7 +72,7 @@ def _provider_bindings_schema() -> dict[str, Any]:
                 "provider": {
                     "type": "string",
                     "enum": list(PROVIDER_VALUES),
-                    "description": "Public launch provider.",
+                    "description": "Authenticated API launch provider.",
                 },
                 "config": {
                     "type": "object",
