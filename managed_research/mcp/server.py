@@ -128,7 +128,7 @@ def _write_message(stream: Any, payload: JSONDict, *, framing: str) -> None:
 
 
 class ManagedResearchMcpServer:
-    """Managed Research MCP server for the public noun-first tool surface."""
+    """Managed Research MCP server for the authenticated noun-first API surface."""
 
     def __init__(
         self,
@@ -652,10 +652,81 @@ class ManagedResearchMcpServer:
             result = client.get_run_usage(run_id)
             return asdict(result) if is_dataclass(result) else result
 
+    def _tool_get_run_resource_limits(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            result = (
+                client.get_project_run_resource_limits(project_id, run_id)
+                if project_id
+                else client.get_run_resource_limits(run_id)
+            )
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_get_run_progress_toward_resource_limits(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            result = (
+                client.get_project_run_progress_toward_resource_limits(project_id, run_id)
+                if project_id
+                else client.get_run_progress_toward_resource_limits(run_id)
+            )
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_request_resource_limit_extension(self, args: JSONDict) -> Any:
+        scope = require_string(args, "scope").strip().lower()
+        if scope not in {"run", "project"}:
+            raise ValueError("scope must be 'run' or 'project'")
+        limit_value = self._optional_float_arg(args, "limit_value")
+        additional_value = self._optional_float_arg(args, "additional_value")
+        resolve_blockers = optional_bool(args, "resolve_blockers", default=True)
+        resume = optional_bool(args, "resume", default=True)
+        kwargs = {
+            "limit_value": limit_value,
+            "additional_value": additional_value,
+            "reason": optional_string(args, "reason"),
+            "resource_limit_id": optional_string(args, "resource_limit_id"),
+            "resolve_blockers": resolve_blockers,
+            "resume": resume,
+            "idempotency_key": optional_string(args, "idempotency_key"),
+        }
+        with self._client_from_args(args) as client:
+            if scope == "project":
+                result = client.extend_project_resource_limit(
+                    require_string(args, "project_id"),
+                    **kwargs,
+                )
+            else:
+                run_id = require_string(args, "run_id")
+                project_id = optional_string(args, "project_id")
+                result = (
+                    client.extend_project_run_resource_limit(
+                        project_id,
+                        run_id,
+                        **kwargs,
+                    )
+                    if project_id
+                    else client.extend_run_resource_limit(run_id, **kwargs)
+                )
+            return asdict(result) if is_dataclass(result) else result
+
     def _tool_get_project_usage(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             result = client.get_project_usage(project_id)
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_get_project_resource_limits(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            result = client.get_project_resource_limits(project_id)
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_get_project_progress_toward_resource_limits(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            result = client.get_project_progress_toward_resource_limits(project_id)
             return asdict(result) if is_dataclass(result) else result
 
     def _tool_get_project_economics(self, args: JSONDict) -> Any:

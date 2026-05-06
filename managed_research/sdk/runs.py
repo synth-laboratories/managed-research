@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
 import httpx
 
 from managed_research.errors import SmrApiError
-from managed_research.models.canonical_usage import SmrRunUsage
+from managed_research.models.canonical_usage import (
+    SmrResourceLimitExtension,
+    SmrResourceLimitProgress,
+    SmrResourceLimitSelector,
+    SmrResourceLimits,
+    SmrRunUsage,
+)
 from managed_research.models.checkpoints import Checkpoint
 from managed_research.models.run_control import (
     ManagedResearchActorControlAck,
@@ -567,6 +574,44 @@ class RunHandle:
     def actor_usage(self) -> SmrRunActorUsage:
         return self._client.get_project_run_actor_usage(self.project_id, self.run_id)
 
+    def resource_limits(self) -> SmrResourceLimits:
+        return self._client.get_project_run_resource_limits(self.project_id, self.run_id)
+
+    def progress_toward_resource_limits(self) -> SmrResourceLimitProgress:
+        return self._client.get_project_run_progress_toward_resource_limits(
+            self.project_id,
+            self.run_id,
+        )
+
+    def extend_resource_limit(
+        self,
+        *,
+        limit_value: float | None = None,
+        additional_value: float | None = None,
+        reason: str | None = None,
+        selector: SmrResourceLimitSelector | Mapping[str, object] | None = None,
+        resource_limit_id: str | None = None,
+        metric: str = "spend_usd",
+        unit: str = "usd",
+        resolve_blockers: bool = True,
+        resume: bool = True,
+        idempotency_key: str | None = None,
+    ) -> SmrResourceLimitExtension:
+        return self._client.extend_project_run_resource_limit(
+            self.project_id,
+            self.run_id,
+            limit_value=limit_value,
+            additional_value=additional_value,
+            reason=reason,
+            selector=selector,
+            resource_limit_id=resource_limit_id,
+            metric=metric,
+            unit=unit,
+            resolve_blockers=resolve_blockers,
+            resume=resume,
+            idempotency_key=idempotency_key,
+        )
+
     def checkpoints(self) -> list[Checkpoint]:
         return self._client.list_run_checkpoints(
             self.run_id,
@@ -895,6 +940,74 @@ class RunsAPI(_ClientNamespace):
 
     def get_usage(self, run_id: str) -> SmrRunUsage:
         return self._client.get_run_usage(run_id)
+
+    def get_resource_limits(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> SmrResourceLimits:
+        if project_id:
+            return self._client.get_project_run_resource_limits(project_id, run_id)
+        return self._client.get_run_resource_limits(run_id)
+
+    def get_progress_toward_resource_limits(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> SmrResourceLimitProgress:
+        if project_id:
+            return self._client.get_project_run_progress_toward_resource_limits(
+                project_id,
+                run_id,
+            )
+        return self._client.get_run_progress_toward_resource_limits(run_id)
+
+    def extend_resource_limit(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+        limit_value: float | None = None,
+        additional_value: float | None = None,
+        reason: str | None = None,
+        selector: SmrResourceLimitSelector | Mapping[str, object] | None = None,
+        resource_limit_id: str | None = None,
+        metric: str = "spend_usd",
+        unit: str = "usd",
+        resolve_blockers: bool = True,
+        resume: bool = True,
+        idempotency_key: str | None = None,
+    ) -> SmrResourceLimitExtension:
+        if project_id:
+            return self._client.extend_project_run_resource_limit(
+                project_id,
+                run_id,
+                limit_value=limit_value,
+                additional_value=additional_value,
+                reason=reason,
+                selector=selector,
+                resource_limit_id=resource_limit_id,
+                metric=metric,
+                unit=unit,
+                resolve_blockers=resolve_blockers,
+                resume=resume,
+                idempotency_key=idempotency_key,
+            )
+        return self._client.extend_run_resource_limit(
+            run_id,
+            limit_value=limit_value,
+            additional_value=additional_value,
+            reason=reason,
+            selector=selector,
+            resource_limit_id=resource_limit_id,
+            metric=metric,
+            unit=unit,
+            resolve_blockers=resolve_blockers,
+            resume=resume,
+            idempotency_key=idempotency_key,
+        )
 
     def get_observability_snapshot(
         self,

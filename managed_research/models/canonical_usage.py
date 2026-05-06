@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from managed_research.models.types import (
@@ -24,6 +25,17 @@ def _optional_int_value(mapping: dict[str, object], key: str) -> int | None:
 def _optional_float_value(mapping: dict[str, object], key: str) -> float | None:
     if mapping.get(key) is None:
         return None
+    return _float_value(mapping, key)
+
+
+def _require_float_value(
+    mapping: dict[str, object],
+    key: str,
+    *,
+    label: str,
+) -> float:
+    if mapping.get(key) is None:
+        raise ValueError(f"Missing required field {label}")
     return _float_value(mapping, key)
 
 
@@ -145,6 +157,12 @@ class SmrRunCostTotals:
     total_cents: int
     charged_cents: int
     internal_cost_cents: int
+    total_pico_usd: int
+    charged_pico_usd: int
+    internal_cost_pico_usd: int
+    total_usd: float
+    charged_usd: float
+    internal_cost_usd: float
 
     @classmethod
     def from_wire(cls, payload: object) -> SmrRunCostTotals:
@@ -153,6 +171,15 @@ class SmrRunCostTotals:
             total_cents=_int_value(mapping, "total_cents"),
             charged_cents=_int_value(mapping, "charged_cents"),
             internal_cost_cents=_int_value(mapping, "internal_cost_cents"),
+            total_pico_usd=_optional_int_value(mapping, "total_pico_usd") or 0,
+            charged_pico_usd=_optional_int_value(mapping, "charged_pico_usd") or 0,
+            internal_cost_pico_usd=(
+                _optional_int_value(mapping, "internal_cost_pico_usd") or 0
+            ),
+            total_usd=_optional_float_value(mapping, "total_usd") or 0.0,
+            charged_usd=_optional_float_value(mapping, "charged_usd") or 0.0,
+            internal_cost_usd=_optional_float_value(mapping, "internal_cost_usd")
+            or 0.0,
         )
 
 
@@ -166,6 +193,12 @@ class SmrRunUsage:
     breakdown: dict[str, object]
     entries: list[dict[str, object]]
     rows: list[dict[str, object]]
+    total_cost_pico_usd: int
+    total_charged_pico_usd: int
+    total_internal_cost_pico_usd: int
+    total_cost_usd: float
+    total_charged_usd: float
+    total_internal_cost_usd: float
 
     @classmethod
     def from_wire(cls, payload: object) -> SmrRunUsage:
@@ -180,6 +213,22 @@ class SmrRunUsage:
             breakdown=_optional_object_dict(mapping.get("breakdown")),
             entries=[_object_dict(item) for item in _optional_array(mapping, "entries")],
             rows=[_object_dict(item) for item in _optional_array(mapping, "rows")],
+            total_cost_pico_usd=(
+                _optional_int_value(mapping, "total_cost_pico_usd") or 0
+            ),
+            total_charged_pico_usd=(
+                _optional_int_value(mapping, "total_charged_pico_usd") or 0
+            ),
+            total_internal_cost_pico_usd=(
+                _optional_int_value(mapping, "total_internal_cost_pico_usd") or 0
+            ),
+            total_cost_usd=_optional_float_value(mapping, "total_cost_usd") or 0.0,
+            total_charged_usd=(
+                _optional_float_value(mapping, "total_charged_usd") or 0.0
+            ),
+            total_internal_cost_usd=(
+                _optional_float_value(mapping, "total_internal_cost_usd") or 0.0
+            ),
         )
 
 
@@ -244,6 +293,339 @@ class SmrProjectEconomics:
             entitlements=BillingEntitlementSnapshot.from_wire(mapping.get("entitlements")),
             project_overlay=SmrProjectEntitlementOverlay.from_wire(mapping.get("project_overlay")),
             budgets=_optional_object_dict(mapping.get("budgets")),
+        )
+
+
+@dataclass(frozen=True)
+class SmrResourceLimitSelector:
+    kind: str
+    capability: str | None
+    provider: str | None
+    model: str | None
+    actor_type: str | None
+    actor_id: str | None
+    resource_id: str | None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> SmrResourceLimitSelector:
+        mapping = _require_mapping(payload, label="resource limit selector")
+        return cls(
+            kind=_require_string(mapping, "kind", label="resource limit selector.kind"),
+            capability=_optional_string(mapping, "capability"),
+            provider=_optional_string(mapping, "provider"),
+            model=_optional_string(mapping, "model"),
+            actor_type=_optional_string(mapping, "actor_type"),
+            actor_id=_optional_string(mapping, "actor_id"),
+            resource_id=_optional_string(mapping, "resource_id"),
+        )
+
+
+@dataclass(frozen=True)
+class SmrResourceLimit:
+    resource_limit_id: str
+    scope: str
+    org_id: str | None
+    project_id: str | None
+    run_id: str | None
+    selector: SmrResourceLimitSelector
+    metric: str
+    limit_value: float | None
+    unit: str
+    blocks_at_limit: bool
+    warning_threshold_percent: float | None
+    source: str
+
+    @classmethod
+    def from_wire(cls, payload: object) -> SmrResourceLimit:
+        mapping = _require_mapping(payload, label="resource limit")
+        return cls(
+            resource_limit_id=_require_string(
+                mapping,
+                "resource_limit_id",
+                label="resource limit.resource_limit_id",
+            ),
+            scope=_require_string(mapping, "scope", label="resource limit.scope"),
+            org_id=_optional_string(mapping, "org_id"),
+            project_id=_optional_string(mapping, "project_id"),
+            run_id=_optional_string(mapping, "run_id"),
+            selector=SmrResourceLimitSelector.from_wire(mapping.get("selector")),
+            metric=_require_string(mapping, "metric", label="resource limit.metric"),
+            limit_value=_optional_float_value(mapping, "limit_value"),
+            unit=_require_string(mapping, "unit", label="resource limit.unit"),
+            blocks_at_limit=bool(mapping.get("blocks_at_limit", True)),
+            warning_threshold_percent=_optional_float_value(
+                mapping,
+                "warning_threshold_percent",
+            ),
+            source=_require_string(mapping, "source", label="resource limit.source"),
+        )
+
+
+@dataclass(frozen=True)
+class SmrResourceLimitBlocker:
+    resource_blocker_id: str | None
+    target_kind: str | None
+    target_id: str | None
+    blocker_kind: str | None
+    status: str | None
+    required_action: str | None
+    selector: SmrResourceLimitSelector | None
+    metric: str | None
+    summary: str | None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> SmrResourceLimitBlocker:
+        mapping = _require_mapping(payload, label="resource limit blocker")
+        selector_payload = mapping.get("selector")
+        return cls(
+            resource_blocker_id=_optional_string(mapping, "resource_blocker_id"),
+            target_kind=_optional_string(mapping, "target_kind"),
+            target_id=_optional_string(mapping, "target_id"),
+            blocker_kind=_optional_string(mapping, "blocker_kind"),
+            status=_optional_string(mapping, "status"),
+            required_action=_optional_string(mapping, "required_action"),
+            selector=(
+                SmrResourceLimitSelector.from_wire(selector_payload)
+                if selector_payload is not None
+                else None
+            ),
+            metric=_optional_string(mapping, "metric"),
+            summary=_optional_string(mapping, "summary"),
+        )
+
+
+@dataclass(frozen=True)
+class SmrResourceLimitExtensionPolicy:
+    can_request_extension: bool
+    request_requires_human: bool
+    reason: str | None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> SmrResourceLimitExtensionPolicy:
+        mapping = _optional_object_dict(payload)
+        return cls(
+            can_request_extension=bool(mapping.get("can_request_extension", False)),
+            request_requires_human=bool(mapping.get("request_requires_human", True)),
+            reason=_optional_string(mapping, "reason"),
+        )
+
+
+@dataclass(frozen=True)
+class SmrResourceLimitProgressItem:
+    resource_limit_id: str
+    scope: str
+    org_id: str | None
+    project_id: str | None
+    run_id: str | None
+    selector: SmrResourceLimitSelector
+    metric: str
+    limit_value: float | None
+    current_value: float | None
+    remaining_value: float | None
+    used_percent: float | None
+    unit: str
+    state: str
+    blocking: bool
+    blocks_at_limit: bool
+    warning_threshold_percent: float | None
+    source: str
+
+    @classmethod
+    def from_wire(cls, payload: object) -> SmrResourceLimitProgressItem:
+        mapping = _require_mapping(payload, label="resource limit progress item")
+        return cls(
+            resource_limit_id=_require_string(
+                mapping,
+                "resource_limit_id",
+                label="resource limit progress item.resource_limit_id",
+            ),
+            scope=_require_string(
+                mapping,
+                "scope",
+                label="resource limit progress item.scope",
+            ),
+            org_id=_optional_string(mapping, "org_id"),
+            project_id=_optional_string(mapping, "project_id"),
+            run_id=_optional_string(mapping, "run_id"),
+            selector=SmrResourceLimitSelector.from_wire(mapping.get("selector")),
+            metric=_require_string(
+                mapping,
+                "metric",
+                label="resource limit progress item.metric",
+            ),
+            limit_value=_optional_float_value(mapping, "limit_value"),
+            current_value=_optional_float_value(mapping, "current_value"),
+            remaining_value=_optional_float_value(mapping, "remaining_value"),
+            used_percent=_optional_float_value(mapping, "used_percent"),
+            unit=_require_string(mapping, "unit", label="resource limit progress item.unit"),
+            state=_require_string(
+                mapping,
+                "state",
+                label="resource limit progress item.state",
+            ),
+            blocking=bool(mapping.get("blocking", False)),
+            blocks_at_limit=bool(mapping.get("blocks_at_limit", True)),
+            warning_threshold_percent=_optional_float_value(
+                mapping,
+                "warning_threshold_percent",
+            ),
+            source=_require_string(
+                mapping,
+                "source",
+                label="resource limit progress item.source",
+            ),
+        )
+
+    def as_limit(self) -> SmrResourceLimit:
+        return SmrResourceLimit(
+            resource_limit_id=self.resource_limit_id,
+            scope=self.scope,
+            org_id=self.org_id,
+            project_id=self.project_id,
+            run_id=self.run_id,
+            selector=self.selector,
+            metric=self.metric,
+            limit_value=self.limit_value,
+            unit=self.unit,
+            blocks_at_limit=self.blocks_at_limit,
+            warning_threshold_percent=self.warning_threshold_percent,
+            source=self.source,
+        )
+
+
+@dataclass(frozen=True)
+class SmrResourceLimits:
+    scope: str
+    org_id: str | None
+    project_id: str | None
+    run_id: str | None
+    items: list[SmrResourceLimit]
+
+    @classmethod
+    def from_wire(cls, payload: object) -> SmrResourceLimits:
+        mapping = _require_mapping(payload, label="resource limits")
+        return cls(
+            scope=_require_string(mapping, "scope", label="resource limits.scope"),
+            org_id=_optional_string(mapping, "org_id"),
+            project_id=_optional_string(mapping, "project_id"),
+            run_id=_optional_string(mapping, "run_id"),
+            items=[
+                SmrResourceLimit.from_wire(item)
+                for item in _optional_array(mapping, "items")
+            ],
+        )
+
+
+@dataclass(frozen=True)
+class SmrResourceLimitProgress:
+    scope: str
+    org_id: str | None
+    project_id: str | None
+    run_id: str | None
+    state: str
+    items: list[SmrResourceLimitProgressItem]
+    active_blockers: list[SmrResourceLimitBlocker]
+    extension_policy: SmrResourceLimitExtensionPolicy
+
+    @classmethod
+    def from_wire(cls, payload: object) -> SmrResourceLimitProgress:
+        mapping = _require_mapping(payload, label="resource limit progress")
+        return cls(
+            scope=_require_string(mapping, "scope", label="resource limit progress.scope"),
+            org_id=_optional_string(mapping, "org_id"),
+            project_id=_optional_string(mapping, "project_id"),
+            run_id=_optional_string(mapping, "run_id"),
+            state=_optional_string(mapping, "state") or "unknown",
+            items=[
+                SmrResourceLimitProgressItem.from_wire(item)
+                for item in _optional_array(mapping, "items")
+            ],
+            active_blockers=[
+                SmrResourceLimitBlocker.from_wire(item)
+                for item in _optional_array(mapping, "active_blockers")
+            ],
+            extension_policy=SmrResourceLimitExtensionPolicy.from_wire(
+                mapping.get("extension_policy")
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class SmrResourceLimitExtension:
+    resource_limit_extension_id: str
+    scope: str
+    org_id: str | None
+    project_id: str | None
+    run_id: str | None
+    selector: SmrResourceLimitSelector
+    metric: str
+    previous_limit_value: float | None
+    new_limit_value: float
+    unit: str
+    source: str
+    resolved_blocker_ids: list[str]
+    resumed: bool
+    resume_error: dict[str, object] | None
+    progress: SmrResourceLimitProgress | None
+
+    @classmethod
+    def from_wire(cls, payload: object) -> SmrResourceLimitExtension:
+        mapping = _require_mapping(payload, label="resource limit extension")
+        progress_payload = mapping.get("progress")
+        resume_error = mapping.get("resume_error")
+        return cls(
+            resource_limit_extension_id=_require_string(
+                mapping,
+                "resource_limit_extension_id",
+                label="resource limit extension.resource_limit_extension_id",
+            ),
+            scope=_require_string(
+                mapping,
+                "scope",
+                label="resource limit extension.scope",
+            ),
+            org_id=_optional_string(mapping, "org_id"),
+            project_id=_optional_string(mapping, "project_id"),
+            run_id=_optional_string(mapping, "run_id"),
+            selector=SmrResourceLimitSelector.from_wire(mapping.get("selector")),
+            metric=_require_string(
+                mapping,
+                "metric",
+                label="resource limit extension.metric",
+            ),
+            previous_limit_value=_optional_float_value(
+                mapping,
+                "previous_limit_value",
+            ),
+            new_limit_value=_require_float_value(
+                mapping,
+                "new_limit_value",
+                label="resource limit extension.new_limit_value",
+            ),
+            unit=_require_string(
+                mapping,
+                "unit",
+                label="resource limit extension.unit",
+            ),
+            source=_require_string(
+                mapping,
+                "source",
+                label="resource limit extension.source",
+            ),
+            resolved_blocker_ids=[
+                str(item) for item in _optional_array(mapping, "resolved_blocker_ids")
+            ],
+            resumed=bool(mapping.get("resumed", False)),
+            resume_error=(
+                dict(resume_error)
+                if isinstance(resume_error, Mapping)
+                else None
+            ),
+            progress=(
+                SmrResourceLimitProgress.from_wire(progress_payload)
+                if progress_payload is not None
+                else None
+            ),
         )
 
 
@@ -345,6 +727,14 @@ __all__ = [
     "SmrProjectEconomics",
     "SmrProjectEntitlementOverlay",
     "SmrProjectUsage",
+    "SmrResourceLimit",
+    "SmrResourceLimitBlocker",
+    "SmrResourceLimitExtension",
+    "SmrResourceLimitExtensionPolicy",
+    "SmrResourceLimitProgress",
+    "SmrResourceLimitProgressItem",
+    "SmrResourceLimitSelector",
+    "SmrResourceLimits",
     "SmrRunCostTotals",
     "SmrRunUsage",
 ]
