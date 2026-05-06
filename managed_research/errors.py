@@ -6,7 +6,13 @@ from typing import Any
 
 
 class SmrApiError(RuntimeError):
-    """Raised when the Managed Research API returns an error response."""
+    """Raised when the Managed Research API returns an error response.
+
+    When the backend returns a structured body (``{failure_class, remediation,
+    cause, ...}``) the SDK preserves it on the exception so drivers can show
+    the *class* of failure (e.g. ``db_schema_missing`` + the missing
+    relation), not just a bare ``500``.
+    """
 
     def __init__(
         self,
@@ -14,10 +20,41 @@ class SmrApiError(RuntimeError):
         *,
         status_code: int | None = None,
         response_text: str | None = None,
+        failure_class: str | None = None,
+        remediation: str | None = None,
+        cause: list[dict[str, Any]] | None = None,
+        body: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.response_text = response_text
+        self.failure_class = failure_class
+        self.remediation = remediation
+        self.cause_chain = list(cause) if cause else []
+        self.body: dict[str, Any] = dict(body) if body else {}
+
+    def __str__(self) -> str:  # noqa: D401 - simple stringer
+        base = super().__str__()
+        if not (self.failure_class or self.remediation or self.cause_chain):
+            return base
+        parts: list[str] = [base]
+        if self.failure_class:
+            parts.append(f"failure_class={self.failure_class}")
+        if self.cause_chain:
+            top = self.cause_chain[0]
+            parts.append(
+                f"cause[0]={top.get('type')}({top.get('module')}): {top.get('message')!r}"
+            )
+            if len(self.cause_chain) > 1:
+                parts.append(f"cause_chain_depth={len(self.cause_chain)}")
+        for key in ("missing_object_name", "missing_object_kind",
+                    "constraint_name", "constraint_kind", "table", "column"):
+            value = self.body.get(key)
+            if value:
+                parts.append(f"{key}={value}")
+        if self.remediation:
+            parts.append(f"remediation={self.remediation}")
+        return " | ".join(parts)
 
 
 class SmrLimitExceededError(SmrApiError):

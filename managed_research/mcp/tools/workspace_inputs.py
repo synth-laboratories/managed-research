@@ -16,7 +16,10 @@ def build_workspace_input_tools(server: Any) -> list[ToolDefinition]:
                 {
                     "project_id": {"type": "string", "description": "Managed research project id."},
                     "url": {"type": "string", "description": "Public source repository URL."},
-                    "default_branch": {"type": "string", "description": "Optional default branch override."},
+                    "default_branch": {
+                        "type": "string",
+                        "description": "Optional default branch override.",
+                    },
                 },
                 required=["project_id", "url"],
             ),

@@ -30,6 +30,15 @@ def _optional_string(payload: Mapping[str, object], key: str) -> str | None:
     return normalized or None
 
 
+def _parse_live_phase(value: str | None) -> ManagedResearchRunLivePhase:
+    if not value:
+        return ManagedResearchRunLivePhase.UNKNOWN
+    try:
+        return ManagedResearchRunLivePhase(value)
+    except ValueError:
+        return ManagedResearchRunLivePhase.UNKNOWN
+
+
 def _require_string(payload: Mapping[str, object], key: str, *, label: str) -> str:
     value = _optional_string(payload, key)
     if value is None:
@@ -675,10 +684,7 @@ class ManagedResearchRunWorkProductArtifactLink:
             work_product_artifact_id=_require_string(
                 mapping,
                 "work_product_artifact_id",
-                label=(
-                    "run_contract.work_products.items.artifact_links."
-                    "work_product_artifact_id"
-                ),
+                label=("run_contract.work_products.items.artifact_links.work_product_artifact_id"),
             ),
             work_product_id=_require_string(
                 mapping,
@@ -712,12 +718,9 @@ class ManagedResearchRunWorkProduct:
     title: str
     status: str
     readiness: str
-    subtype_kind: str | None = None
-    subtype_id: str | None = None
+    instance_id: str | None = None
     artifact_id: str | None = None
-    artifact_links: list[ManagedResearchRunWorkProductArtifactLink] = field(
-        default_factory=list
-    )
+    artifact_links: list[ManagedResearchRunWorkProductArtifactLink] = field(default_factory=list)
     detail_url: str | None = None
     content_url: str | None = None
     supported_export_destinations: list[str] = field(default_factory=list)
@@ -740,18 +743,14 @@ class ManagedResearchRunWorkProduct:
         blocker = mapping.get("blocker")
         artifact_links = mapping.get("artifact_links")
         if artifact_links is None:
-            normalized_artifact_links: list[
-                ManagedResearchRunWorkProductArtifactLink
-            ] = []
+            normalized_artifact_links: list[ManagedResearchRunWorkProductArtifactLink] = []
         elif isinstance(artifact_links, list):
             normalized_artifact_links = [
-                ManagedResearchRunWorkProductArtifactLink.from_wire(item)
-                for item in artifact_links
+                ManagedResearchRunWorkProductArtifactLink.from_wire(item) for item in artifact_links
             ]
         else:
             raise ValueError(
-                "run_contract.work_products.items.artifact_links must be an array "
-                "when provided"
+                "run_contract.work_products.items.artifact_links must be an array when provided"
             )
         return cls(
             work_product_id=_require_string(
@@ -779,8 +778,7 @@ class ManagedResearchRunWorkProduct:
                 "readiness",
                 label="run_contract.work_products.items.readiness",
             ),
-            subtype_kind=_optional_string(mapping, "subtype_kind"),
-            subtype_id=_optional_string(mapping, "subtype_id"),
+            instance_id=_optional_string(mapping, "instance_id"),
             artifact_id=_optional_string(mapping, "artifact_id"),
             artifact_links=normalized_artifact_links,
             detail_url=_optional_string(mapping, "detail_url"),
@@ -1150,9 +1148,7 @@ class RunObservabilitySnapshot:
                 if _optional_string(mapping, "terminal_outcome") is not None
                 else None
             ),
-            live_phase=ManagedResearchRunLivePhase(
-                _optional_string(mapping, "live_phase") or "unknown"
-            ),
+            live_phase=_parse_live_phase(_optional_string(mapping, "live_phase")),
             state_reason=_optional_string(mapping, "state_reason"),
             state_authority=(
                 _optional_string(mapping, "state_authority")

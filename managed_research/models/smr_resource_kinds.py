@@ -11,9 +11,7 @@ class SmrResourceKind(StrEnum):
     APP = "app"
 
 
-SMR_RESOURCE_KIND_VALUES: tuple[str, ...] = tuple(
-    kind.value for kind in SmrResourceKind
-)
+SMR_RESOURCE_KIND_VALUES: tuple[str, ...] = tuple(kind.value for kind in SmrResourceKind)
 
 
 def coerce_smr_resource_kind(

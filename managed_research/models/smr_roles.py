@@ -161,9 +161,7 @@ class WorkerRolePalette:
                 field_name=f"roles.worker.permitted_models[{index}]",
             )
             if model is None:
-                raise ValueError(
-                    f"roles.worker.permitted_models[{index}] must be a model value"
-                )
+                raise ValueError(f"roles.worker.permitted_models[{index}] must be a model value")
             permitted_models.append(model)
         default_model = coerce_smr_agent_model(
             mapping.get("default_model"),
@@ -203,8 +201,7 @@ class WorkerRolePalette:
             payload["default_params"] = dict(self.default_params)
         if self.subtypes:
             payload["subtypes"] = {
-                subtype.value: binding.to_wire()
-                for subtype, binding in self.subtypes.items()
+                subtype.value: binding.to_wire() for subtype, binding in self.subtypes.items()
             }
         return payload
 

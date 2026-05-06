@@ -36,9 +36,7 @@ class FilesAPI(_ClientNamespace):
         project_id: str,
         files: Iterable[Mapping[str, Any]],
     ) -> ResourceUploadResult:
-        return ResourceUploadResult.from_wire(
-            self._client.create_project_files(project_id, files)
-        )
+        return ResourceUploadResult.from_wire(self._client.create_project_files(project_id, files))
 
     def get_project(self, project_id: str, file_id: str) -> StoredFile:
         return StoredFile.from_wire(self._client.get_project_file(project_id, file_id))
@@ -47,19 +45,14 @@ class FilesAPI(_ClientNamespace):
         return self._client.get_file_content(file_id)
 
     def list_run_mounts(self, run_id: str) -> list[RunFileMount]:
-        return [
-            RunFileMount.from_wire(item)
-            for item in self._client.list_run_file_mounts(run_id)
-        ]
+        return [RunFileMount.from_wire(item) for item in self._client.list_run_file_mounts(run_id)]
 
     def upload_run(
         self,
         run_id: str,
         files: Iterable[Mapping[str, Any]],
     ) -> ResourceUploadResult:
-        return ResourceUploadResult.from_wire(
-            self._client.upload_run_files(run_id, files)
-        )
+        return ResourceUploadResult.from_wire(self._client.upload_run_files(run_id, files))
 
     def list_outputs(
         self,

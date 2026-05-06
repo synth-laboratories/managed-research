@@ -11,9 +11,7 @@ class SmrFundingSource(StrEnum):
     USER_CONNECTED = "user_connected"
 
 
-SMR_FUNDING_SOURCE_VALUES: tuple[str, ...] = tuple(
-    source.value for source in SmrFundingSource
-)
+SMR_FUNDING_SOURCE_VALUES: tuple[str, ...] = tuple(source.value for source in SmrFundingSource)
 
 
 def coerce_smr_funding_source(

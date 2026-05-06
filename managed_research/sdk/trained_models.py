@@ -1,9 +1,10 @@
 """Trained-model registry SDK namespace.
 
 Wraps the ``/smr/trained_models`` and ``/smr/runs/{run_id}/trained_models``
-routes. Used by agents to register a Tinker LoRA after training, update its
-metrics once offline eval is done, and tear down the adapter (Tinker + Wasabi
-+ PG) at end of run.
+routes. Used by agents to register a Tinker LoRA after training, publish it
+as a model WorkProduct, update metrics once offline eval is done, queue exports
+to Hugging Face or S3-compatible storage, and deliberately tear down temporary
+adapters when they are not user-facing deliverables.
 """
 
 from __future__ import annotations
@@ -11,6 +12,11 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from managed_research.models.work_products import (
+    ManagedResearchTrainedModel,
+    ManagedResearchTrainedModelAdapterUploadUrl,
+    ManagedResearchTrainedModelExport,
+)
 from managed_research.sdk._base import _ClientNamespace
 
 
@@ -30,7 +36,7 @@ class TrainedModelsAPI(_ClientNamespace):
         uplift_abs: float | None = None,
         train_cost_usd: float | None = None,
         metadata: Mapping[str, Any] | None = None,
-    ) -> dict[str, Any]:
+    ) -> ManagedResearchTrainedModel:
         body = {
             "run_id": run_id,
             "base_model": base_model,
@@ -47,16 +53,82 @@ class TrainedModelsAPI(_ClientNamespace):
             "train_cost_usd": train_cost_usd,
             "metadata": dict(metadata or {}),
         }
-        return self._client._request_json("POST", "/smr/trained_models", json_body=body)
-
-    def get(self, model_id: str) -> dict[str, Any]:
-        return self._client._request_json("GET", f"/smr/trained_models/{model_id}")
-
-    def list_for_run(self, run_id: str) -> list[dict[str, Any]]:
-        result = self._client._request_json(
-            "GET", f"/smr/runs/{run_id}/trained_models"
+        return ManagedResearchTrainedModel.from_wire(
+            self._client._request_json("POST", "/smr/trained_models", json_body=body)
         )
-        return list(result) if isinstance(result, list) else []
+
+    def get(self, model_id: str) -> ManagedResearchTrainedModel:
+        return ManagedResearchTrainedModel.from_wire(
+            self._client._request_json("GET", f"/smr/trained_models/{model_id}")
+        )
+
+    def list_for_run(self, run_id: str) -> list[ManagedResearchTrainedModel]:
+        result = self._client._request_json("GET", f"/smr/runs/{run_id}/trained_models")
+        return [
+            ManagedResearchTrainedModel.from_wire(item)
+            for item in (list(result) if isinstance(result, list) else [])
+            if isinstance(item, Mapping)
+        ]
+
+    def export(
+        self,
+        model_id: str,
+        *,
+        destination: Mapping[str, Any],
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchTrainedModelExport:
+        body = {
+            "destination": dict(destination),
+            "idempotency_key": idempotency_key,
+        }
+        return ManagedResearchTrainedModelExport.from_wire(
+            self._client._request_json(
+                "POST", f"/smr/trained_models/{model_id}/exports", json_body=body
+            )
+        )
+
+    def create_adapter_upload_url(
+        self,
+        model_id: str,
+        *,
+        expires_in: int = 3600,
+        content_type: str = "application/gzip",
+    ) -> ManagedResearchTrainedModelAdapterUploadUrl:
+        body = {
+            "expires_in": expires_in,
+            "content_type": content_type,
+        }
+        return ManagedResearchTrainedModelAdapterUploadUrl.from_wire(
+            self._client._request_json(
+                "POST",
+                f"/smr/trained_models/{model_id}/adapter_upload_url",
+                json_body=body,
+            )
+        )
+
+    def complete_adapter_upload(
+        self,
+        model_id: str,
+        *,
+        bucket: str,
+        key: str,
+        adapter_size_bytes: int,
+        metadata_patch: Mapping[str, Any] | None = None,
+    ) -> ManagedResearchTrainedModel:
+        body = {
+            "bucket": bucket,
+            "key": key,
+            "adapter_size_bytes": adapter_size_bytes,
+        }
+        if metadata_patch is not None:
+            body["metadata_patch"] = dict(metadata_patch)
+        return ManagedResearchTrainedModel.from_wire(
+            self._client._request_json(
+                "POST",
+                f"/smr/trained_models/{model_id}/adapter_uploads/complete",
+                json_body=body,
+            )
+        )
 
     def update(
         self,
@@ -67,7 +139,7 @@ class TrainedModelsAPI(_ClientNamespace):
         train_cost_usd: float | None = None,
         status: str | None = None,
         metadata_patch: Mapping[str, Any] | None = None,
-    ) -> dict[str, Any]:
+    ) -> ManagedResearchTrainedModel:
         body: dict[str, Any] = {}
         if tuned_metric is not None:
             body["tuned_metric"] = tuned_metric
@@ -79,13 +151,13 @@ class TrainedModelsAPI(_ClientNamespace):
             body["status"] = status
         if metadata_patch is not None:
             body["metadata_patch"] = dict(metadata_patch)
-        return self._client._request_json(
-            "PATCH", f"/smr/trained_models/{model_id}", json_body=body
+        return ManagedResearchTrainedModel.from_wire(
+            self._client._request_json("PATCH", f"/smr/trained_models/{model_id}", json_body=body)
         )
 
-    def delete(self, model_id: str) -> dict[str, Any]:
-        return self._client._request_json(
-            "DELETE", f"/smr/trained_models/{model_id}"
+    def delete(self, model_id: str) -> ManagedResearchTrainedModel:
+        return ManagedResearchTrainedModel.from_wire(
+            self._client._request_json("DELETE", f"/smr/trained_models/{model_id}")
         )
 
 

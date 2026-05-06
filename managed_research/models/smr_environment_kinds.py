@@ -11,9 +11,7 @@ class SmrEnvironmentKind(StrEnum):
     OPENENV = "openenv"
 
 
-SMR_ENVIRONMENT_KIND_VALUES: tuple[str, ...] = tuple(
-    kind.value for kind in SmrEnvironmentKind
-)
+SMR_ENVIRONMENT_KIND_VALUES: tuple[str, ...] = tuple(kind.value for kind in SmrEnvironmentKind)
 
 
 def coerce_smr_environment_kind(

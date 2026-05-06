@@ -43,13 +43,9 @@ class SmrRunPolicyAccess:
     def to_dict(self) -> dict[str, Any]:
         payload: dict[str, Any] = {}
         if self.credential_providers is not None:
-            payload["credential_providers"] = _optional_provider_values(
-                self.credential_providers
-            )
+            payload["credential_providers"] = _optional_provider_values(self.credential_providers)
         if self.inference_providers is not None:
-            payload["inference_providers"] = _optional_provider_values(
-                self.inference_providers
-            )
+            payload["inference_providers"] = _optional_provider_values(self.inference_providers)
         if self.tool_providers is not None:
             payload["tool_providers"] = _optional_provider_values(self.tool_providers)
         return payload
@@ -92,9 +88,7 @@ def _coerce_credential_provider_list(
         return None
     if not isinstance(values, (list, tuple)):
         raise ValueError(f"{field_name} must be an array when provided")
-    normalized = [
-        coerce_smr_credential_provider(value, field_name=field_name) for value in values
-    ]
+    normalized = [coerce_smr_credential_provider(value, field_name=field_name) for value in values]
     return tuple(value for value in normalized if value is not None)
 
 
@@ -107,9 +101,7 @@ def _coerce_inference_provider_list(
         return None
     if not isinstance(values, (list, tuple)):
         raise ValueError(f"{field_name} must be an array when provided")
-    normalized = [
-        coerce_smr_inference_provider(value, field_name=field_name) for value in values
-    ]
+    normalized = [coerce_smr_inference_provider(value, field_name=field_name) for value in values]
     return tuple(value for value in normalized if value is not None)
 
 
@@ -122,9 +114,7 @@ def _coerce_tool_provider_list(
         return None
     if not isinstance(values, (list, tuple)):
         raise ValueError(f"{field_name} must be an array when provided")
-    normalized = [
-        coerce_smr_tool_provider(value, field_name=field_name) for value in values
-    ]
+    normalized = [coerce_smr_tool_provider(value, field_name=field_name) for value in values]
     return tuple(value for value in normalized if value is not None)
 
 

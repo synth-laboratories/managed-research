@@ -1,4 +1,10 @@
-"""Compatibility surfaces for older SDK entrypoints."""
+"""Compatibility surfaces for older SDK entrypoints.
+
+The optional ``synth-ai`` bridge is loaded only when callers use OpenAI Agents SDK
+helpers; ``ImportError`` is translated to a single actionable ``RuntimeError``.
+
+# See: Synth Style — compatibility layers isolated; never hide causes (``from exc``).
+"""
 
 from __future__ import annotations
 
@@ -52,7 +58,10 @@ class SmrControlClientMixin:
     ) -> Any:
         try:
             from synth_ai import SynthClient
-        except Exception as exc:  # pragma: no cover - optional dependency path
+        except (
+            ImportError,
+            ModuleNotFoundError,
+        ) as exc:  # pragma: no cover - optional dependency path
             raise RuntimeError(
                 "synth-ai is required for OpenAI Agents SDK access from managed-research. "
                 "Install it with `uv add synth-ai`."
@@ -107,9 +116,7 @@ class SmrControlClientMixin:
             openai_transport_mode=resolve_openai_transport_mode(
                 transport_mode or self.openai_transport_mode
             ),
-            openai_organization=optional_str(
-                openai_organization or self.openai_organization
-            ),
+            openai_organization=optional_str(openai_organization or self.openai_organization),
             openai_project=optional_str(openai_project or self.openai_project),
             openai_request_id=optional_str(request_id or self.openai_request_id),
         ).openai_agents_sdk

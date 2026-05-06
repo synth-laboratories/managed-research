@@ -25,7 +25,11 @@ from managed_research.models.smr_work_modes import SmrWorkMode, coerce_smr_work_
 class RunState(StrEnum):
     UNKNOWN = "unknown"
     QUEUED = "queued"
+    PLANNING = "planning"
     RUNNING = "running"
+    EXECUTING = "executing"
+    REVIEWING = "reviewing"
+    REVIEWER_REQUIRED = "reviewer_required"
     BLOCKED = "blocked"
     PAUSED = "paused"
     FINALIZING = "finalizing"
@@ -52,6 +56,7 @@ _TERMINAL_RUN_STATES = frozenset(
 
 
 class ManagedResearchRunTerminalOutcome(StrEnum):
+    DONE = "done"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     STOPPED = "stopped"
@@ -64,7 +69,12 @@ class ManagedResearchRunLivePhase(StrEnum):
     BOOTSTRAPPING = "bootstrapping"
     QUEUED = "queued"
     WAITING = "waiting"
+    PLANNING = "planning"
     WORKING = "working"
+    EXECUTING = "executing"
+    REVIEWING = "reviewing"
+    BLOCKED = "blocked"
+    PAUSED = "paused"
     ADMITTED = "admitted"
     RUNTIME_INTENT_PENDING = "runtime_intent_pending"
     STARTUP_PENDING = "startup_pending"
@@ -129,7 +139,10 @@ def _optional_object_tuple(payload: object, *, label: str) -> tuple[dict[str, ob
 def _parse_state(value: str | None) -> RunState:
     if not value:
         return RunState.UNKNOWN
-    return RunState(value)
+    try:
+        return RunState(value)
+    except ValueError:
+        return RunState.UNKNOWN
 
 
 def _parse_terminal_outcome(
@@ -143,7 +156,10 @@ def _parse_terminal_outcome(
 def _parse_live_phase(value: str | None) -> ManagedResearchRunLivePhase:
     if not value:
         return ManagedResearchRunLivePhase.UNKNOWN
-    return ManagedResearchRunLivePhase(value)
+    try:
+        return ManagedResearchRunLivePhase(value)
+    except ValueError:
+        return ManagedResearchRunLivePhase.UNKNOWN
 
 
 def _parse_host_kind(value: str | None, *, field_name: str) -> SmrHostKind | None:

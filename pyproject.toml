@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "managed-research"
-version = "1.2026.042111"
-description = "Public SDK, MCP, and schemas for Managed Research."
+version = "1.2026.050502"
+description = "SDK, MCP, and schemas for authenticated Managed Research."
 readme = "PACKAGE_README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -47,6 +47,15 @@ ignore = ["E501"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["managed_research"]
+
+# ty: strictness is staged; shrink diagnostics over time rather than blocking CI on
+# json/Mapping edge cases across the whole SDK surface.
+[tool.ty.rules]
+invalid-type-form = "ignore"
+
+[tool.ty.analysis]
+# Optional bridge dependency; not installed in minimal `managed-research` environments.
+allowed-unresolved-imports = ["synth_ai", "synth_ai.**"]
 
 [dependency-groups]
 dev = [

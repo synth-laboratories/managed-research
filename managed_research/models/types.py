@@ -1,10 +1,18 @@
-"""Public models for the remigration surface."""
+"""Public models for Managed Research wire shapes (kickoff contracts, workspace, preflight).
+
+Parse and validate JSON-like payloads at the trust boundary into dataclasses; callers
+should use typed attributes after ``from_wire`` rather than probing raw mappings.
+
+# See: Synth Style — ``specifications/tanha/references/synthstyle.md`` in the
+# backend repo; backend SMR owns authoritative kickoff and work-product contracts.
+"""
 
 from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
+from typing import Any, cast
 
 from managed_research.models.smr_actor_models import (
     SmrActorModelAssignment,
@@ -14,16 +22,16 @@ from managed_research.models.smr_environment_kinds import (
     SmrEnvironmentKind,
     coerce_smr_environment_kind,
 )
-from managed_research.models.smr_providers import (
-    ProviderBinding,
-    ActorResourceCapability,
-    UsageLimit,
-    coerce_provider_bindings,
-    coerce_usage_limit,
-)
 from managed_research.models.smr_network_topology import (
     SmrNetworkTopology,
     coerce_smr_network_topology,
+)
+from managed_research.models.smr_providers import (
+    ActorResourceCapability,
+    ProviderBinding,
+    UsageLimit,
+    coerce_provider_bindings,
+    coerce_usage_limit,
 )
 from managed_research.models.smr_runtime_kinds import (
     SmrRuntimeKind,
@@ -34,7 +42,7 @@ from managed_research.models.smr_runtime_kinds import (
 def _require_mapping(payload: object, *, label: str) -> Mapping[str, object]:
     if not isinstance(payload, Mapping):
         raise ValueError(f"{label} must be an object")
-    return payload
+    return cast(Mapping[str, object], payload)
 
 
 def _optional_string(
@@ -93,7 +101,7 @@ def _require_array(payload: Mapping[str, object], key: str, *, label: str) -> li
     value = payload.get(key)
     if not isinstance(value, list):
         raise ValueError(f"{label} must be an array")
-    return value
+    return cast(list[object], value)
 
 
 def _optional_array(payload: Mapping[str, object], key: str) -> list[object]:
@@ -102,7 +110,7 @@ def _optional_array(payload: Mapping[str, object], key: str) -> list[object]:
         return []
     if not isinstance(value, list):
         raise ValueError(f"{key} must be an array when provided")
-    return value
+    return cast(list[object], value)
 
 
 def _optional_int(payload: Mapping[str, object], key: str) -> int | None:
@@ -273,7 +281,69 @@ class KickoffContractFile:
 
 
 @dataclass(frozen=True)
+class RequiredWorkProductSpec:
+    """Structured obligation the run must publish (report, model, or container eval).
+
+    Replaces legacy path-or-filename kickoff fields so completion criteria stay
+    aligned with backend ``WorkProduct`` kinds instead of ad-hoc file lists.
+
+    # See: backend ``services/smr/work_products`` and Synth Style "contracts" rules.
+    """
+
+    kind: str
+    subtype: str | None = None
+    title: str | None = None
+    description: str | None = None
+    required: bool = True
+
+    @classmethod
+    def from_wire(cls, payload: object) -> RequiredWorkProductSpec:
+        mapping = _require_mapping(payload, label="kickoff contract required_work_product")
+        kind = _require_string(
+            mapping,
+            "kind",
+            label="kickoff contract required_work_product.kind",
+        )
+        if kind not in {"report", "model", "container_eval"}:
+            raise ValueError(
+                "kickoff contract required_work_product.kind must be one of "
+                "report, model, container_eval"
+            )
+        required_value = mapping.get("required", True)
+        if not isinstance(required_value, bool):
+            raise ValueError("kickoff contract required_work_product.required must be a boolean")
+        return cls(
+            kind=kind,
+            subtype=_optional_string(mapping, "subtype"),
+            title=_optional_string(mapping, "title") or _optional_string(mapping, "label"),
+            description=_optional_string(mapping, "description"),
+            required=required_value,
+        )
+
+    def to_wire(self) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "kind": self.kind,
+            "required": self.required,
+        }
+        if self.subtype is not None:
+            payload["subtype"] = self.subtype
+        if self.title is not None:
+            payload["title"] = self.title
+        if self.description is not None:
+            payload["description"] = self.description
+        return payload
+
+
+@dataclass(frozen=True)
 class KickoffContract:
+    """Run kickoff contract mirrored from the backend SMR API.
+
+    Legacy fields such as ``required_output_files`` are rejected so SDK clients
+    cannot accidentally emit shapes the server stopped accepting.
+
+    # See: backend run/kickoff handlers; Synth Style — fail fast on unknown contract keys.
+    """
+
     schema_version: int
     contract_kind: str
     run_objective: str
@@ -287,8 +357,7 @@ class KickoffContract:
     dispatch_requirements: dict[str, object] = field(default_factory=dict)
     tasks: list[dict[str, object]] = field(default_factory=list)
     task_briefs: list[str] = field(default_factory=list)
-    required_output_files: list[str] = field(default_factory=list)
-    allowed_repo_paths: list[str] = field(default_factory=list)
+    required_work_products: list[RequiredWorkProductSpec] = field(default_factory=list)
     model_visible_contract_files: list[KickoffContractFile] = field(default_factory=list)
     kickoff_contract_file: str | None = None
     kickoff_contract_ref: str | None = None
@@ -296,8 +365,10 @@ class KickoffContract:
     @classmethod
     def from_wire(cls, payload: object) -> KickoffContract:
         mapping = _require_mapping(payload, label="kickoff contract")
+        _reject_legacy_file_contract_fields(mapping)
         task_payload = _optional_array(mapping, "tasks")
         file_payload = _optional_array(mapping, "model_visible_contract_files")
+        required_work_products_payload = _optional_array(mapping, "required_work_products")
         return cls(
             schema_version=_int_value(mapping, "schema_version"),
             contract_kind=_require_string(
@@ -323,14 +394,9 @@ class KickoffContract:
                 mapping.get("task_briefs"),
                 label="kickoff contract.task_briefs",
             ),
-            required_output_files=_string_list(
-                mapping.get("required_output_files"),
-                label="kickoff contract.required_output_files",
-            ),
-            allowed_repo_paths=_string_list(
-                mapping.get("allowed_repo_paths"),
-                label="kickoff contract.allowed_repo_paths",
-            ),
+            required_work_products=[
+                RequiredWorkProductSpec.from_wire(item) for item in required_work_products_payload
+            ],
             model_visible_contract_files=[
                 KickoffContractFile.from_wire(item) for item in file_payload
             ],
@@ -346,8 +412,7 @@ class KickoffContract:
             "dispatch_requirements": dict(self.dispatch_requirements),
             "tasks": [dict(item) for item in self.tasks],
             "task_briefs": list(self.task_briefs),
-            "required_output_files": list(self.required_output_files),
-            "allowed_repo_paths": list(self.allowed_repo_paths),
+            "required_work_products": [item.to_wire() for item in self.required_work_products],
             "model_visible_contract_files": [
                 item.to_wire() for item in self.model_visible_contract_files
             ],
@@ -371,6 +436,27 @@ class KickoffContract:
         if self.kickoff_contract_ref is not None:
             payload["kickoff_contract_ref"] = self.kickoff_contract_ref
         return payload
+
+
+def _reject_legacy_file_contract_fields(mapping: Mapping[str, object]) -> None:
+    """Fail fast when wire payloads still use removed kickoff file-list keys.
+
+    Backend migrated to ``required_work_products``; keeping the old keys silent would
+    let callers think outputs were specified when the server ignores those fields.
+    """
+
+    for field_name in (
+        "required_output_files",
+        "required_output_paths",
+        "allowed_repo_paths",
+        "required_files",
+        "required_file_paths",
+    ):
+        if field_name in mapping:
+            raise ValueError(
+                f"kickoff contract.{field_name} is no longer supported; "
+                "use required_work_products instead"
+            )
 
 
 @dataclass(frozen=True)
@@ -1041,19 +1127,23 @@ class SmrLaunchPreflight:
             using_synth_free_mode=_optional_bool(mapping, "using_synth_free_mode"),
             compute_pool_payload=_optional_object_dict(mapping.get("compute_pool_payload")),
             providers=(
-                coerce_provider_bindings(mapping.get("providers"), field_name="providers")
+                coerce_provider_bindings(
+                    cast(Any, mapping.get("providers")),
+                    field_name="providers",
+                )
                 if mapping.get("providers") is not None
                 else ()
             ),
             capabilities=frozenset(
-                ActorResourceCapability(str(item)) for item in _optional_array(mapping, "capabilities")
+                ActorResourceCapability(str(item))
+                for item in _optional_array(mapping, "capabilities")
             ),
             required_capabilities=frozenset(
                 ActorResourceCapability(str(item))
                 for item in _optional_array(mapping, "required_capabilities")
             ),
             limit=coerce_usage_limit(
-                mapping.get("limit"),
+                cast(Any, mapping.get("limit")),
                 field_name="limit",
             ),
         )
@@ -1085,6 +1175,7 @@ class SmrRunnableProjectRequest:
     environment_kind: SmrEnvironmentKind
     agent_profiles: SmrAgentProfileBindings
     worker_profile_ids: list[str] = field(default_factory=list)
+    actor_profile_id: str | None = None
     actor_model_assignments: list[SmrActorModelAssignment] = field(default_factory=list)
     budgets: dict[str, object] = field(default_factory=dict)
     key_policy: dict[str, object] = field(default_factory=dict)
@@ -1155,6 +1246,7 @@ class SmrRunnableProjectRequest:
                 worker_profile_ids=worker_profile_ids,
             ),
             worker_profile_ids=worker_profile_ids,
+            actor_profile_id=_optional_string(mapping, "actor_profile_id"),
             actor_model_assignments=normalize_actor_model_assignments(
                 mapping.get("actor_model_assignments"),
                 field_name="actor_model_assignments",
@@ -1202,6 +1294,8 @@ class SmrRunnableProjectRequest:
             payload["actor_model_assignments"] = [
                 item.as_payload() for item in self.actor_model_assignments
             ]
+        if self.actor_profile_id is not None:
+            payload["actor_profile_id"] = self.actor_profile_id
         if self.scenario is not None:
             payload["scenario"] = self.scenario
         if self.notes is not None:
