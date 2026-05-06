@@ -576,22 +576,43 @@ def _guess_content_type(path: str) -> str:
     return guessed or "application/octet-stream"
 
 
+def _is_source_bundle_entry(path: str, entry: Mapping[str, Any]) -> bool:
+    kind = str(entry.get("kind") or "").strip().lower()
+    content_type = str(entry.get("content_type") or _guess_content_type(path)).strip().lower()
+    return (
+        kind == "source_bundle"
+        or path.lower().endswith(".zip")
+        or content_type
+        in {
+            "application/zip",
+            "application/x-zip",
+            "application/x-zip-compressed",
+            "multipart/x-zip",
+        }
+    )
+
+
 def _normalize_uploaded_file(entry: Mapping[str, Any]) -> dict[str, Any]:
     path = str(entry.get("path") or "").strip()
     if not path:
         raise ValueError("workspace file entries require a non-empty path")
     content = entry.get("content")
     content_path = entry.get("content_path")
+    content_type = str(entry.get("content_type") or _guess_content_type(path)).strip()
     encoding = str(entry.get("encoding") or "").strip().lower() or None
     if content_path is not None:
         file_path = Path(str(content_path))
         raw_bytes = file_path.read_bytes()
-        try:
-            content = raw_bytes.decode("utf-8")
-            encoding = encoding or "utf-8"
-        except UnicodeDecodeError:
+        if _is_source_bundle_entry(path, {**dict(entry), "content_type": content_type}):
             content = base64.b64encode(raw_bytes).decode("ascii")
             encoding = encoding or "base64"
+        else:
+            try:
+                content = raw_bytes.decode("utf-8")
+                encoding = encoding or "utf-8"
+            except UnicodeDecodeError:
+                content = base64.b64encode(raw_bytes).decode("ascii")
+                encoding = encoding or "base64"
     if content is None:
         raise ValueError("workspace file entries require either content or content_path")
     if isinstance(content, bytes):
@@ -599,12 +620,21 @@ def _normalize_uploaded_file(entry: Mapping[str, Any]) -> dict[str, Any]:
         encoding = encoding or "base64"
     if not isinstance(content, str):
         raise ValueError("workspace file content must be text or bytes")
-    return {
+    normalized = {
         "path": path,
         "content": content,
-        "content_type": str(entry.get("content_type") or _guess_content_type(path)).strip(),
+        "content_type": content_type,
         "encoding": encoding or "utf-8",
     }
+    kind = str(entry.get("kind") or "").strip()
+    if kind:
+        normalized["kind"] = kind
+    metadata = entry.get("metadata")
+    if metadata is not None:
+        if not isinstance(metadata, Mapping):
+            raise ValueError("uploaded file metadata must be a mapping when provided")
+        normalized["metadata"] = dict(metadata)
+    return normalized
 
 
 def _normalize_resource_uploaded_file(entry: Mapping[str, Any]) -> dict[str, Any]:
@@ -612,12 +642,33 @@ def _normalize_resource_uploaded_file(entry: Mapping[str, Any]) -> dict[str, Any
     visibility = str(entry.get("visibility") or "").strip()
     if visibility:
         normalized["visibility"] = visibility
-    metadata = entry.get("metadata")
-    if metadata is not None:
-        if not isinstance(metadata, Mapping):
-            raise ValueError("resource file metadata must be a mapping when provided")
-        normalized["metadata"] = dict(metadata)
     return normalized
+
+
+def _source_bundle_file_entry(
+    bundle_path: str | os.PathLike[str],
+    *,
+    path: str | None = None,
+    visibility: str | None = None,
+    metadata: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    resolved = Path(bundle_path)
+    upload_path = str(path or resolved.name).strip()
+    if not upload_path:
+        raise ValueError("source bundle upload path must be non-empty")
+    payload: dict[str, Any] = {
+        "path": upload_path,
+        "content_path": resolved,
+        "content_type": "application/zip",
+        "kind": "source_bundle",
+        "metadata": {
+            "kind": "source_bundle",
+            **dict(metadata or {}),
+        },
+    }
+    if visibility:
+        payload["visibility"] = visibility
+    return payload
 
 
 @dataclass
@@ -1462,6 +1513,25 @@ class ManagedResearchClient:
             )
         return self.upload_workspace_files(project_id, files)
 
+    def upload_workspace_source_bundle(
+        self,
+        project_id: str,
+        bundle_path: str | os.PathLike[str],
+        *,
+        path: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self.upload_workspace_files(
+            project_id,
+            [
+                _source_bundle_file_entry(
+                    bundle_path,
+                    path=path,
+                    metadata=metadata,
+                )
+            ],
+        )
+
     def list_project_files(
         self,
         project_id: str,
@@ -1493,6 +1563,27 @@ class ManagedResearchClient:
                 json_body={"files": normalized_files},
             ),
             label="create_project_files",
+        )
+
+    def create_project_source_bundle(
+        self,
+        project_id: str,
+        bundle_path: str | os.PathLike[str],
+        *,
+        path: str | None = None,
+        visibility: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self.create_project_files(
+            project_id,
+            [
+                _source_bundle_file_entry(
+                    bundle_path,
+                    path=path,
+                    visibility=visibility,
+                    metadata=metadata,
+                )
+            ],
         )
 
     def get_project_file(self, project_id: str, file_id: str) -> dict[str, Any]:
@@ -1566,6 +1657,27 @@ class ManagedResearchClient:
                 json_body={"files": normalized_files},
             ),
             label="upload_run_files",
+        )
+
+    def upload_run_source_bundle(
+        self,
+        run_id: str,
+        bundle_path: str | os.PathLike[str],
+        *,
+        path: str | None = None,
+        visibility: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self.upload_run_files(
+            run_id,
+            [
+                _source_bundle_file_entry(
+                    bundle_path,
+                    path=path,
+                    visibility=visibility,
+                    metadata=metadata,
+                )
+            ],
         )
 
     def _list_run_output_files(

@@ -137,6 +137,23 @@ class _BoundProjectFilesAPI:
         }
         return self._client.create_project_files(self.project_id, [payload])
 
+    def upload_source_bundle(
+        self,
+        path: str | Path,
+        *,
+        name: str | None = None,
+        visibility: str = "model",
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        file_path = Path(path)
+        return self._client.create_project_source_bundle(
+            self.project_id,
+            file_path,
+            path=name or file_path.name,
+            visibility=visibility,
+            metadata=metadata,
+        )
+
     def content(self, file_id: str) -> dict[str, Any]:
         return self._client.get_project_file_content(self.project_id, file_id)
 

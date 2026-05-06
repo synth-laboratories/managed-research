@@ -70,6 +70,25 @@ typed as `RunRuntimeStreamEvent`; transcript payloads include backend-redacted
 reasoning summaries and tool-call lifecycle metadata. Hidden model reasoning and
 raw provider reasoning are not exposed by the SDK.
 
+## Source Bundle Uploads
+
+Small zip source bundles are first-class project/workspace inputs. The backend
+validates zip magic bytes, file count, compressed and uncompressed size limits,
+member paths, symlinks, native executable suffixes, and compression ratio
+before storing the file. API servers store accepted archives
+as data; extraction is reserved for worker sandboxes.
+
+```python
+client.workspace_inputs.upload_source_bundle(
+    project.project_id,
+    "banking77_sft_qwen3_4b_1_container_premade_open_research.zip",
+)
+
+project.files.upload_source_bundle(
+    "source_bundle.zip",
+)
+```
+
 ```python
 for event in client.runs.stream_events(run.run_id, view="operator"):
     if event.kind == "transcript":

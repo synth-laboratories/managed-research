@@ -41,5 +41,22 @@ class WorkspaceInputsAPI(_ClientNamespace):
             self._client.upload_workspace_directory(project_id, directory)
         )
 
+    def upload_source_bundle(
+        self,
+        project_id: str,
+        bundle_path: str | PathLike[str],
+        *,
+        path: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> WorkspaceUploadResult:
+        return WorkspaceUploadResult.from_wire(
+            self._client.upload_workspace_source_bundle(
+                project_id,
+                bundle_path,
+                path=path,
+                metadata=metadata,
+            )
+        )
+
 
 __all__ = ["WorkspaceInputsAPI"]
