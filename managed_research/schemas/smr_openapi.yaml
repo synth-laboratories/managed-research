@@ -5796,13 +5796,6 @@ paths:
           minimum: 1
           default: 200
           title: Limit
-      - name: view
-        in: query
-        required: false
-        schema:
-          type: string
-          default: operator
-          title: View
       responses:
         '200':
           description: Successful Response
@@ -11844,6 +11837,13 @@ paths:
           minimum: 1
           default: 200
           title: Limit
+      - name: view
+        in: query
+        required: false
+        schema:
+          type: string
+          default: operator
+          title: View
       responses:
         '200':
           description: Successful Response
@@ -15342,6 +15342,192 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /smr/runs/{run_id}/progress-toward-resource-limits:
+    get:
+      tags:
+      - smr
+      summary: Get Run Progress Toward Resource Limits
+      operationId: get_run_progress_toward_resource_limits_smr_runs__run_id__progress_toward_resource_limits_get
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrResourceLimitProgressResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/runs/{run_id}/resource-limits:
+    get:
+      tags:
+      - smr
+      summary: Get Run Resource Limits
+      operationId: get_run_resource_limits_smr_runs__run_id__resource_limits_get
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrResourceLimitsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/progress-toward-resource-limits:
+    get:
+      tags:
+      - smr
+      summary: Get Project Run Progress Toward Resource Limits
+      operationId: get_project_run_progress_toward_resource_limits_smr_projects__project_id__runs__run_id__progress_toward_resource_limits_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrResourceLimitProgressResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/resource-limits:
+    get:
+      tags:
+      - smr
+      summary: Get Project Run Resource Limits
+      operationId: get_project_run_resource_limits_smr_projects__project_id__runs__run_id__resource_limits_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrResourceLimitsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/runs/{run_id}/resource-limit-extensions:
+    post:
+      tags:
+      - smr
+      summary: Extend Run Resource Limit
+      operationId: extend_run_resource_limit_smr_runs__run_id__resource_limit_extensions_post
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrResourceLimitExtensionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrResourceLimitExtensionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/runs/{run_id}/resource-limit-extensions:
+    post:
+      tags:
+      - smr
+      summary: Extend Project Run Resource Limit
+      operationId: extend_project_run_resource_limit_smr_projects__project_id__runs__run_id__resource_limit_extensions_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Run Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrResourceLimitExtensionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrResourceLimitExtensionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /smr/runs/{run_id}/checkpoints/{checkpoint_id}:
     get:
       tags:
@@ -15369,6 +15555,90 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SmrRunCheckpointStatusResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/progress-toward-resource-limits:
+    get:
+      tags:
+      - smr
+      summary: Get Project Progress Toward Resource Limits
+      operationId: get_project_progress_toward_resource_limits_smr_projects__project_id__progress_toward_resource_limits_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrResourceLimitProgressResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/resource-limits:
+    get:
+      tags:
+      - smr
+      summary: Get Project Resource Limits
+      operationId: get_project_resource_limits_smr_projects__project_id__resource_limits_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrResourceLimitsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /smr/projects/{project_id}/resource-limit-extensions:
+    post:
+      tags:
+      - smr
+      summary: Extend Project Resource Limit
+      operationId: extend_project_resource_limit_smr_projects__project_id__resource_limit_extensions_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmrResourceLimitExtensionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmrResourceLimitExtensionResponse'
         '422':
           description: Validation Error
           content:
@@ -20403,101 +20673,11 @@ paths:
             application/json:
               schema: {}
   /s/{route_token}/{path}:
-    delete:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__delete
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    patch:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__delete__patch__1
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-    get:
-      tags:
-      - synthtunnel-public
-      summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__delete__get__2
-      parameters:
-      - name: route_token
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Route Token
-      - name: path
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Path
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
     post:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__delete__post__3
+      operationId: synthtunnel_gateway_s__route_token___path__post
       parameters:
       - name: route_token
         in: path
@@ -20523,11 +20703,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-    put:
+    delete:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__delete__put__4
+      operationId: synthtunnel_gateway_s__route_token___path__post__delete__1
       parameters:
       - name: route_token
         in: path
@@ -20557,7 +20737,97 @@ paths:
       tags:
       - synthtunnel-public
       summary: Synthtunnel Gateway
-      operationId: synthtunnel_gateway_s__route_token___path__delete__options__5
+      operationId: synthtunnel_gateway_s__route_token___path__post__options__2
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__post__patch__3
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__post__get__4
+      parameters:
+      - name: route_token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Route Token
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - synthtunnel-public
+      summary: Synthtunnel Gateway
+      operationId: synthtunnel_gateway_s__route_token___path__post__put__5
       parameters:
       - name: route_token
         in: path
@@ -21316,7 +21586,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UsageSummaryResponse'
+                $ref: '#/components/schemas/app__api__v1__admin__UsageSummaryResponse'
         '422':
           description: Validation Error
           content:
@@ -31662,6 +31932,11 @@ components:
           - type: string
           - type: 'null'
           title: Reviewer Notes
+        leaderboard_evidence_manifest_path:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Leaderboard Evidence Manifest Path
         metadata:
           additionalProperties: true
           type: object
@@ -37593,6 +37868,440 @@ components:
       - sandbox
       - app
       title: SmrResourceKind
+    SmrResourceLimitBlockerResponse:
+      properties:
+        resource_blocker_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resource Blocker Id
+        target_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Kind
+        target_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Id
+        blocker_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Blocker Kind
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+        required_action:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Required Action
+        selector:
+          anyOf:
+          - $ref: '#/components/schemas/SmrResourceLimitSelectorResponse'
+          - type: 'null'
+        metric:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Metric
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+      type: object
+      title: SmrResourceLimitBlockerResponse
+    SmrResourceLimitExtensionPolicyResponse:
+      properties:
+        can_request_extension:
+          type: boolean
+          title: Can Request Extension
+          default: false
+        request_requires_human:
+          type: boolean
+          title: Request Requires Human
+          default: true
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+      type: object
+      title: SmrResourceLimitExtensionPolicyResponse
+    SmrResourceLimitExtensionRequest:
+      properties:
+        resource_limit_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resource Limit Id
+        selector:
+          anyOf:
+          - $ref: '#/components/schemas/SmrResourceLimitSelectorResponse'
+          - type: 'null'
+        metric:
+          type: string
+          title: Metric
+          default: spend_usd
+        limit_value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Limit Value
+          description: New absolute limit value in the request unit.
+        additional_value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Additional Value
+          description: Amount to add to the current limit when limit_value is omitted.
+        unit:
+          type: string
+          title: Unit
+          default: usd
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        resolve_blockers:
+          type: boolean
+          title: Resolve Blockers
+          default: true
+        resume:
+          type: boolean
+          title: Resume
+          default: true
+        idempotency_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Idempotency Key
+      type: object
+      title: SmrResourceLimitExtensionRequest
+    SmrResourceLimitExtensionResponse:
+      properties:
+        resource_limit_extension_id:
+          type: string
+          title: Resource Limit Extension Id
+        scope:
+          type: string
+          title: Scope
+        org_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Org Id
+        project_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Project Id
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        selector:
+          $ref: '#/components/schemas/SmrResourceLimitSelectorResponse'
+        metric:
+          type: string
+          title: Metric
+        previous_limit_value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Previous Limit Value
+        new_limit_value:
+          type: number
+          title: New Limit Value
+        unit:
+          type: string
+          title: Unit
+        source:
+          type: string
+          title: Source
+        resolved_blocker_ids:
+          items:
+            type: string
+          type: array
+          title: Resolved Blocker Ids
+        resumed:
+          type: boolean
+          title: Resumed
+          default: false
+        resume_error:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Resume Error
+        progress:
+          anyOf:
+          - $ref: '#/components/schemas/SmrResourceLimitProgressResponse'
+          - type: 'null'
+      type: object
+      required:
+      - resource_limit_extension_id
+      - scope
+      - selector
+      - metric
+      - new_limit_value
+      - unit
+      - source
+      title: SmrResourceLimitExtensionResponse
+    SmrResourceLimitProgressItemResponse:
+      properties:
+        resource_limit_id:
+          type: string
+          title: Resource Limit Id
+        scope:
+          type: string
+          title: Scope
+        org_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Org Id
+        project_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Project Id
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        selector:
+          $ref: '#/components/schemas/SmrResourceLimitSelectorResponse'
+        metric:
+          type: string
+          title: Metric
+        limit_value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Limit Value
+        current_value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Current Value
+        remaining_value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Remaining Value
+        used_percent:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Used Percent
+        unit:
+          type: string
+          title: Unit
+        state:
+          type: string
+          title: State
+        blocking:
+          type: boolean
+          title: Blocking
+          default: false
+        blocks_at_limit:
+          type: boolean
+          title: Blocks At Limit
+          default: true
+        warning_threshold_percent:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Warning Threshold Percent
+          default: 80.0
+        source:
+          type: string
+          title: Source
+      type: object
+      required:
+      - resource_limit_id
+      - scope
+      - selector
+      - metric
+      - unit
+      - state
+      - source
+      title: SmrResourceLimitProgressItemResponse
+    SmrResourceLimitProgressResponse:
+      properties:
+        scope:
+          type: string
+          title: Scope
+        org_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Org Id
+        project_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Project Id
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        state:
+          type: string
+          title: State
+          default: unknown
+        items:
+          items:
+            $ref: '#/components/schemas/SmrResourceLimitProgressItemResponse'
+          type: array
+          title: Items
+        active_blockers:
+          items:
+            $ref: '#/components/schemas/SmrResourceLimitBlockerResponse'
+          type: array
+          title: Active Blockers
+        extension_policy:
+          $ref: '#/components/schemas/SmrResourceLimitExtensionPolicyResponse'
+      type: object
+      required:
+      - scope
+      title: SmrResourceLimitProgressResponse
+    SmrResourceLimitResponse:
+      properties:
+        resource_limit_id:
+          type: string
+          title: Resource Limit Id
+        scope:
+          type: string
+          title: Scope
+        org_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Org Id
+        project_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Project Id
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        selector:
+          $ref: '#/components/schemas/SmrResourceLimitSelectorResponse'
+        metric:
+          type: string
+          title: Metric
+        limit_value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Limit Value
+        unit:
+          type: string
+          title: Unit
+        blocks_at_limit:
+          type: boolean
+          title: Blocks At Limit
+          default: true
+        warning_threshold_percent:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Warning Threshold Percent
+          default: 80.0
+        source:
+          type: string
+          title: Source
+      type: object
+      required:
+      - resource_limit_id
+      - scope
+      - selector
+      - metric
+      - unit
+      - source
+      title: SmrResourceLimitResponse
+    SmrResourceLimitSelectorResponse:
+      properties:
+        kind:
+          type: string
+          title: Kind
+        capability:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Capability
+        provider:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Provider
+        model:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model
+        actor_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor Type
+        actor_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor Id
+        resource_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resource Id
+      type: object
+      required:
+      - kind
+      title: SmrResourceLimitSelectorResponse
+    SmrResourceLimitsResponse:
+      properties:
+        scope:
+          type: string
+          title: Scope
+        org_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Org Id
+        project_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Project Id
+        run_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Run Id
+        items:
+          items:
+            $ref: '#/components/schemas/SmrResourceLimitResponse'
+          type: array
+          title: Items
+      type: object
+      required:
+      - scope
+      title: SmrResourceLimitsResponse
     SmrResourceProvider:
       type: string
       enum:
@@ -38626,6 +39335,25 @@ components:
           - type: string
           - type: 'null'
           title: Stop Reason
+        durable_state:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Durable State
+        capacity_released:
+          type: boolean
+          title: Capacity Released
+          default: false
+        capacity_readback_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Capacity Readback Url
+        operator_next_action:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Operator Next Action
         control_message_id:
           anyOf:
           - type: string
@@ -46668,7 +47396,7 @@ components:
         entitlements:
           $ref: '#/components/schemas/BillingEntitlementSnapshot'
         usage_summary:
-          $ref: '#/components/schemas/app__api__v1__routes_usage_overview__UsageSummaryResponse'
+          $ref: '#/components/schemas/UsageSummaryResponse'
         spend_summary:
           $ref: '#/components/schemas/SpendSummaryResponse'
         sources:
@@ -46881,32 +47609,81 @@ components:
             used: 2400
     UsageSummaryResponse:
       properties:
-        org_id:
-          type: string
-          title: Org Id
-        date_range:
-          type: string
-          title: Date Range
-        total_cost_cents:
-          type: integer
-          title: Total Cost Cents
-        total_cost_dollars:
+        total_nominal_usd:
           type: number
-          title: Total Cost Dollars
-        gpu_events_count:
-          type: integer
-          title: Gpu Events Count
-        total_gpu_seconds:
+          title: Total Nominal Usd
+        total_cost_usd:
           type: number
-          title: Total Gpu Seconds
+          title: Total Cost Usd
+        total_charged_usd:
+          type: number
+          title: Total Charged Usd
+        total_internal_cost_usd:
+          type: number
+          title: Total Internal Cost Usd
+        by_type:
+          items:
+            $ref: '#/components/schemas/UsageByTypeResponse'
+          type: array
+          title: By Type
+        by_job:
+          items:
+            additionalProperties:
+              type: string
+            type: object
+          type: array
+          title: By Job
+        by_project:
+          items:
+            $ref: '#/components/schemas/UsageByProjectResponse'
+          type: array
+          title: By Project
+        by_source_type:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Source Type
+        by_source_subtype:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Source Subtype
+        by_source_provider:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Source Provider
+        by_funding_lane:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Funding Lane
+        by_execution_path:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Execution Path
+        by_actor:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Actor
+        by_billing_route:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Billing Route
+        by_pricing_policy:
+          additionalProperties:
+            $ref: '#/components/schemas/UsageBreakdownValueResponse'
+          type: object
+          title: By Pricing Policy
       type: object
       required:
-      - org_id
-      - date_range
-      - total_cost_cents
-      - total_cost_dollars
-      - gpu_events_count
-      - total_gpu_seconds
+      - total_nominal_usd
+      - total_cost_usd
+      - total_charged_usd
+      - total_internal_cost_usd
       title: UsageSummaryResponse
     UsageType:
       type: string
@@ -47326,6 +48103,35 @@ components:
       required:
       - commit_sha
       title: WorkspaceConfirmPushRequest
+    app__api__v1__admin__UsageSummaryResponse:
+      properties:
+        org_id:
+          type: string
+          title: Org Id
+        date_range:
+          type: string
+          title: Date Range
+        total_cost_cents:
+          type: integer
+          title: Total Cost Cents
+        total_cost_dollars:
+          type: number
+          title: Total Cost Dollars
+        gpu_events_count:
+          type: integer
+          title: Gpu Events Count
+        total_gpu_seconds:
+          type: number
+          title: Total Gpu Seconds
+      type: object
+      required:
+      - org_id
+      - date_range
+      - total_cost_cents
+      - total_cost_dollars
+      - gpu_events_count
+      - total_gpu_seconds
+      title: UsageSummaryResponse
     app__api__v1__routes_balance__UsageSummaryResponse:
       properties:
         org_id:
@@ -47346,84 +48152,6 @@ components:
       - last_30_days
       title: UsageSummaryResponse
       description: Response model for usage summary.
-    app__api__v1__routes_usage_overview__UsageSummaryResponse:
-      properties:
-        total_nominal_usd:
-          type: number
-          title: Total Nominal Usd
-        total_cost_usd:
-          type: number
-          title: Total Cost Usd
-        total_charged_usd:
-          type: number
-          title: Total Charged Usd
-        total_internal_cost_usd:
-          type: number
-          title: Total Internal Cost Usd
-        by_type:
-          items:
-            $ref: '#/components/schemas/UsageByTypeResponse'
-          type: array
-          title: By Type
-        by_job:
-          items:
-            additionalProperties:
-              type: string
-            type: object
-          type: array
-          title: By Job
-        by_project:
-          items:
-            $ref: '#/components/schemas/UsageByProjectResponse'
-          type: array
-          title: By Project
-        by_source_type:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Source Type
-        by_source_subtype:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Source Subtype
-        by_source_provider:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Source Provider
-        by_funding_lane:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Funding Lane
-        by_execution_path:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Execution Path
-        by_actor:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Actor
-        by_billing_route:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Billing Route
-        by_pricing_policy:
-          additionalProperties:
-            $ref: '#/components/schemas/UsageBreakdownValueResponse'
-          type: object
-          title: By Pricing Policy
-      type: object
-      required:
-      - total_nominal_usd
-      - total_cost_usd
-      - total_charged_usd
-      - total_internal_cost_usd
-      title: UsageSummaryResponse
   securitySchemes:
     HTTPBearer:
       type: http

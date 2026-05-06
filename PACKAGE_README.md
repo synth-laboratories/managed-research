@@ -87,6 +87,22 @@ print("artifacts:", [artifact.title for artifact in run.artifacts()])
   approvals, and actor/task counts.
 - Use MCP from Codex or Claude Code when you want an agent-native interface.
 
+## Resource limits
+
+Managed Research exposes resource limits as first-class run and project state.
+Use `resource_limits()` to inspect configured caps and
+`progress_toward_resource_limits()` to inspect current usage, active blockers,
+and extension posture.
+
+When a spend limit blocks work, call `request_resource_limit_extension(...)`
+from a run, project, or `ManagedResearchClient`. Extensions accept either a new
+absolute USD limit or an added USD amount, plus optional blocker resolution and
+resume behavior. MCP exposes the same flow through
+`smr_get_run_resource_limits`, `smr_get_run_progress_toward_resource_limits`,
+`smr_get_project_resource_limits`,
+`smr_get_project_progress_toward_resource_limits`, and
+`smr_request_resource_limit_extension`.
+
 ## MCP
 
 Hosted:
