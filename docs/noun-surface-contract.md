@@ -33,6 +33,8 @@ Python compatibility types. Public prose should say Managed Research.
 | files | `/smr/projects/{id}/files*` | `client.project(id).files.*` | `smr_work_files_*` | `/smr/[projectId]/resources/files` |
 | context | `/smr/projects/{id}/notes*`, `/smr/projects/{id}/knowledge`, `/smr/org/knowledge` | `client.project(id).context.*` | `smr_*_project_notes`, `smr_*_knowledge` | `/smr/[projectId]/resources/context` |
 | credentials | `/smr/projects/{id}/credential-refs*` | `client.project(id).credentials.*` | `smr_*_project_credential_ref` | `/smr/[projectId]/resources/connections` |
+| project workspace | `/smr/projects/{id}/workspace` | `client.project(id).workspace()`, `client.projects.get_workspace(id)` | `smr_get_project_workspace` | `/smr`, `/smr/[projectId]` |
+| changesets | `/smr/projects/{id}/changesets*` | `client.project(id).changesets.*`, `client.projects.*_changeset(s)` | `smr_list_project_changesets`, `smr_create_project_changeset`, `smr_get_project_changeset`, `smr_decide_project_changeset` | `/smr/[projectId]/approvals` |
 | workspace inputs | `/smr/projects/{id}/workspace-inputs*` | `client.workspace_inputs.*` | `smr_get_workspace_inputs`, `smr_upload_workspace_files` | `/smr/[projectId]/resources` |
 | git | `/smr/projects/{id}/git*` | `client.projects.get_git(...)` | repo/git work tools | project workspace UI |
 
@@ -57,6 +59,7 @@ Python compatibility types. Public prose should say Managed Research.
 | approvals | `/smr/runs/{id}/approvals*`, `/smr/projects/{id}/runs/{id}/approvals*` | `client.approvals.*`, `client.runs.approve_run_approval(...)` | `smr_list_run_approvals`, `smr_approve_run_approval`, `smr_deny_run_approval` | run console |
 | checkpoints/branches | `/smr/runs/{id}/checkpoints*`, `/smr/runs/{id}/branches`, `/smr/checkpoints/branches` | `run.checkpoints()`, `run.branch_from_checkpoint(...)`, `client.runs.branch_from_checkpoint(...)` | `smr_branch_run_from_checkpoint` | run console |
 | timeline/traces/actor usage | `/smr/projects/{project_id}/runs/{run_id}/timeline`, `/smr/projects/{project_id}/runs/{run_id}/traces`, `/smr/projects/{project_id}/runs/{run_id}/actors/usage` | `run.timeline()`, `run.traces()`, `run.actor_usage()` | `smr_get_run_logical_timeline`, `smr_get_run_traces`, `smr_get_run_actor_usage` | operator/debug views |
+| actor controls | `/smr/projects/{project_id}/runs/{run_id}/actors/{actor_id}/control` | `client.runs.pause_actor(...)`, `client.runs.resume_actor(...)`, `client.runs.interrupt_actor(...)`, `client.project(id).runs.pause_actor(...)`, `run.pause_actor(...)` | `smr_control_project_run_actor` | run console |
 | data infra | `/smr/projects/{project_id}/runs/{run_id}/files`, `/smr/projects/{project_id}/runs/{run_id}/git`, `/smr/projects/{project_id}/runs/{run_id}/task-graph`, `/smr/projects/{project_id}/runs/{run_id}/data-infra` | lower-level client reads, future bound run namespace | MCP data-infra/resource tools | run console |
 
 ## Rules

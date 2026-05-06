@@ -6,7 +6,7 @@ Workspace-wide guardrails live at [`../AGENTS.md`](../AGENTS.md).
 
 Any `managed-research` PyPI release or MCP server change tied to a launch must
 clear the Packages / SDK / MCP sections of
-[`../synth-dev/launch_checklist.md`](../synth-dev/launch_checklist.md) —
+[`../synth-dev/deployment/launch_checklist.md`](../synth-dev/deployment/launch_checklist.md) —
 fresh-venv install smoke, MCP startup with no duplicate-tool errors,
 `uv tool install managed-research` resolves the launch version, backend
 version-contract parity. Record published version + smoke output as proof.

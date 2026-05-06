@@ -1,16 +1,27 @@
-"""Environment and local-config helpers."""
+"""Environment and local-config helpers.
+
+Missing or invalid local config files are treated as empty (not fatal) so CLI and
+library entrypoints can still rely on environment variables alone; failures are
+logged at DEBUG for support.
+
+# See: Synth Style — explicit degradation; one configuration authority layer.
+"""
 
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
+
+_logger = logging.getLogger(__name__)
 
 
 def _read_json_object(path: Path) -> dict[str, object]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        _logger.debug("managed-research: skipped config file %s", path, exc_info=exc)
         return {}
     return payload if isinstance(payload, dict) else {}
 

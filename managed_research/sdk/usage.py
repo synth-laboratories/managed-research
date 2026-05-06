@@ -10,6 +10,10 @@ from managed_research.models import (
     OrgLimits,
     SmrProjectEconomics,
     SmrProjectUsage,
+    SmrResourceLimitExtension,
+    SmrResourceLimitProgress,
+    SmrResourceLimits,
+    SmrResourceLimitSelector,
     SmrRunUsage,
 )
 from managed_research.sdk._base import _ClientNamespace
@@ -29,6 +33,61 @@ def _raise_on_error_payload(payload: object) -> object:
     raise SmrApiError("Managed Research usage request failed")
 
 
+def _selector_to_wire(
+    selector: SmrResourceLimitSelector | Mapping[str, object] | None,
+) -> dict[str, object] | None:
+    if selector is None:
+        return None
+    if isinstance(selector, SmrResourceLimitSelector):
+        return {
+            "kind": selector.kind,
+            "capability": selector.capability,
+            "provider": selector.provider,
+            "model": selector.model,
+            "actor_type": selector.actor_type,
+            "actor_id": selector.actor_id,
+            "resource_id": selector.resource_id,
+        }
+    if isinstance(selector, Mapping):
+        return dict(selector)
+    raise TypeError("selector must be a SmrResourceLimitSelector or mapping")
+
+
+def _limit_extension_payload(
+    *,
+    limit_value: float | None,
+    additional_value: float | None,
+    reason: str | None,
+    selector: SmrResourceLimitSelector | Mapping[str, object] | None,
+    resource_limit_id: str | None,
+    metric: str,
+    unit: str,
+    resolve_blockers: bool,
+    resume: bool,
+    idempotency_key: str | None,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "metric": metric,
+        "unit": unit,
+        "resolve_blockers": bool(resolve_blockers),
+        "resume": bool(resume),
+    }
+    selector_payload = _selector_to_wire(selector)
+    if selector_payload is not None:
+        payload["selector"] = selector_payload
+    if resource_limit_id is not None:
+        payload["resource_limit_id"] = resource_limit_id
+    if limit_value is not None:
+        payload["limit_value"] = float(limit_value)
+    if additional_value is not None:
+        payload["additional_value"] = float(additional_value)
+    if reason is not None:
+        payload["reason"] = reason
+    if idempotency_key is not None:
+        payload["idempotency_key"] = idempotency_key
+    return payload
+
+
 class UsageAPI(_ClientNamespace):
     """Canonical usage and entitlement helpers."""
 
@@ -45,8 +104,127 @@ class UsageAPI(_ClientNamespace):
 
     def get_run_usage(self, run_id: str) -> SmrRunUsage:
         return SmrRunUsage.from_wire(
+            _raise_on_error_payload(self._client._request_json("GET", f"/smr/runs/{run_id}/usage"))
+        )
+
+    def get_run_resource_limits(self, run_id: str) -> SmrResourceLimits:
+        return SmrResourceLimits.from_wire(
             _raise_on_error_payload(
-                self._client._request_json("GET", f"/smr/runs/{run_id}/usage")
+                self._client._request_json("GET", f"/smr/runs/{run_id}/resource-limits")
+            )
+        )
+
+    def get_run_progress_toward_resource_limits(
+        self,
+        run_id: str,
+    ) -> SmrResourceLimitProgress:
+        return SmrResourceLimitProgress.from_wire(
+            _raise_on_error_payload(
+                self._client._request_json(
+                    "GET",
+                    f"/smr/runs/{run_id}/progress-toward-resource-limits",
+                )
+            )
+        )
+
+    def extend_run_resource_limit(
+        self,
+        run_id: str,
+        *,
+        limit_value: float | None = None,
+        additional_value: float | None = None,
+        reason: str | None = None,
+        selector: SmrResourceLimitSelector | Mapping[str, object] | None = None,
+        resource_limit_id: str | None = None,
+        metric: str = "spend_usd",
+        unit: str = "usd",
+        resolve_blockers: bool = True,
+        resume: bool = True,
+        idempotency_key: str | None = None,
+    ) -> SmrResourceLimitExtension:
+        return SmrResourceLimitExtension.from_wire(
+            _raise_on_error_payload(
+                self._client._request_json(
+                    "POST",
+                    f"/smr/runs/{run_id}/resource-limit-extensions",
+                    json_body=_limit_extension_payload(
+                        limit_value=limit_value,
+                        additional_value=additional_value,
+                        reason=reason,
+                        selector=selector,
+                        resource_limit_id=resource_limit_id,
+                        metric=metric,
+                        unit=unit,
+                        resolve_blockers=resolve_blockers,
+                        resume=resume,
+                        idempotency_key=idempotency_key,
+                    ),
+                )
+            )
+        )
+
+    def get_project_run_resource_limits(
+        self,
+        project_id: str,
+        run_id: str,
+    ) -> SmrResourceLimits:
+        return SmrResourceLimits.from_wire(
+            _raise_on_error_payload(
+                self._client._request_json(
+                    "GET",
+                    f"/smr/projects/{project_id}/runs/{run_id}/resource-limits",
+                )
+            )
+        )
+
+    def get_project_run_progress_toward_resource_limits(
+        self,
+        project_id: str,
+        run_id: str,
+    ) -> SmrResourceLimitProgress:
+        return SmrResourceLimitProgress.from_wire(
+            _raise_on_error_payload(
+                self._client._request_json(
+                    "GET",
+                    f"/smr/projects/{project_id}/runs/{run_id}/progress-toward-resource-limits",
+                )
+            )
+        )
+
+    def extend_project_run_resource_limit(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        limit_value: float | None = None,
+        additional_value: float | None = None,
+        reason: str | None = None,
+        selector: SmrResourceLimitSelector | Mapping[str, object] | None = None,
+        resource_limit_id: str | None = None,
+        metric: str = "spend_usd",
+        unit: str = "usd",
+        resolve_blockers: bool = True,
+        resume: bool = True,
+        idempotency_key: str | None = None,
+    ) -> SmrResourceLimitExtension:
+        return SmrResourceLimitExtension.from_wire(
+            _raise_on_error_payload(
+                self._client._request_json(
+                    "POST",
+                    f"/smr/projects/{project_id}/runs/{run_id}/resource-limit-extensions",
+                    json_body=_limit_extension_payload(
+                        limit_value=limit_value,
+                        additional_value=additional_value,
+                        reason=reason,
+                        selector=selector,
+                        resource_limit_id=resource_limit_id,
+                        metric=metric,
+                        unit=unit,
+                        resolve_blockers=resolve_blockers,
+                        resume=resume,
+                        idempotency_key=idempotency_key,
+                    ),
+                )
             )
         )
 
@@ -57,11 +235,68 @@ class UsageAPI(_ClientNamespace):
             )
         )
 
+    def get_project_resource_limits(self, project_id: str) -> SmrResourceLimits:
+        return SmrResourceLimits.from_wire(
+            _raise_on_error_payload(
+                self._client._request_json("GET", f"/smr/projects/{project_id}/resource-limits")
+            )
+        )
+
+    def get_project_progress_toward_resource_limits(
+        self,
+        project_id: str,
+    ) -> SmrResourceLimitProgress:
+        return SmrResourceLimitProgress.from_wire(
+            _raise_on_error_payload(
+                self._client._request_json(
+                    "GET",
+                    f"/smr/projects/{project_id}/progress-toward-resource-limits",
+                )
+            )
+        )
+
+    def extend_project_resource_limit(
+        self,
+        project_id: str,
+        *,
+        limit_value: float | None = None,
+        additional_value: float | None = None,
+        reason: str | None = None,
+        selector: SmrResourceLimitSelector | Mapping[str, object] | None = None,
+        resource_limit_id: str | None = None,
+        metric: str = "spend_usd",
+        unit: str = "usd",
+        resolve_blockers: bool = True,
+        resume: bool = True,
+        idempotency_key: str | None = None,
+    ) -> SmrResourceLimitExtension:
+        return SmrResourceLimitExtension.from_wire(
+            _raise_on_error_payload(
+                self._client._request_json(
+                    "POST",
+                    f"/smr/projects/{project_id}/resource-limit-extensions",
+                    json_body=_limit_extension_payload(
+                        limit_value=limit_value,
+                        additional_value=additional_value,
+                        reason=reason,
+                        selector=selector,
+                        resource_limit_id=resource_limit_id,
+                        metric=metric,
+                        unit=unit,
+                        resolve_blockers=resolve_blockers,
+                        resume=resume,
+                        idempotency_key=idempotency_key,
+                    ),
+                )
+            )
+        )
+
     def get_project_economics(self, project_id: str) -> SmrProjectEconomics:
         return SmrProjectEconomics.from_wire(
             _raise_on_error_payload(
                 self._client._request_json("GET", f"/smr/projects/{project_id}/economics")
             )
         )
+
 
 __all__ = ["UsageAPI"]

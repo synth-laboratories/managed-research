@@ -43,6 +43,28 @@ def _coerce_string_dict(value: Any, *, field_name: str) -> dict[str, str]:
     return normalized
 
 
+def _coerce_any_dict(value: Any, *, field_name: str) -> dict[str, Any]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError(f"{field_name} must be an object")
+    return dict(value)
+
+
+def _coerce_optional_any_dict(value: Any, *, field_name: str) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    return _coerce_any_dict(value, field_name=field_name)
+
+
+def _coerce_string_list(value: Any, *, field_name: str) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError(f"{field_name} must be a list")
+    return [str(item) for item in value]
+
+
 class SmrBranchMode(StrEnum):
     EXACT = "exact"
     WITH_MESSAGE = "with_message"
@@ -61,9 +83,7 @@ class SmrRunBranchRequest:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "checkpoint_id", _optional_text(self.checkpoint_id))
-        object.__setattr__(
-            self, "checkpoint_record_id", _optional_text(self.checkpoint_record_id)
-        )
+        object.__setattr__(self, "checkpoint_record_id", _optional_text(self.checkpoint_record_id))
         object.__setattr__(self, "checkpoint_uri", _optional_text(self.checkpoint_uri))
         object.__setattr__(self, "message", _optional_text(self.message))
         object.__setattr__(self, "reason", _optional_text(self.reason))
@@ -133,26 +153,18 @@ class SmrRunBranchResponse:
             _optional_text(self.source_checkpoint_record_id),
         )
         object.__setattr__(self, "source_node_id", _optional_text(self.source_node_id))
-        object.__setattr__(
-            self, "branch_message_id", _optional_text(self.branch_message_id)
-        )
+        object.__setattr__(self, "branch_message_id", _optional_text(self.branch_message_id))
 
     @classmethod
     def from_wire(cls, payload: dict[str, Any]) -> SmrRunBranchResponse:
         return cls(
             accepted=bool(payload.get("accepted")),
-            parent_run_id=_require_text(
-                payload.get("parent_run_id"), field_name="parent_run_id"
-            ),
-            child_run_id=_require_text(
-                payload.get("child_run_id"), field_name="child_run_id"
-            ),
+            parent_run_id=_require_text(payload.get("parent_run_id"), field_name="parent_run_id"),
+            child_run_id=_require_text(payload.get("child_run_id"), field_name="child_run_id"),
             source_checkpoint_id=_require_text(
                 payload.get("source_checkpoint_id"), field_name="source_checkpoint_id"
             ),
-            source_checkpoint_record_id=_optional_text(
-                payload.get("source_checkpoint_record_id")
-            ),
+            source_checkpoint_record_id=_optional_text(payload.get("source_checkpoint_record_id")),
             source_node_id=_optional_text(payload.get("source_node_id")),
             branch_message_id=_optional_text(payload.get("branch_message_id")),
             created_at=_parse_datetime(payload.get("created_at"), field_name="created_at")
@@ -209,9 +221,7 @@ class SmrLogicalTimelineNode:
         object.__setattr__(self, "task_key", _optional_text(self.task_key))
         object.__setattr__(self, "worker_id", _optional_text(self.worker_id))
         object.__setattr__(self, "checkpoint_id", _optional_text(self.checkpoint_id))
-        object.__setattr__(
-            self, "checkpoint_record_id", _optional_text(self.checkpoint_record_id)
-        )
+        object.__setattr__(self, "checkpoint_record_id", _optional_text(self.checkpoint_record_id))
         object.__setattr__(self, "checkpoint_uri", _optional_text(self.checkpoint_uri))
         object.__setattr__(
             self,
@@ -223,15 +233,9 @@ class SmrLogicalTimelineNode:
         object.__setattr__(self, "artifact_id", _optional_text(self.artifact_id))
         object.__setattr__(self, "launch_id", _optional_text(self.launch_id))
         object.__setattr__(self, "parent_node_id", _optional_text(self.parent_node_id))
-        object.__setattr__(
-            self, "branch_parent_run_id", _optional_text(self.branch_parent_run_id)
-        )
-        object.__setattr__(
-            self, "branch_child_run_id", _optional_text(self.branch_child_run_id)
-        )
-        object.__setattr__(
-            self, "detail", _coerce_string_dict(self.detail, field_name="detail")
-        )
+        object.__setattr__(self, "branch_parent_run_id", _optional_text(self.branch_parent_run_id))
+        object.__setattr__(self, "branch_child_run_id", _optional_text(self.branch_child_run_id))
+        object.__setattr__(self, "detail", _coerce_string_dict(self.detail, field_name="detail"))
         if self.logical_index < 0:
             raise ValueError("logical_index must be >= 0")
 
@@ -285,9 +289,7 @@ class SmrLogicalTimeline:
             self, "project_id", _require_text(self.project_id, field_name="project_id")
         )
         object.__setattr__(self, "run_id", _require_text(self.run_id, field_name="run_id"))
-        object.__setattr__(
-            self, "run_state", _require_text(self.run_state, field_name="run_state")
-        )
+        object.__setattr__(self, "run_state", _require_text(self.run_state, field_name="run_state"))
         object.__setattr__(self, "latest_node_id", _optional_text(self.latest_node_id))
 
     @classmethod
@@ -313,10 +315,130 @@ class SmrLogicalTimeline:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class SmrRunEventLogEntry:
+    event_log_id: str
+    project_id: str
+    run_id: str
+    occurred_at: datetime
+    source: str
+    event_kind: str
+    title: str
+    summary: str
+    status: str | None = None
+    logical_timeline_node_id: str | None = None
+    context_event_id: str | None = None
+    disposition_id: str | None = None
+    task_id: str | None = None
+    task_key: str | None = None
+    actor_id: str | None = None
+    participant_role: str | None = None
+    detail: dict[str, str] = field(default_factory=dict)
+
+    @classmethod
+    def from_wire(cls, payload: dict[str, Any]) -> SmrRunEventLogEntry:
+        return cls(
+            event_log_id=_require_text(payload.get("event_log_id"), field_name="event_log_id"),
+            project_id=_require_text(payload.get("project_id"), field_name="project_id"),
+            run_id=_require_text(payload.get("run_id"), field_name="run_id"),
+            occurred_at=_parse_datetime(payload.get("occurred_at"), field_name="occurred_at"),
+            source=_require_text(payload.get("source"), field_name="source"),
+            event_kind=_require_text(payload.get("event_kind"), field_name="event_kind"),
+            title=_require_text(payload.get("title"), field_name="title"),
+            summary=_require_text(payload.get("summary"), field_name="summary"),
+            status=_optional_text(payload.get("status")),
+            logical_timeline_node_id=_optional_text(payload.get("logical_timeline_node_id")),
+            context_event_id=_optional_text(payload.get("context_event_id")),
+            disposition_id=_optional_text(payload.get("disposition_id")),
+            task_id=_optional_text(payload.get("task_id")),
+            task_key=_optional_text(payload.get("task_key")),
+            actor_id=_optional_text(payload.get("actor_id")),
+            participant_role=_optional_text(payload.get("participant_role")),
+            detail=_coerce_string_dict(payload.get("detail"), field_name="detail"),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class SmrRunEventLog:
+    project_id: str
+    run_id: str
+    generated_at: datetime
+    sources: list[str] = field(default_factory=list)
+    event_kinds: list[str] = field(default_factory=list)
+    statuses: list[str] = field(default_factory=list)
+    entries: list[SmrRunEventLogEntry] = field(default_factory=list)
+
+    @classmethod
+    def from_wire(cls, payload: dict[str, Any]) -> SmrRunEventLog:
+        raw_entries = payload.get("entries")
+        if raw_entries is None:
+            entries: list[SmrRunEventLogEntry] = []
+        elif isinstance(raw_entries, list):
+            entries = [
+                SmrRunEventLogEntry.from_wire(item)
+                for item in raw_entries
+                if isinstance(item, dict)
+            ]
+        else:
+            raise ValueError("entries must be a list")
+        return cls(
+            project_id=_require_text(payload.get("project_id"), field_name="project_id"),
+            run_id=_require_text(payload.get("run_id"), field_name="run_id"),
+            generated_at=_parse_datetime(payload.get("generated_at"), field_name="generated_at"),
+            sources=_coerce_string_list(payload.get("sources"), field_name="sources"),
+            event_kinds=_coerce_string_list(payload.get("event_kinds"), field_name="event_kinds"),
+            statuses=_coerce_string_list(payload.get("statuses"), field_name="statuses"),
+            entries=entries,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class SmrAuthorityReadouts:
+    project_id: str
+    run_id: str
+    generated_at: datetime
+    source_authority_version: str
+    public_status: dict[str, Any] | None = None
+    operator_control: dict[str, Any] = field(default_factory=dict)
+    diagnostic: dict[str, Any] = field(default_factory=dict)
+    runtime_authority: dict[str, Any] | None = None
+    compatibility: dict[str, Any] = field(default_factory=dict)
+    links: dict[str, str] = field(default_factory=dict)
+
+    @classmethod
+    def from_wire(cls, payload: dict[str, Any]) -> SmrAuthorityReadouts:
+        return cls(
+            project_id=_require_text(payload.get("project_id"), field_name="project_id"),
+            run_id=_require_text(payload.get("run_id"), field_name="run_id"),
+            generated_at=_parse_datetime(payload.get("generated_at"), field_name="generated_at"),
+            source_authority_version=_require_text(
+                payload.get("source_authority_version"),
+                field_name="source_authority_version",
+            ),
+            public_status=_coerce_optional_any_dict(
+                payload.get("public_status"), field_name="public_status"
+            ),
+            operator_control=_coerce_any_dict(
+                payload.get("operator_control"), field_name="operator_control"
+            ),
+            diagnostic=_coerce_any_dict(payload.get("diagnostic"), field_name="diagnostic"),
+            runtime_authority=_coerce_optional_any_dict(
+                payload.get("runtime_authority"), field_name="runtime_authority"
+            ),
+            compatibility=_coerce_any_dict(
+                payload.get("compatibility"), field_name="compatibility"
+            ),
+            links=_coerce_string_dict(payload.get("links"), field_name="links"),
+        )
+
+
 __all__ = [
+    "SmrAuthorityReadouts",
     "SmrBranchMode",
     "SmrLogicalTimeline",
     "SmrLogicalTimelineNode",
+    "SmrRunEventLog",
+    "SmrRunEventLogEntry",
     "SmrRunBranchRequest",
     "SmrRunBranchResponse",
 ]

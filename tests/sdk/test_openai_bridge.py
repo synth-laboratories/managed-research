@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import pytest
-
 from managed_research.sdk.client import (
     OPENAI_TRANSPORT_MODE_AUTO,
     OPENAI_TRANSPORT_MODE_BACKEND_BFF,
@@ -145,7 +144,9 @@ def test_missing_synth_ai_dependency_error_message(monkeypatch) -> None:
     client = SmrControlClient(api_key="test-key", backend_base="http://localhost:8000")
     original_import = builtins.__import__
 
-    synth_modules = [name for name in sys.modules if name == "synth_ai" or name.startswith("synth_ai.")]
+    synth_modules = [
+        name for name in sys.modules if name == "synth_ai" or name.startswith("synth_ai.")
+    ]
     for name in synth_modules:
         monkeypatch.delitem(sys.modules, name, raising=False)
 

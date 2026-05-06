@@ -28,9 +28,7 @@ def coerce_smr_work_mode(
     try:
         return SmrWorkMode(normalized)
     except ValueError as exc:
-        raise ValueError(
-            f"{field_name} must be one of: {', '.join(SMR_WORK_MODE_VALUES)}"
-        ) from exc
+        raise ValueError(f"{field_name} must be one of: {', '.join(SMR_WORK_MODE_VALUES)}") from exc
 
 
 __all__ = ["SMR_WORK_MODE_VALUES", "SmrWorkMode", "coerce_smr_work_mode"]

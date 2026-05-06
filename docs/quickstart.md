@@ -62,6 +62,9 @@ print("output files:", [artifact.path for artifact in manifest.output_files])
 
 for artifact in run.artifacts():
     print(artifact.artifact_id, artifact.artifact_type, artifact.title)
+
+evidence = run.operator_evidence()
+print("evidence keys:", sorted(evidence.keys()))
 ```
 
 ## 4. Use A Project When Context Matters
@@ -121,15 +124,17 @@ run = client.runs.start(
     work_mode="directed_effort",
     providers=[{"provider": "openrouter"}],
     agent_harness="opencode_sdk",
-    agent_model="anthropic/claude-sonnet-4-6",
+    agent_model="anthropic/claude-haiku-4-5-20251001",
 )
 ```
 
 Supported OpenCode models:
 
-- `anthropic/claude-sonnet-4-6`
-- `anthropic/claude-haiku-4-5-20251001`
-- `x-ai/grok-4.1-fast`
+| Model ID | Launch access |
+| --- | --- |
+| `anthropic/claude-sonnet-4-6` | Beta Access |
+| `anthropic/claude-haiku-4-5-20251001` | Standard |
+| `x-ai/grok-4.1-fast` | Standard |
 
 If the requested `(agent_harness, agent_model)` pair is unsupported, launch
 preflight and run start fail loudly with structured denials.

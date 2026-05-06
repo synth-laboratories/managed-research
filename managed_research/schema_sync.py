@@ -145,7 +145,7 @@ def _render_static_enum_module(
             f"        return {class_name}(normalized)",
             "    except ValueError as exc:",
             "        raise ValueError(",
-            f'            f"{{field_name}} must be one of: {{\', \'.join({values_constant_name})}}"',
+            f"            f\"{{field_name}} must be one of: {{', '.join({values_constant_name})}}\"",
             "        ) from exc",
             "",
             "",
@@ -192,7 +192,9 @@ def sync_smr_agent_models(
     raw = json.loads(source.read_text(encoding="utf-8"))
     models = raw.get("models")
     if not isinstance(models, list) or not models:
-        raise ValueError("Managed Research public model manifest must contain a non-empty models list")
+        raise ValueError(
+            "Managed Research public model manifest must contain a non-empty models list"
+        )
 
     model_ids = [
         str(item.get("id") or "").strip()
@@ -226,7 +228,7 @@ def sync_smr_agent_models(
             "",
             "def coerce_smr_agent_model(",
             "    value: SmrAgentModel | str | None,",
-            '    *,',
+            "    *,",
             '    field_name: str = "agent_model",',
             ") -> SmrAgentModel | None:",
             "    if value is None:",
@@ -239,8 +241,8 @@ def sync_smr_agent_models(
             "    try:",
             "        return SmrAgentModel(normalized)",
             "    except ValueError as exc:",
-            '        raise ValueError(',
-            '            f"{field_name} must be one of: {\', \'.join(SMR_AGENT_MODEL_VALUES)}. "',
+            "        raise ValueError(",
+            "            f\"{field_name} must be one of: {', '.join(SMR_AGENT_MODEL_VALUES)}. \"",
             '            "Backend preflight remains authoritative for model availability."',
             "        ) from exc",
             "",
@@ -278,9 +280,7 @@ def sync_smr_public_models_snapshot(
         public_models.append(
             {
                 "id": model_id,
-                "display_group": str(
-                    item.get("display_group") or "additional_first_launch"
-                ),
+                "display_group": str(item.get("display_group") or "additional_first_launch"),
                 "launch_lane": str(item.get("auth_route") or "").strip(),
                 "public": True,
             }

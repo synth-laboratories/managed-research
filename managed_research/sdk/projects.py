@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from managed_research.models.canonical_usage import (
     BillingEntitlementSnapshot,
     SmrProjectEconomics,
     SmrProjectUsage,
+    SmrResourceLimitExtension,
+    SmrResourceLimitProgress,
+    SmrResourceLimits,
+    SmrResourceLimitSelector,
 )
 from managed_research.models.project import CreateRunnableResult, ManagedResearchProject
+from managed_research.models.project_workspace import ProjectWorkspaceProjection
 from managed_research.models.types import (
     ProviderKeyStatus,
     SmrLaunchPreflight,
@@ -97,11 +103,91 @@ class ProjectsAPI(_ClientNamespace):
     def get_status_snapshot(self, project_id: str) -> dict[str, Any]:
         return self._client.get_project_status_snapshot(project_id)
 
+    def get_workspace(self, project_id: str) -> ProjectWorkspaceProjection:
+        return ProjectWorkspaceProjection.from_wire(self._client.get_project_workspace(project_id))
+
+    def list_changesets(
+        self,
+        project_id: str,
+        *,
+        status: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_project_changesets(
+            project_id,
+            status=status,
+            limit=limit,
+        )
+
+    def create_changeset(
+        self,
+        project_id: str,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.create_project_changeset(project_id, payload)
+
+    def get_changeset(
+        self,
+        project_id: str,
+        changeset_id: str,
+    ) -> dict[str, Any]:
+        return self._client.get_project_changeset(project_id, changeset_id)
+
+    def decide_changeset(
+        self,
+        project_id: str,
+        changeset_id: str,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.decide_project_changeset(
+            project_id,
+            changeset_id,
+            payload,
+        )
+
     def get_entitlement(self, project_id: str) -> dict[str, Any]:
         return self._client.get_project_entitlement(project_id)
 
     def get_usage(self, project_id: str) -> SmrProjectUsage:
         return self._client.get_project_usage(project_id)
+
+    def get_resource_limits(self, project_id: str) -> SmrResourceLimits:
+        return self._client.get_project_resource_limits(project_id)
+
+    def get_progress_toward_resource_limits(
+        self,
+        project_id: str,
+    ) -> SmrResourceLimitProgress:
+        return self._client.get_project_progress_toward_resource_limits(project_id)
+
+    def extend_resource_limit(
+        self,
+        project_id: str,
+        *,
+        limit_value: float | None = None,
+        additional_value: float | None = None,
+        reason: str | None = None,
+        selector: SmrResourceLimitSelector | Mapping[str, object] | None = None,
+        resource_limit_id: str | None = None,
+        metric: str = "spend_usd",
+        unit: str = "usd",
+        resolve_blockers: bool = True,
+        resume: bool = True,
+        idempotency_key: str | None = None,
+    ) -> SmrResourceLimitExtension:
+        return self._client.extend_project_resource_limit(
+            project_id,
+            limit_value=limit_value,
+            additional_value=additional_value,
+            reason=reason,
+            selector=selector,
+            resource_limit_id=resource_limit_id,
+            metric=metric,
+            unit=unit,
+            resolve_blockers=resolve_blockers,
+            resume=resume,
+            idempotency_key=idempotency_key,
+        )
 
     def get_economics(self, project_id: str) -> SmrProjectEconomics:
         return self._client.get_project_economics(project_id)
@@ -131,24 +217,40 @@ class ProjectsAPI(_ClientNamespace):
         return SmrProjectSetup.from_wire(self._client.get_project_setup(project_id))
 
     def get_setup_authority(self, project_id: str) -> SmrProjectSetup:
-        return SmrProjectSetup.from_wire(
-            self._client.get_project_setup_authority(project_id)
-        )
+        return SmrProjectSetup.from_wire(self._client.get_project_setup_authority(project_id))
 
     def prepare_setup(self, project_id: str) -> SmrProjectSetup:
-        return SmrProjectSetup.from_wire(
-            self._client.prepare_project_setup(project_id)
-        )
+        return SmrProjectSetup.from_wire(self._client.prepare_project_setup(project_id))
 
     def prepare_setup_authority(self, project_id: str) -> SmrProjectSetup:
-        return SmrProjectSetup.from_wire(
-            self._client.prepare_project_setup_authority(project_id)
+        return SmrProjectSetup.from_wire(self._client.prepare_project_setup_authority(project_id))
+
+    def start_onboarding(self, project_id: str) -> dict[str, Any]:
+        return self._client.start_project_onboarding(project_id)
+
+    def complete_onboarding_step(
+        self,
+        project_id: str,
+        *,
+        step: str,
+        status: str,
+        detail: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._client.complete_project_onboarding_step(
+            project_id,
+            step=step,
+            status=status,
+            detail=detail,
         )
 
+    def dry_run_onboarding(self, project_id: str) -> dict[str, Any]:
+        return self._client.run_project_onboarding_dry_run(project_id)
+
+    def get_onboarding_status(self, project_id: str) -> dict[str, Any]:
+        return self._client.get_project_onboarding_status(project_id)
+
     def get_launch_preflight(self, project_id: str, **kwargs: Any) -> SmrLaunchPreflight:
-        return SmrLaunchPreflight.from_wire(
-            self._client.get_launch_preflight(project_id, **kwargs)
-        )
+        return SmrLaunchPreflight.from_wire(self._client.get_launch_preflight(project_id, **kwargs))
 
     def get_run_start_blockers(self, project_id: str, **kwargs: Any) -> SmrLaunchPreflight:
         """Backward-compatible alias for launch preflight readiness checks."""
@@ -158,9 +260,52 @@ class ProjectsAPI(_ClientNamespace):
     def list_open_ended_questions(
         self, project_id: str, *, run_id: str | None = None, limit: int | None = None
     ) -> list[dict[str, Any]]:
-        return self._client.list_open_ended_questions(
-            project_id, run_id=run_id, limit=limit
+        return self._client.list_open_ended_questions(project_id, run_id=run_id, limit=limit)
+
+    def list_objectives(
+        self,
+        project_id: str,
+        *,
+        kind: str | None = None,
+        run_id: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_objectives(
+            project_id,
+            kind=kind,
+            run_id=run_id,
+            limit=limit,
         )
+
+    def create_objective(self, project_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._client.create_objective(project_id, payload)
+
+    def get_objective(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.get_objective(project_id, objective_id, kind=kind)
+
+    def pause_objective(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.pause_objective(project_id, objective_id, kind=kind)
+
+    def resume_objective(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.resume_objective(project_id, objective_id, kind=kind)
 
     def create_open_ended_question(
         self, project_id: str, payload: dict[str, Any]
@@ -178,40 +323,30 @@ class ProjectsAPI(_ClientNamespace):
     def transition_open_ended_question(
         self, project_id: str, objective_id: str, payload: dict[str, Any]
     ) -> dict[str, Any]:
-        return self._client.transition_open_ended_question(
-            project_id, objective_id, payload
-        )
+        return self._client.transition_open_ended_question(project_id, objective_id, payload)
 
     def list_directed_effort_outcomes(
         self, project_id: str, *, run_id: str | None = None, limit: int | None = None
     ) -> list[dict[str, Any]]:
-        return self._client.list_directed_effort_outcomes(
-            project_id, run_id=run_id, limit=limit
-        )
+        return self._client.list_directed_effort_outcomes(project_id, run_id=run_id, limit=limit)
 
     def create_directed_effort_outcome(
         self, project_id: str, payload: dict[str, Any]
     ) -> dict[str, Any]:
         return self._client.create_directed_effort_outcome(project_id, payload)
 
-    def get_directed_effort_outcome(
-        self, project_id: str, objective_id: str
-    ) -> dict[str, Any]:
+    def get_directed_effort_outcome(self, project_id: str, objective_id: str) -> dict[str, Any]:
         return self._client.get_directed_effort_outcome(project_id, objective_id)
 
     def patch_directed_effort_outcome(
         self, project_id: str, objective_id: str, payload: dict[str, Any]
     ) -> dict[str, Any]:
-        return self._client.patch_directed_effort_outcome(
-            project_id, objective_id, payload
-        )
+        return self._client.patch_directed_effort_outcome(project_id, objective_id, payload)
 
     def transition_directed_effort_outcome(
         self, project_id: str, objective_id: str, payload: dict[str, Any]
     ) -> dict[str, Any]:
-        return self._client.transition_directed_effort_outcome(
-            project_id, objective_id, payload
-        )
+        return self._client.transition_directed_effort_outcome(project_id, objective_id, payload)
 
     def list_milestones(
         self,
@@ -250,9 +385,7 @@ class ProjectsAPI(_ClientNamespace):
         return self._client.get_project_experiment(project_id, experiment_id)
 
     def set_provider_key(self, project_id: str, **kwargs: Any) -> ProviderKeyStatus:
-        return ProviderKeyStatus.from_wire(
-            self._client.set_provider_key(project_id, **kwargs)
-        )
+        return ProviderKeyStatus.from_wire(self._client.set_provider_key(project_id, **kwargs))
 
     def get_provider_key_status(self, project_id: str, **kwargs: Any) -> ProviderKeyStatus:
         return ProviderKeyStatus.from_wire(

@@ -184,9 +184,7 @@ class Checkpoint:
             recoverability=_optional_text(mapping, "recoverability"),
             recoverable=_optional_bool(mapping, "recoverable"),
             run_execution_blocking=_optional_bool(mapping, "run_execution_blocking"),
-            checkpoint_restore_blocking=_optional_bool(
-                mapping, "checkpoint_restore_blocking"
-            ),
+            checkpoint_restore_blocking=_optional_bool(mapping, "checkpoint_restore_blocking"),
             operator_action=_optional_text(mapping, "operator_action"),
             restorable=bool(mapping.get("restorable")),
             branchable=bool(mapping.get("branchable")),

@@ -9,6 +9,14 @@ from typing import Any
 
 from managed_research.auth import get_api_key
 from managed_research.errors import SmrApiError
+from managed_research.mcp.objective_tools import (
+    CompatObjectiveToolOperation,
+    ObjectiveToolOperation,
+    RunObjectiveScopeToolOperation,
+    compat_objective_tool_operation_from_wire,
+    objective_tool_operation_from_wire,
+    run_objective_scope_tool_operation_from_wire,
+)
 from managed_research.mcp.registry import (
     JSONDict,
     ToolDefinition,
@@ -120,7 +128,7 @@ def _write_message(stream: Any, payload: JSONDict, *, framing: str) -> None:
 
 
 class ManagedResearchMcpServer:
-    """Managed Research MCP server for the public noun-first tool surface."""
+    """Managed Research MCP server for the authenticated noun-first API surface."""
 
     def __init__(
         self,
@@ -464,6 +472,43 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.get_project_status(project_id)
 
+    def _tool_get_project_workspace(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_workspace(project_id)
+
+    def _tool_list_project_changesets(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        status = optional_string(args, "status")
+        limit = optional_int(args, "limit")
+        with self._client_from_args(args) as client:
+            return client.list_project_changesets(
+                project_id,
+                status=status,
+                limit=limit,
+            )
+
+    def _tool_create_project_changeset(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        payload = {key: value for key, value in args.items() if key != "project_id"}
+        with self._client_from_args(args) as client:
+            return client.create_project_changeset(project_id, payload)
+
+    def _tool_get_project_changeset(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        changeset_id = require_string(args, "changeset_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_changeset(project_id, changeset_id)
+
+    def _tool_decide_project_changeset(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        changeset_id = require_string(args, "changeset_id")
+        payload = {
+            key: value for key, value in args.items() if key not in {"project_id", "changeset_id"}
+        }
+        with self._client_from_args(args) as client:
+            return client.decide_project_changeset(project_id, changeset_id, payload)
+
     def _tool_get_project_entitlement(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
@@ -607,10 +652,81 @@ class ManagedResearchMcpServer:
             result = client.get_run_usage(run_id)
             return asdict(result) if is_dataclass(result) else result
 
+    def _tool_get_run_resource_limits(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            result = (
+                client.get_project_run_resource_limits(project_id, run_id)
+                if project_id
+                else client.get_run_resource_limits(run_id)
+            )
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_get_run_progress_toward_resource_limits(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            result = (
+                client.get_project_run_progress_toward_resource_limits(project_id, run_id)
+                if project_id
+                else client.get_run_progress_toward_resource_limits(run_id)
+            )
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_request_resource_limit_extension(self, args: JSONDict) -> Any:
+        scope = require_string(args, "scope").strip().lower()
+        if scope not in {"run", "project"}:
+            raise ValueError("scope must be 'run' or 'project'")
+        limit_value = self._optional_float_arg(args, "limit_value")
+        additional_value = self._optional_float_arg(args, "additional_value")
+        resolve_blockers = optional_bool(args, "resolve_blockers", default=True)
+        resume = optional_bool(args, "resume", default=True)
+        kwargs = {
+            "limit_value": limit_value,
+            "additional_value": additional_value,
+            "reason": optional_string(args, "reason"),
+            "resource_limit_id": optional_string(args, "resource_limit_id"),
+            "resolve_blockers": resolve_blockers,
+            "resume": resume,
+            "idempotency_key": optional_string(args, "idempotency_key"),
+        }
+        with self._client_from_args(args) as client:
+            if scope == "project":
+                result = client.extend_project_resource_limit(
+                    require_string(args, "project_id"),
+                    **kwargs,
+                )
+            else:
+                run_id = require_string(args, "run_id")
+                project_id = optional_string(args, "project_id")
+                result = (
+                    client.extend_project_run_resource_limit(
+                        project_id,
+                        run_id,
+                        **kwargs,
+                    )
+                    if project_id
+                    else client.extend_run_resource_limit(run_id, **kwargs)
+                )
+            return asdict(result) if is_dataclass(result) else result
+
     def _tool_get_project_usage(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         with self._client_from_args(args) as client:
             result = client.get_project_usage(project_id)
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_get_project_resource_limits(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            result = client.get_project_resource_limits(project_id)
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_get_project_progress_toward_resource_limits(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            result = client.get_project_progress_toward_resource_limits(project_id)
             return asdict(result) if is_dataclass(result) else result
 
     def _tool_get_project_economics(self, args: JSONDict) -> Any:
@@ -692,7 +808,7 @@ class ManagedResearchMcpServer:
         if metadata is not None and not isinstance(metadata, dict):
             raise ValueError("metadata must be an object")
         with self._client_from_args(args) as client:
-            return client.trained_models.register(
+            result = client.trained_models.register(
                 run_id=run_id,
                 base_model=base_model,
                 method=method,
@@ -706,16 +822,62 @@ class ManagedResearchMcpServer:
                 train_cost_usd=self._optional_float_arg(args, "train_cost_usd"),
                 metadata=metadata or {},
             )
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_get_trained_model(self, args: JSONDict) -> Any:
         model_id = require_string(args, "model_id")
         with self._client_from_args(args) as client:
-            return client.trained_models.get(model_id)
+            result = client.trained_models.get(model_id)
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_list_trained_models_for_run(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
         with self._client_from_args(args) as client:
-            return client.trained_models.list_for_run(run_id)
+            return [
+                asdict(item) if is_dataclass(item) else item
+                for item in client.trained_models.list_for_run(run_id)
+            ]
+
+    def _tool_export_trained_model(self, args: JSONDict) -> Any:
+        model_id = require_string(args, "model_id")
+        destination = args.get("destination")
+        if not isinstance(destination, dict):
+            raise ValueError("destination must be an object")
+        with self._client_from_args(args) as client:
+            result = client.trained_models.export(
+                model_id,
+                destination=destination,
+                idempotency_key=optional_string(args, "idempotency_key"),
+            )
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_create_trained_model_adapter_upload_url(self, args: JSONDict) -> Any:
+        model_id = require_string(args, "model_id")
+        with self._client_from_args(args) as client:
+            result = client.trained_models.create_adapter_upload_url(
+                model_id,
+                expires_in=optional_int(args, "expires_in") or 3600,
+                content_type=optional_string(args, "content_type") or "application/gzip",
+            )
+            return asdict(result) if is_dataclass(result) else result
+
+    def _tool_complete_trained_model_adapter_upload(self, args: JSONDict) -> Any:
+        model_id = require_string(args, "model_id")
+        metadata_patch = args.get("metadata_patch")
+        if metadata_patch is not None and not isinstance(metadata_patch, dict):
+            raise ValueError("metadata_patch must be an object")
+        adapter_size_bytes = optional_int(args, "adapter_size_bytes")
+        if adapter_size_bytes is None:
+            raise ValueError("adapter_size_bytes is required")
+        with self._client_from_args(args) as client:
+            result = client.trained_models.complete_adapter_upload(
+                model_id,
+                bucket=require_string(args, "bucket"),
+                key=require_string(args, "key"),
+                adapter_size_bytes=adapter_size_bytes,
+                metadata_patch=metadata_patch,
+            )
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_update_trained_model(self, args: JSONDict) -> Any:
         model_id = require_string(args, "model_id")
@@ -723,7 +885,7 @@ class ManagedResearchMcpServer:
         if metadata_patch is not None and not isinstance(metadata_patch, dict):
             raise ValueError("metadata_patch must be an object")
         with self._client_from_args(args) as client:
-            return client.trained_models.update(
+            result = client.trained_models.update(
                 model_id,
                 tuned_metric=self._optional_float_arg(args, "tuned_metric"),
                 uplift_abs=self._optional_float_arg(args, "uplift_abs"),
@@ -731,16 +893,36 @@ class ManagedResearchMcpServer:
                 status=optional_string(args, "status"),
                 metadata_patch=metadata_patch,
             )
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_delete_trained_model(self, args: JSONDict) -> Any:
         model_id = require_string(args, "model_id")
         with self._client_from_args(args) as client:
-            return client.trained_models.delete(model_id)
+            result = client.trained_models.delete(model_id)
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_get_run_cost_summary(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
         with self._client_from_args(args) as client:
             return client.run_cost.summary(run_id)
+
+    def _tool_report_tinker_training_usage(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        metadata = args.get("metadata")
+        if metadata is not None and not isinstance(metadata, dict):
+            raise ValueError("metadata must be an object")
+        with self._client_from_args(args) as client:
+            return client.run_cost.report_tinker_training_usage(
+                run_id,
+                actual_cost_usd=self._optional_float_arg(args, "actual_cost_usd"),
+                estimated_cost_usd=self._optional_float_arg(args, "estimated_cost_usd"),
+                model=optional_string(args, "model"),
+                task_id=optional_string(args, "task_id"),
+                idempotency_key=optional_string(args, "idempotency_key"),
+                provider_result_id=optional_string(args, "provider_result_id"),
+                request_id=optional_string(args, "request_id"),
+                metadata=metadata or {},
+            )
 
     def _tool_list_project_files(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
@@ -1007,6 +1189,10 @@ class ManagedResearchMcpServer:
                 **request.client_kwargs(),
             )
 
+    def _tool_list_runbook_presets(self, args: JSONDict) -> Any:
+        with self._client_from_args(args) as client:
+            return [preset.to_wire() for preset in client.list_runbook_presets()]
+
     def _tool_list_runs(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         active_only = optional_bool(args, "active_only", default=False)
@@ -1039,6 +1225,19 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.get_run_primary_parent(run_id)
 
+    def _tool_run_objective_scopes(self, args: JSONDict) -> Any:
+        operation = run_objective_scope_tool_operation_from_wire(require_string(args, "operation"))
+        run_id = require_string(args, "run_id")
+        payload = args.get("payload")
+        if payload is not None and not isinstance(payload, dict):
+            raise ValueError("'payload' must be an object when provided")
+        with self._client_from_args(args) as client:
+            if operation is RunObjectiveScopeToolOperation.LIST:
+                return client.list_run_objective_scopes(run_id)
+            if operation is RunObjectiveScopeToolOperation.REGISTER:
+                return client.register_run_objective_scope(run_id, payload or {})
+        raise ValueError(f"Unsupported run objective-scope operation: {operation.value}")
+
     def _tool_stop_run(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
         project_id = optional_string(args, "project_id")
@@ -1065,6 +1264,102 @@ class ManagedResearchMcpServer:
         run_id = require_string(args, "run_id")
         with self._client_from_args(args) as client:
             return client.get_run_logical_timeline(project_id, run_id)
+
+    def _tool_get_run_execution(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.get_run_execution(
+                project_id,
+                run_id,
+                view=optional_string(args, "view") or "summary",
+                event_limit=optional_int(args, "event_limit") or 100,
+                actor_limit=optional_int(args, "actor_limit") or 50,
+                task_limit=optional_int(args, "task_limit") or 100,
+                message_limit=optional_int(args, "message_limit") or 50,
+                work_product_limit=optional_int(args, "work_product_limit") or 50,
+            )
+
+    def _tool_list_run_task_events(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.list_run_task_events(
+                project_id,
+                run_id,
+                limit=optional_int(args, "limit"),
+                cursor=optional_string(args, "cursor"),
+            )
+
+    def _tool_list_run_objective_events(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.list_run_objective_events(
+                project_id,
+                run_id,
+                limit=optional_int(args, "limit"),
+                cursor=optional_string(args, "cursor"),
+            )
+
+    def _tool_get_run_work_graph(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.get_run_work_graph(
+                project_id,
+                run_id,
+                limit=optional_int(args, "limit"),
+            )
+
+    def _tool_get_run_event_log(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_run_event_log(
+                project_id,
+                run_id,
+                sources=args.get("sources"),
+                event_kinds=args.get("event_kinds"),
+                statuses=args.get("statuses"),
+                limit=optional_int(args, "limit"),
+            )
+
+    def _tool_get_run_authority_readouts(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        project_id = optional_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            if project_id:
+                return client.get_project_run_authority_readouts(
+                    project_id,
+                    run_id,
+                    include_runtime_authority=optional_bool(
+                        args,
+                        "include_runtime_authority",
+                        default=False,
+                    ),
+                )
+            return client.get_run_authority_readouts(
+                run_id,
+                include_runtime_authority=optional_bool(
+                    args,
+                    "include_runtime_authority",
+                    default=False,
+                ),
+            )
+
+    def _tool_get_run_operator_evidence(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.get_project_run_operator_evidence(
+                project_id,
+                run_id,
+                runtime_timeline_limit=optional_int(args, "runtime_timeline_limit"),
+                logical_timeline_limit=optional_int(args, "logical_timeline_limit"),
+                transcript_limit=optional_int(args, "transcript_limit"),
+                reconciliation_limit=optional_int(args, "reconciliation_limit"),
+            )
 
     def _tool_get_run_traces(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
@@ -1146,6 +1441,22 @@ class ManagedResearchMcpServer:
             if project_id:
                 return client.get_project_run_actor_usage(project_id, run_id)
             return client.get_run_actor_usage(run_id)
+
+    def _tool_control_project_run_actor(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        actor_id = require_string(args, "actor_id")
+        action = require_string(args, "action")
+        with self._client_from_args(args) as client:
+            result = client.runs.control_actor(
+                project_id,
+                run_id,
+                actor_id,
+                action=action,
+                reason=optional_string(args, "reason"),
+                idempotency_key=optional_string(args, "idempotency_key"),
+            )
+            return asdict(result) if is_dataclass(result) else result
 
     def _tool_list_run_participants(self, args: JSONDict) -> Any:
         run_id = require_string(args, "run_id")
@@ -1403,13 +1714,49 @@ class ManagedResearchMcpServer:
         cursor = optional_string(args, "cursor")
         limit = optional_int(args, "limit") or 100
         participant_session_id = optional_string(args, "participant_session_id")
+        view = optional_string(args, "view")
         with self._client_from_args(args) as client:
             return client.runs.transcript(
                 run_id,
                 cursor=cursor,
                 limit=min(limit, 200),
                 participant_session_id=participant_session_id,
+                view=view,
             )
+
+    def _tool_watch_run_events(self, args: JSONDict) -> Any:
+        run_id = require_string(args, "run_id")
+        transcript_cursor = optional_string(args, "transcript_cursor")
+        last_event_id = optional_string(args, "last_event_id")
+        view = optional_string(args, "view") or "operator"
+        max_events = min(optional_int(args, "max_events") or 20, 50)
+        timeout_seconds = optional_int(args, "timeout_seconds") or 30
+        events: list[dict[str, Any]] = []
+        with self._client_from_args(args) as client:
+            for event in client.runs.stream_events(
+                run_id,
+                transcript_cursor=transcript_cursor,
+                view=view,
+                last_event_id=last_event_id,
+                timeout=float(timeout_seconds),
+            ):
+                row = asdict(event)
+                occurred_at = row.get("occurred_at")
+                if hasattr(occurred_at, "isoformat"):
+                    row["occurred_at"] = occurred_at.isoformat()
+                events.append(row)
+                if len(events) >= max_events:
+                    break
+        return {
+            "run_id": run_id,
+            "view": view,
+            "event_count": len(events),
+            "events": events,
+            "next_last_event_id": events[-1].get("event_id") if events else last_event_id,
+            "next_transcript_cursor": (
+                events[-1].get("transcript_cursor") if events else transcript_cursor
+            ),
+        }
 
     def _tool_get_launch_preflight(self, args: JSONDict) -> Any:
         request = RunLaunchRequest.from_payload(args)
@@ -1420,64 +1767,120 @@ class ManagedResearchMcpServer:
             )
 
     def _tool_open_ended_questions(self, args: JSONDict) -> Any:
-        operation = require_string(args, "operation").strip().lower()
+        operation = compat_objective_tool_operation_from_wire(require_string(args, "operation"))
         project_id = require_string(args, "project_id")
         objective_id = optional_string(args, "objective_id")
         payload = args.get("payload")
         if payload is not None and not isinstance(payload, dict):
             raise ValueError("'payload' must be an object when provided")
         with self._client_from_args(args) as client:
-            if operation == "list":
+            if operation is CompatObjectiveToolOperation.LIST:
                 return client.list_open_ended_questions(
                     project_id, run_id=optional_string(args, "run_id")
                 )
-            if operation == "create":
+            if operation is CompatObjectiveToolOperation.CREATE:
                 return client.create_open_ended_question(project_id, payload or {})
-            if operation == "get":
+            if operation is CompatObjectiveToolOperation.GET:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for get")
                 return client.get_open_ended_question(project_id, objective_id)
-            if operation == "patch":
+            if operation is CompatObjectiveToolOperation.PATCH:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for patch")
                 return client.patch_open_ended_question(project_id, objective_id, payload or {})
-            if operation == "transition":
+            if operation is CompatObjectiveToolOperation.TRANSITION:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for transition")
                 return client.transition_open_ended_question(
                     project_id, objective_id, payload or {}
                 )
-        raise ValueError("'operation' must be list, create, get, patch, or transition")
+        raise ValueError(f"Unsupported open-ended-question operation: {operation.value}")
+
+    def _tool_objectives(self, args: JSONDict) -> Any:
+        operation = objective_tool_operation_from_wire(require_string(args, "operation"))
+        project_id = require_string(args, "project_id")
+        objective_id = optional_string(args, "objective_id")
+        kind = optional_string(args, "kind")
+        payload = args.get("payload")
+        if payload is not None and not isinstance(payload, dict):
+            raise ValueError("'payload' must be an object when provided")
+        with self._client_from_args(args) as client:
+            if operation is ObjectiveToolOperation.LIST:
+                return client.list_objectives(
+                    project_id,
+                    kind=kind,
+                    run_id=optional_string(args, "run_id"),
+                )
+            if operation is ObjectiveToolOperation.CREATE:
+                return client.create_objective(project_id, payload or {})
+            if objective_id is None:
+                raise ValueError("'objective_id' is required for this operation")
+            if operation is ObjectiveToolOperation.GET:
+                return client.get_objective(project_id, objective_id, kind=kind)
+            if operation is ObjectiveToolOperation.PATCH:
+                return client.patch_objective(
+                    project_id,
+                    objective_id,
+                    payload or {},
+                    kind=kind,
+                )
+            if operation is ObjectiveToolOperation.PAUSE:
+                return client.pause_objective(project_id, objective_id, kind=kind)
+            if operation is ObjectiveToolOperation.RESUME:
+                return client.resume_objective(project_id, objective_id, kind=kind)
+            if operation is ObjectiveToolOperation.WITHDRAW:
+                return client.withdraw_objective(project_id, objective_id, kind=kind)
+            if operation is ObjectiveToolOperation.PROGRESS:
+                return client.get_objective_progress(project_id, objective_id, kind=kind)
+            if operation is ObjectiveToolOperation.TASKS:
+                return client.list_objective_tasks(project_id, objective_id, kind=kind)
+            if operation is ObjectiveToolOperation.CLAIMS:
+                return client.list_objective_claims(project_id, objective_id, kind=kind)
+            if operation is ObjectiveToolOperation.CLAIM:
+                return client.create_objective_claim(
+                    project_id,
+                    objective_id,
+                    payload or {},
+                    kind=kind,
+                )
+            if operation is ObjectiveToolOperation.REQUEST_REVIEW:
+                return client.request_objective_review(
+                    project_id,
+                    objective_id,
+                    payload or {},
+                    kind=kind,
+                )
+        raise ValueError(f"Unsupported objective operation: {operation.value}")
 
     def _tool_directed_effort_outcomes(self, args: JSONDict) -> Any:
-        operation = require_string(args, "operation").strip().lower()
+        operation = compat_objective_tool_operation_from_wire(require_string(args, "operation"))
         project_id = require_string(args, "project_id")
         objective_id = optional_string(args, "objective_id")
         payload = args.get("payload")
         if payload is not None and not isinstance(payload, dict):
             raise ValueError("'payload' must be an object when provided")
         with self._client_from_args(args) as client:
-            if operation == "list":
+            if operation is CompatObjectiveToolOperation.LIST:
                 return client.list_directed_effort_outcomes(
                     project_id, run_id=optional_string(args, "run_id")
                 )
-            if operation == "create":
+            if operation is CompatObjectiveToolOperation.CREATE:
                 return client.create_directed_effort_outcome(project_id, payload or {})
-            if operation == "get":
+            if operation is CompatObjectiveToolOperation.GET:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for get")
                 return client.get_directed_effort_outcome(project_id, objective_id)
-            if operation == "patch":
+            if operation is CompatObjectiveToolOperation.PATCH:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for patch")
                 return client.patch_directed_effort_outcome(project_id, objective_id, payload or {})
-            if operation == "transition":
+            if operation is CompatObjectiveToolOperation.TRANSITION:
                 if objective_id is None:
                     raise ValueError("'objective_id' is required for transition")
                 return client.transition_directed_effort_outcome(
                     project_id, objective_id, payload or {}
                 )
-        raise ValueError("'operation' must be list, create, get, patch, or transition")
+        raise ValueError(f"Unsupported directed-effort-outcome operation: {operation.value}")
 
     def serve_stdio(self) -> None:
         framing = "jsonl"

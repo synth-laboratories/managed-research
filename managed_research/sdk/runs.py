@@ -3,15 +3,26 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
 import httpx
 
 from managed_research.errors import SmrApiError
-from managed_research.models.canonical_usage import SmrRunUsage
+from managed_research.models.canonical_usage import (
+    SmrResourceLimitExtension,
+    SmrResourceLimitProgress,
+    SmrResourceLimits,
+    SmrResourceLimitSelector,
+    SmrRunUsage,
+)
 from managed_research.models.checkpoints import Checkpoint
-from managed_research.models.run_control import ManagedResearchRunControlAck
+from managed_research.models.run_control import (
+    ManagedResearchActorControlAck,
+    ManagedResearchActorControlAction,
+    ManagedResearchRunControlAck,
+)
 from managed_research.models.run_diagnostics import (
     SmrRunActorLogs,
     SmrRunActorUsage,
@@ -20,6 +31,7 @@ from managed_research.models.run_diagnostics import (
     SmrRunParticipants,
     SmrRunTraces,
 )
+from managed_research.models.run_execution import RunExecutionProjection
 from managed_research.models.run_observability import (
     ManagedResearchRunContract,
     RunObservabilitySnapshot,
@@ -27,9 +39,11 @@ from managed_research.models.run_observability import (
 )
 from managed_research.models.run_state import ManagedResearchRun
 from managed_research.models.run_timeline import (
+    SmrAuthorityReadouts,
     SmrBranchMode,
     SmrLogicalTimeline,
     SmrRunBranchResponse,
+    SmrRunEventLog,
 )
 from managed_research.models.runtime_intent import (
     RuntimeIntent,
@@ -43,11 +57,11 @@ from managed_research.models.smr_providers import (
     ProviderBinding,
     UsageLimit,
 )
+from managed_research.models.smr_runbooks import SmrRunbookPreset
 from managed_research.models.smr_work_modes import SmrWorkMode
 from managed_research.models.types import RunArtifact, RunArtifactManifest
 from managed_research.sdk._base import _ClientNamespace
 from managed_research.sdk.config import DEFAULT_MISC_PROJECT_ALIAS
-
 
 MISC_PROJECT_ID = DEFAULT_MISC_PROJECT_ALIAS
 
@@ -68,11 +82,11 @@ class ProjectSelector:
             raise ValueError("project_id is required")
 
     @classmethod
-    def misc(cls) -> "ProjectSelector":
+    def misc(cls) -> ProjectSelector:
         return cls(MISC_PROJECT_ID)
 
     @classmethod
-    def from_project_id(cls, project_id: str) -> "ProjectSelector":
+    def from_project_id(cls, project_id: str) -> ProjectSelector:
         return cls(str(project_id or "").strip())
 
 
@@ -215,6 +229,38 @@ class RunHandle:
             self.run_id,
         ).actors.counts_by_state
 
+    def transcript(
+        self,
+        *,
+        cursor: str | None = None,
+        limit: int = 200,
+        participant_session_id: str | None = None,
+        view: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.runs.transcript(
+            self.run_id,
+            cursor=cursor,
+            limit=limit,
+            participant_session_id=participant_session_id,
+            view=view,
+        )
+
+    def stream_events(
+        self,
+        *,
+        transcript_cursor: str | None = None,
+        view: str = "operator",
+        last_event_id: str | None = None,
+        timeout: float | None = None,
+    ):
+        return self._client.runs.stream_events(
+            self.run_id,
+            transcript_cursor=transcript_cursor,
+            view=view,
+            last_event_id=last_event_id,
+            timeout=timeout,
+        )
+
     def messages(
         self,
         *,
@@ -230,6 +276,117 @@ class RunHandle:
             viewer_role=viewer_role,
             viewer_target=viewer_target,
             limit=limit,
+        )
+
+    def publish_message(
+        self,
+        *,
+        intent: str = "queue",
+        audience: dict[str, Any] | None = None,
+        body: str | None = None,
+        payload: dict[str, Any] | None = None,
+        message_kind: str = "runtime_message",
+        thread_id: str | None = None,
+        parent_message_id: str | None = None,
+        fallback_policy: str = "block",
+        idempotency_key: str | None = None,
+        correlation_id: str | None = None,
+        causation_id: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.publish_manderqueue_message(
+            self.run_id,
+            project_id=self.project_id,
+            intent=intent,
+            audience=audience,
+            body=body,
+            payload=payload,
+            message_kind=message_kind,
+            thread_id=thread_id,
+            parent_message_id=parent_message_id,
+            fallback_policy=fallback_policy,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+            causation_id=causation_id,
+        )
+
+    def queue_message(self, *, body: str, **kwargs: Any) -> dict[str, Any]:
+        return self.publish_message(intent="queue", body=body, **kwargs)
+
+    def steer_message(self, *, body: str, **kwargs: Any) -> dict[str, Any]:
+        return self.publish_message(intent="steer", body=body, **kwargs)
+
+    def interrupt_message(self, *, body: str, **kwargs: Any) -> dict[str, Any]:
+        return self.publish_message(intent="interrupt", body=body, **kwargs)
+
+    def note_message(self, *, body: str, **kwargs: Any) -> dict[str, Any]:
+        return self.publish_message(intent="note", body=body, **kwargs)
+
+    def manderqueue_threads(self, *, limit: int | None = None) -> list[dict[str, Any]]:
+        return self._client.list_manderqueue_threads(
+            self.run_id, project_id=self.project_id, limit=limit
+        )
+
+    def manderqueue_messages(
+        self,
+        *,
+        thread_id: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_manderqueue_messages(
+            self.run_id,
+            project_id=self.project_id,
+            thread_id=thread_id,
+            limit=limit,
+        )
+
+    def manderqueue_interactions(
+        self,
+        *,
+        status: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_manderqueue_interactions(
+            self.run_id,
+            project_id=self.project_id,
+            status=status,
+            limit=limit,
+        )
+
+    def respond_to_manderqueue_interaction(
+        self,
+        interaction_id: str,
+        *,
+        body: str | None = None,
+        payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._client.respond_to_manderqueue_interaction(
+            self.run_id,
+            interaction_id,
+            project_id=self.project_id,
+            body=body,
+            payload=payload,
+        )
+
+    def edit_manderqueue_message(
+        self,
+        message_id: str,
+        *,
+        body: str | None = None,
+        payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._client.edit_manderqueue_message(
+            self.run_id,
+            message_id,
+            project_id=self.project_id,
+            body=body,
+            payload=payload,
+        )
+
+    def retract_manderqueue_message(self, message_id: str) -> dict[str, Any]:
+        return self._client.retract_manderqueue_message(
+            self.run_id,
+            message_id,
+            project_id=self.project_id,
         )
 
     def submit_intent(
@@ -271,6 +428,105 @@ class RunHandle:
 
     def timeline(self) -> SmrLogicalTimeline:
         return self._client.get_run_logical_timeline(self.project_id, self.run_id)
+
+    def execution(
+        self,
+        *,
+        view: str = "summary",
+        event_limit: int = 100,
+        actor_limit: int = 50,
+        task_limit: int = 100,
+        message_limit: int = 50,
+        work_product_limit: int = 50,
+    ) -> RunExecutionProjection:
+        return self._client.get_run_execution(
+            self.project_id,
+            self.run_id,
+            view=view,
+            event_limit=event_limit,
+            actor_limit=actor_limit,
+            task_limit=task_limit,
+            message_limit=message_limit,
+            work_product_limit=work_product_limit,
+        )
+
+    def task_events(
+        self,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.list_run_task_events(
+            self.project_id,
+            self.run_id,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def objective_events(
+        self,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.list_run_objective_events(
+            self.project_id,
+            self.run_id,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def work_graph(self, *, limit: int | None = None) -> dict[str, Any]:
+        return self._client.get_run_work_graph(
+            self.project_id,
+            self.run_id,
+            limit=limit,
+        )
+
+    def event_log(
+        self,
+        *,
+        sources: list[str] | None = None,
+        event_kinds: list[str] | None = None,
+        statuses: list[str] | None = None,
+        limit: int | None = None,
+    ) -> SmrRunEventLog:
+        return self._client.get_project_run_event_log(
+            self.project_id,
+            self.run_id,
+            sources=sources,
+            event_kinds=event_kinds,
+            statuses=statuses,
+            limit=limit,
+        )
+
+    def authority_readouts(
+        self,
+        *,
+        include_runtime_authority: bool = False,
+    ) -> SmrAuthorityReadouts:
+        return self._client.get_project_run_authority_readouts(
+            self.project_id,
+            self.run_id,
+            include_runtime_authority=include_runtime_authority,
+        )
+
+    def operator_evidence(
+        self,
+        *,
+        runtime_timeline_limit: int | None = None,
+        logical_timeline_limit: int | None = None,
+        transcript_limit: int | None = None,
+        reconciliation_limit: int | None = None,
+    ) -> dict[str, Any]:
+        return self._client.get_project_run_operator_evidence(
+            self.project_id,
+            self.run_id,
+            runtime_timeline_limit=runtime_timeline_limit,
+            logical_timeline_limit=logical_timeline_limit,
+            transcript_limit=transcript_limit,
+            reconciliation_limit=reconciliation_limit,
+        )
 
     def traces(self) -> SmrRunTraces:
         return self._client.get_project_run_traces(self.project_id, self.run_id)
@@ -317,6 +573,44 @@ class RunHandle:
 
     def actor_usage(self) -> SmrRunActorUsage:
         return self._client.get_project_run_actor_usage(self.project_id, self.run_id)
+
+    def resource_limits(self) -> SmrResourceLimits:
+        return self._client.get_project_run_resource_limits(self.project_id, self.run_id)
+
+    def progress_toward_resource_limits(self) -> SmrResourceLimitProgress:
+        return self._client.get_project_run_progress_toward_resource_limits(
+            self.project_id,
+            self.run_id,
+        )
+
+    def extend_resource_limit(
+        self,
+        *,
+        limit_value: float | None = None,
+        additional_value: float | None = None,
+        reason: str | None = None,
+        selector: SmrResourceLimitSelector | Mapping[str, object] | None = None,
+        resource_limit_id: str | None = None,
+        metric: str = "spend_usd",
+        unit: str = "usd",
+        resolve_blockers: bool = True,
+        resume: bool = True,
+        idempotency_key: str | None = None,
+    ) -> SmrResourceLimitExtension:
+        return self._client.extend_project_run_resource_limit(
+            self.project_id,
+            self.run_id,
+            limit_value=limit_value,
+            additional_value=additional_value,
+            reason=reason,
+            selector=selector,
+            resource_limit_id=resource_limit_id,
+            metric=metric,
+            unit=unit,
+            resolve_blockers=resolve_blockers,
+            resume=resume,
+            idempotency_key=idempotency_key,
+        )
 
     def checkpoints(self) -> list[Checkpoint]:
         return self._client.list_run_checkpoints(
@@ -475,6 +769,67 @@ class RunHandle:
             **kwargs,
         )
 
+    def control_actor(
+        self,
+        actor_id: str,
+        *,
+        action: str,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return ManagedResearchActorControlAck.from_wire(
+            self._client.control_project_run_actor(
+                self.project_id,
+                self.run_id,
+                actor_id,
+                action=action,
+                reason=reason,
+                idempotency_key=idempotency_key,
+            )
+        )
+
+    def pause_actor(
+        self,
+        actor_id: str,
+        *,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self.control_actor(
+            actor_id,
+            action=ManagedResearchActorControlAction.PAUSE.value,
+            reason=reason,
+            idempotency_key=idempotency_key,
+        )
+
+    def resume_actor(
+        self,
+        actor_id: str,
+        *,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self.control_actor(
+            actor_id,
+            action=ManagedResearchActorControlAction.RESUME.value,
+            reason=reason,
+            idempotency_key=idempotency_key,
+        )
+
+    def interrupt_actor(
+        self,
+        actor_id: str,
+        *,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self.control_actor(
+            actor_id,
+            action=ManagedResearchActorControlAction.INTERRUPT.value,
+            reason=reason,
+            idempotency_key=idempotency_key,
+        )
+
     def cost_summary(self) -> SmrRunCostSummary:
         return self._client.get_run_cost_summary(self.run_id)
 
@@ -507,6 +862,9 @@ class RunsAPI(_ClientNamespace):
     ) -> dict[str, Any]:
         selector = _resolve_project_selector(project_id, project=project)
         return self._client.get_launch_preflight(selector.project_id, **kwargs)
+
+    def runbook_presets(self) -> tuple[SmrRunbookPreset, ...]:
+        return self._client.list_runbook_presets()
 
     def trigger(
         self,
@@ -583,6 +941,74 @@ class RunsAPI(_ClientNamespace):
     def get_usage(self, run_id: str) -> SmrRunUsage:
         return self._client.get_run_usage(run_id)
 
+    def get_resource_limits(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> SmrResourceLimits:
+        if project_id:
+            return self._client.get_project_run_resource_limits(project_id, run_id)
+        return self._client.get_run_resource_limits(run_id)
+
+    def get_progress_toward_resource_limits(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> SmrResourceLimitProgress:
+        if project_id:
+            return self._client.get_project_run_progress_toward_resource_limits(
+                project_id,
+                run_id,
+            )
+        return self._client.get_run_progress_toward_resource_limits(run_id)
+
+    def extend_resource_limit(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+        limit_value: float | None = None,
+        additional_value: float | None = None,
+        reason: str | None = None,
+        selector: SmrResourceLimitSelector | Mapping[str, object] | None = None,
+        resource_limit_id: str | None = None,
+        metric: str = "spend_usd",
+        unit: str = "usd",
+        resolve_blockers: bool = True,
+        resume: bool = True,
+        idempotency_key: str | None = None,
+    ) -> SmrResourceLimitExtension:
+        if project_id:
+            return self._client.extend_project_run_resource_limit(
+                project_id,
+                run_id,
+                limit_value=limit_value,
+                additional_value=additional_value,
+                reason=reason,
+                selector=selector,
+                resource_limit_id=resource_limit_id,
+                metric=metric,
+                unit=unit,
+                resolve_blockers=resolve_blockers,
+                resume=resume,
+                idempotency_key=idempotency_key,
+            )
+        return self._client.extend_run_resource_limit(
+            run_id,
+            limit_value=limit_value,
+            additional_value=additional_value,
+            reason=reason,
+            selector=selector,
+            resource_limit_id=resource_limit_id,
+            metric=metric,
+            unit=unit,
+            resolve_blockers=resolve_blockers,
+            resume=resume,
+            idempotency_key=idempotency_key,
+        )
+
     def get_observability_snapshot(
         self,
         project_id: str,
@@ -606,6 +1032,72 @@ class RunsAPI(_ClientNamespace):
             question_limit=question_limit,
             timeline_limit=timeline_limit,
             message_limit=message_limit,
+        )
+
+    def get_execution(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        view: str = "summary",
+        event_limit: int = 100,
+        actor_limit: int = 50,
+        task_limit: int = 100,
+        message_limit: int = 50,
+        work_product_limit: int = 50,
+    ) -> RunExecutionProjection:
+        return self._client.get_run_execution(
+            project_id,
+            run_id,
+            view=view,
+            event_limit=event_limit,
+            actor_limit=actor_limit,
+            task_limit=task_limit,
+            message_limit=message_limit,
+            work_product_limit=work_product_limit,
+        )
+
+    def list_task_events(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.list_run_task_events(
+            project_id,
+            run_id,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def list_objective_events(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        return self._client.list_run_objective_events(
+            project_id,
+            run_id,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def get_work_graph(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        return self._client.get_run_work_graph(
+            project_id,
+            run_id,
+            limit=limit,
         )
 
     def get_run_contract(
@@ -735,6 +1227,81 @@ class RunsAPI(_ClientNamespace):
     def resume(self, run_id: str, *, project_id: str | None = None) -> ManagedResearchRunControlAck:
         return ManagedResearchRunControlAck.from_wire(
             self._client.resume_run(run_id, project_id=project_id)
+        )
+
+    def control_actor(
+        self,
+        project_id: str,
+        run_id: str,
+        actor_id: str,
+        *,
+        action: str,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return ManagedResearchActorControlAck.from_wire(
+            self._client.control_project_run_actor(
+                project_id,
+                run_id,
+                actor_id,
+                action=action,
+                reason=reason,
+                idempotency_key=idempotency_key,
+            )
+        )
+
+    def pause_actor(
+        self,
+        project_id: str,
+        run_id: str,
+        actor_id: str,
+        *,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self.control_actor(
+            project_id,
+            run_id,
+            actor_id,
+            action=ManagedResearchActorControlAction.PAUSE.value,
+            reason=reason,
+            idempotency_key=idempotency_key,
+        )
+
+    def resume_actor(
+        self,
+        project_id: str,
+        run_id: str,
+        actor_id: str,
+        *,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self.control_actor(
+            project_id,
+            run_id,
+            actor_id,
+            action=ManagedResearchActorControlAction.RESUME.value,
+            reason=reason,
+            idempotency_key=idempotency_key,
+        )
+
+    def interrupt_actor(
+        self,
+        project_id: str,
+        run_id: str,
+        actor_id: str,
+        *,
+        reason: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ManagedResearchActorControlAck:
+        return self.control_actor(
+            project_id,
+            run_id,
+            actor_id,
+            action=ManagedResearchActorControlAction.INTERRUPT.value,
+            reason=reason,
+            idempotency_key=idempotency_key,
         )
 
     def submit_intent(
@@ -917,6 +1484,62 @@ class RunsAPI(_ClientNamespace):
     def get_logical_timeline(self, project_id: str, run_id: str) -> SmrLogicalTimeline:
         return self._client.get_run_logical_timeline(project_id, run_id)
 
+    def get_event_log(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        sources: list[str] | None = None,
+        event_kinds: list[str] | None = None,
+        statuses: list[str] | None = None,
+        limit: int | None = None,
+    ) -> SmrRunEventLog:
+        return self._client.get_project_run_event_log(
+            project_id,
+            run_id,
+            sources=sources,
+            event_kinds=event_kinds,
+            statuses=statuses,
+            limit=limit,
+        )
+
+    def get_authority_readouts(
+        self,
+        run_id: str,
+        *,
+        project_id: str | None = None,
+        include_runtime_authority: bool = False,
+    ) -> SmrAuthorityReadouts:
+        if project_id:
+            return self._client.get_project_run_authority_readouts(
+                project_id,
+                run_id,
+                include_runtime_authority=include_runtime_authority,
+            )
+        return self._client.get_run_authority_readouts(
+            run_id,
+            include_runtime_authority=include_runtime_authority,
+        )
+
+    def get_operator_evidence(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        runtime_timeline_limit: int | None = None,
+        logical_timeline_limit: int | None = None,
+        transcript_limit: int | None = None,
+        reconciliation_limit: int | None = None,
+    ) -> dict[str, Any]:
+        return self._client.get_project_run_operator_evidence(
+            project_id,
+            run_id,
+            runtime_timeline_limit=runtime_timeline_limit,
+            logical_timeline_limit=logical_timeline_limit,
+            transcript_limit=transcript_limit,
+            reconciliation_limit=reconciliation_limit,
+        )
+
     def get_traces(
         self,
         run_id: str,
@@ -1089,6 +1712,42 @@ class RunsAPI(_ClientNamespace):
     def enqueue_runtime_message(self, run_id: str, **kwargs: Any) -> dict[str, Any]:
         return self._client.enqueue_runtime_message(run_id, **kwargs)
 
+    def publish_manderqueue_message(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return self._client.publish_manderqueue_message(run_id, project_id=project_id, **kwargs)
+
+    def list_manderqueue_messages(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_manderqueue_messages(run_id, project_id=project_id, **kwargs)
+
+    def list_manderqueue_threads(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_manderqueue_threads(run_id, project_id=project_id, **kwargs)
+
+    def list_manderqueue_interactions(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_manderqueue_interactions(run_id, project_id=project_id, **kwargs)
+
     def transcript(
         self,
         run_id: str,
@@ -1096,6 +1755,7 @@ class RunsAPI(_ClientNamespace):
         cursor: str | None = None,
         limit: int = 200,
         participant_session_id: str | None = None,
+        view: str | None = None,
     ) -> dict[str, Any]:
         """Fetch one page of transcript events.
 
@@ -1111,6 +1771,29 @@ class RunsAPI(_ClientNamespace):
             cursor=cursor,
             limit=limit,
             participant_session_id=participant_session_id,
+            view=view,
+        )
+
+    def stream_events(
+        self,
+        run_id: str,
+        *,
+        transcript_cursor: str | None = None,
+        view: str = "operator",
+        last_event_id: str | None = None,
+        timeout: float | None = None,
+    ):
+        """Stream live runtime events for a run over backend SSE.
+
+        Yields typed ``RunRuntimeStreamEvent`` instances. Transcript payloads are
+        already projected by backend policy for the requested view.
+        """
+        return self._client.stream_run_events(
+            run_id,
+            transcript_cursor=transcript_cursor,
+            view=view,
+            last_event_id=last_event_id,
+            timeout=timeout,
         )
 
     def stream_transcript(
@@ -1120,6 +1803,7 @@ class RunsAPI(_ClientNamespace):
         cursor: str | None = None,
         page_size: int = 200,
         participant_session_id: str | None = None,
+        view: str | None = None,
     ):
         """Iterate over all persisted transcript events for a run.
 
@@ -1134,6 +1818,7 @@ class RunsAPI(_ClientNamespace):
                 cursor=current_cursor,
                 limit=page_size,
                 participant_session_id=participant_session_id,
+                view=view,
             )
             yield from page.get("events") or []
             next_cursor = page.get("next_cursor")

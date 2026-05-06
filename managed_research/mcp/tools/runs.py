@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from managed_research.mcp.objective_tools import RunObjectiveScopeToolOperation
 from managed_research.mcp.registry import ToolDefinition, tool_schema
 from managed_research.mcp.tools.smr_policy_schemas import run_policy_input_schema
+from managed_research.models.run_control import ManagedResearchActorControlAction
 from managed_research.models.runtime_intent import (
     RuntimeIntentKind,
     RuntimeIntentStatus,
@@ -19,6 +21,7 @@ from managed_research.models.smr_agent_kinds import SMR_AGENT_KIND_VALUES
 from managed_research.models.smr_agent_models import SMR_AGENT_MODEL_VALUES
 from managed_research.models.smr_host_kinds import SMR_HOST_KIND_VALUES
 from managed_research.models.smr_providers import PROVIDER_VALUES
+from managed_research.models.smr_runbooks import SMR_RUNBOOK_KIND_VALUES
 from managed_research.models.smr_work_modes import SMR_WORK_MODE_VALUES
 
 
@@ -63,7 +66,7 @@ def _provider_bindings_schema() -> dict[str, Any]:
                 "provider": {
                     "type": "string",
                     "enum": list(PROVIDER_VALUES),
-                    "description": "Public launch provider.",
+                    "description": "Authenticated API launch provider.",
                 },
                 "config": {
                     "type": "object",
@@ -89,6 +92,28 @@ def _usage_limit_schema() -> dict[str, Any]:
     }
 
 
+def _runbook_launch_properties() -> dict[str, Any]:
+    return {
+        "runbook": {
+            "type": "string",
+            "enum": list(SMR_RUNBOOK_KIND_VALUES),
+            "description": "Runbook posture. Defaults to lite unless a preset sets it.",
+        },
+        "runbook_preset": {
+            "type": "string",
+            "description": (
+                "Backend-owned launch preset id such as lite or heavy. When provided, "
+                "host_kind, work_mode, and providers may be omitted and resolved by "
+                "the backend."
+            ),
+        },
+        "runbook_config_id": {
+            "type": "string",
+            "description": "Compatibility alias for runbook_preset.",
+        },
+    }
+
+
 def build_run_tools(server: Any) -> list[ToolDefinition]:
     return [
         ToolDefinition(
@@ -101,10 +126,11 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             input_schema=tool_schema(
                 {
                     "project_id": {"type": "string", "description": "Managed research project id."},
+                    **_runbook_launch_properties(),
                     "host_kind": {
                         "type": "string",
                         "enum": list(SMR_HOST_KIND_VALUES),
-                        "description": "Public execution host kind for this run.",
+                        "description": "Authenticated API execution host kind for this run.",
                     },
                     "work_mode": {
                         "type": "string",
@@ -125,7 +151,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                     "agent_model": {
                         "type": "string",
                         "enum": list(SMR_AGENT_MODEL_VALUES),
-                        "description": "Optional run-level agent model override using a public model id such as gpt-5.4, gpt-5.4-nano, or gpt-oss-120b.",
+                        "description": "Optional run-level agent model override using a backend catalog model id such as gpt-5.4, gpt-5.4-nano, or gpt-oss-120b.",
                     },
                     "agent_harness": {
                         "type": "string",
@@ -177,9 +203,18 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "type": "object",
                         "description": "Optional Phase 3 run resource bindings for external repos and credential refs.",
                     },
+                    "primary_objective_id": {
+                        "type": "string",
+                        "description": "Optional existing project objective id to bind as this run's primary objective.",
+                    },
+                    "primary_objective_kind": {
+                        "type": "string",
+                        "enum": ["open_ended_question", "directed_effort_outcome"],
+                        "description": "Optional discriminator for primary_objective_id.",
+                    },
                     "primary_parent_ref": {
                         "type": "object",
-                        "description": "Optional existing project-scoped parent objective binding.",
+                        "description": "Compatibility object for existing project-scoped parent objective binding.",
                     },
                     "primary_parent": {
                         "type": "object",
@@ -194,7 +229,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "description": "Deprecated compatibility alias for idempotency_key_run_create.",
                     },
                 },
-                required=["project_id", "host_kind", "work_mode", "providers"],
+                required=["project_id"],
             ),
             handler=server._tool_trigger_run,
         ),
@@ -206,6 +241,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             ),
             input_schema=tool_schema(
                 {
+                    **_runbook_launch_properties(),
                     "host_kind": {
                         "type": "string",
                         "enum": list(SMR_HOST_KIND_VALUES),
@@ -276,9 +312,18 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "type": "object",
                         "description": "Optional Phase 3 run resource bindings for external repos and credential refs.",
                     },
+                    "primary_objective_id": {
+                        "type": "string",
+                        "description": "Optional existing project objective id to bind as this run's primary objective.",
+                    },
+                    "primary_objective_kind": {
+                        "type": "string",
+                        "enum": ["open_ended_question", "directed_effort_outcome"],
+                        "description": "Optional discriminator for primary_objective_id.",
+                    },
                     "primary_parent_ref": {
                         "type": "object",
-                        "description": "Optional existing project-scoped parent objective binding.",
+                        "description": "Compatibility object for existing project-scoped parent objective binding.",
                     },
                     "primary_parent": {
                         "type": "object",
@@ -293,7 +338,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "description": "Deprecated compatibility alias for idempotency_key_run_create.",
                     },
                 },
-                required=["host_kind", "work_mode", "providers"],
+                required=[],
             ),
             handler=server._tool_start_one_off_run,
         ),
@@ -345,6 +390,104 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_get_run_contract,
         ),
         ToolDefinition(
+            name="smr_get_run_execution",
+            description=(
+                "Read the high-level execution projection for a run: actors, "
+                "tasks/objectives, participant messages, timeline events, and output refs. "
+                "Use this for normal run inspection before falling back to raw "
+                "timeline, transcript, or operator evidence."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "view": {
+                        "type": "string",
+                        "enum": ["summary", "detail"],
+                        "description": "Projection detail level. Defaults to summary.",
+                    },
+                    "event_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 500,
+                    },
+                    "actor_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 200,
+                    },
+                    "task_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 250,
+                    },
+                    "message_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 200,
+                    },
+                    "work_product_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 200,
+                    },
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_get_run_execution,
+        ),
+        ToolDefinition(
+            name="smr_list_run_task_events",
+            description=(
+                "List backend-owned task lifecycle events for a run. Use this for "
+                "normal task inspection before falling back to raw timelines or "
+                "operator evidence."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 1000},
+                    "cursor": {"type": "string", "description": "Optional pagination cursor."},
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_list_run_task_events,
+        ),
+        ToolDefinition(
+            name="smr_list_run_objective_events",
+            description=(
+                "List backend-owned objective lifecycle events for a run. Use this "
+                "for OEQ/DEO progress and review inspection before raw evidence."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 1000},
+                    "cursor": {"type": "string", "description": "Optional pagination cursor."},
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_list_run_objective_events,
+        ),
+        ToolDefinition(
+            name="smr_get_run_work_graph",
+            description=(
+                "Fetch the run work graph bundle: execution summary, task events, "
+                "and objective events."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 1000},
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_get_run_work_graph,
+        ),
+        ToolDefinition(
             name="smr_get_run_logical_timeline",
             description=(
                 "Read the operator-facing logical timeline for a run. "
@@ -359,6 +502,98 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                 required=["project_id", "run_id"],
             ),
             handler=server._tool_get_run_logical_timeline,
+        ),
+        ToolDefinition(
+            name="smr_get_run_event_log",
+            description=(
+                "Read the typed run event log for a project-scoped run, with optional "
+                "source, kind, status, and limit filters."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "sources": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional event source filters.",
+                    },
+                    "event_kinds": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional event kind filters.",
+                    },
+                    "statuses": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Optional event status filters.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000,
+                    },
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_get_run_event_log,
+        ),
+        ToolDefinition(
+            name="smr_get_run_authority_readouts",
+            description=(
+                "Read backend-owned authority/readout projections for a run. "
+                "Set include_runtime_authority only when privileged runtime-authority detail is needed."
+            ),
+            input_schema=tool_schema(
+                {
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "project_id": {
+                        "type": "string",
+                        "description": "Optional project-scoped route enforcement.",
+                    },
+                    "include_runtime_authority": {
+                        "type": "boolean",
+                        "description": "Include privileged runtime-authority detail when allowed.",
+                    },
+                },
+                required=["run_id"],
+            ),
+            handler=server._tool_get_run_authority_readouts,
+        ),
+        ToolDefinition(
+            name="smr_get_run_operator_evidence",
+            description=(
+                "Read the bundled operator evidence for a project-scoped run, "
+                "including runtime/logical timelines, transcript slices, and reconciliation evidence."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "runtime_timeline_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 500,
+                    },
+                    "logical_timeline_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 500,
+                    },
+                    "transcript_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 500,
+                    },
+                    "reconciliation_limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 500,
+                    },
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_get_run_operator_evidence,
         ),
         ToolDefinition(
             name="smr_get_run_traces",
@@ -558,6 +793,38 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_get_run_actor_usage,
         ),
         ToolDefinition(
+            name="smr_control_project_run_actor",
+            description=(
+                "Pause or resume one actor inside a project-scoped run. "
+                "This is operator control, not project-truth promotion."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {
+                        "type": "string",
+                        "description": "Managed research project id.",
+                    },
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "actor_id": {"type": "string", "description": "Actor id to control."},
+                    "action": {
+                        "type": "string",
+                        "enum": [item.value for item in ManagedResearchActorControlAction],
+                        "description": "Actor control action.",
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "Optional operator reason recorded in audit metadata.",
+                    },
+                    "idempotency_key": {
+                        "type": "string",
+                        "description": "Optional idempotency key for replay correlation.",
+                    },
+                },
+                required=["project_id", "run_id", "actor_id", "action"],
+            ),
+            handler=server._tool_control_project_run_actor,
+        ),
+        ToolDefinition(
             name="smr_list_run_participants",
             description=(
                 "List participant sessions for a run from actor/session records, including whether usage recording is present or missing."
@@ -623,6 +890,28 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                 required=["run_id"],
             ),
             handler=server._tool_get_run_primary_parent,
+        ),
+        ToolDefinition(
+            name="smr_run_objective_scopes",
+            description=(
+                "List or register which project objectives are in scope, primary, "
+                "supporting, reviewer, blocker, or out of scope for a run."
+            ),
+            input_schema=tool_schema(
+                {
+                    "operation": {
+                        "type": "string",
+                        "enum": [operation.value for operation in RunObjectiveScopeToolOperation],
+                    },
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "payload": {
+                        "type": "object",
+                        "description": "Scope registration payload.",
+                    },
+                },
+                required=["operation", "run_id"],
+            ),
+            handler=server._tool_run_objective_scopes,
         ),
         ToolDefinition(
             name="smr_stop_run",
@@ -890,10 +1179,52 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "type": "string",
                         "description": "Optional filter to a single participant session.",
                     },
+                    "view": {
+                        "type": "string",
+                        "enum": ["operator", "debug", "public"],
+                        "description": "Backend redaction view. Defaults to operator.",
+                    },
                 },
                 required=["run_id"],
             ),
             handler=server._tool_get_run_transcript,
+        ),
+        ToolDefinition(
+            name="smr_watch_run_events",
+            description=(
+                "Read a bounded batch from the live run SSE stream. Returns typed "
+                "snapshot/transcript events, including backend-redacted reasoning "
+                "summary and tool-call lifecycle events. Use max_events and "
+                "timeout_seconds to keep MCP calls finite."
+            ),
+            input_schema=tool_schema(
+                {
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "transcript_cursor": {
+                        "type": "string",
+                        "description": "Optional live transcript cursor to resume from.",
+                    },
+                    "last_event_id": {
+                        "type": "string",
+                        "description": "Optional SSE Last-Event-ID resume token.",
+                    },
+                    "view": {
+                        "type": "string",
+                        "enum": ["operator", "debug", "public"],
+                        "description": "Backend redaction view. Defaults to operator.",
+                    },
+                    "max_events": {
+                        "type": "integer",
+                        "description": "Maximum events to return, capped at 50.",
+                    },
+                    "timeout_seconds": {
+                        "type": "integer",
+                        "description": "Stream timeout for this bounded MCP call.",
+                    },
+                },
+                required=["run_id"],
+            ),
+            handler=server._tool_watch_run_events,
         ),
         ToolDefinition(
             name="smr_list_run_questions",

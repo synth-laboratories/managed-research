@@ -1,7 +1,7 @@
 """Integration-oriented SDK namespace."""
 
-from managed_research.sdk._base import _ClientNamespace
 from managed_research.models.local_execution_profile import LocalPublicationReadiness
+from managed_research.sdk._base import _ClientNamespace
 
 
 class IntegrationsAPI(_ClientNamespace):

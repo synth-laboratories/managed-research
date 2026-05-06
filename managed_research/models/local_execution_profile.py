@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 import json
 import os
 import tomllib
-from typing import Any, Mapping
-
+from collections.abc import Mapping
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 LEGACY_LOCAL_EXECUTION_PROFILE_SCHEMA_VERSION = "2026-04-14-local-execution-profile-v2"
 LOCAL_EXECUTION_PROFILE_SCHEMA_VERSION = "2026-04-15-local-execution-profile-v3"
@@ -55,11 +55,7 @@ def _capabilities(payload: Mapping[str, Any]) -> dict[str, bool]:
         return {}
     if not isinstance(raw, Mapping):
         raise ValueError("capabilities must be an object")
-    return {
-        str(key).strip(): bool(value)
-        for key, value in raw.items()
-        if str(key).strip()
-    }
+    return {str(key).strip(): bool(value) for key, value in raw.items() if str(key).strip()}
 
 
 def _repo_ref_from_url(value: str) -> str:
@@ -68,10 +64,7 @@ def _repo_ref_from_url(value: str) -> str:
         return ""
     if "://" in normalized:
         path = normalized.split("://", 1)[1]
-        if "/" in path:
-            path = path.split("/", 1)[1]
-        else:
-            path = ""
+        path = path.split("/", 1)[1] if "/" in path else ""
     elif normalized.startswith("git@") and ":" in normalized:
         path = normalized.split(":", 1)[1].strip()
     else:
@@ -104,7 +97,7 @@ class LocalExecutionProfile:
     capabilities: dict[str, bool]
 
     @classmethod
-    def from_wire(cls, payload: Mapping[str, Any]) -> "LocalExecutionProfile":
+    def from_wire(cls, payload: Mapping[str, Any]) -> LocalExecutionProfile:
         schema_version = _required_string(payload, "schema_version")
         if schema_version == LEGACY_LOCAL_EXECUTION_PROFILE_SCHEMA_VERSION:
             source_binding_kind = SOURCE_BINDING_KIND_TOOL_REPO
@@ -139,8 +132,7 @@ class LocalExecutionProfile:
             LOCAL_EXECUTION_PROFILE_SCHEMA_VERSION,
         }:
             raise ValueError(
-                "unsupported local execution profile schema_version: "
-                f"{self.schema_version}"
+                f"unsupported local execution profile schema_version: {self.schema_version}"
             )
         host_kind = self.host_kind.strip().lower()
         if host_kind not in {"docker", "daytona"}:
@@ -155,17 +147,13 @@ class LocalExecutionProfile:
             SOURCE_BINDING_KIND_TOOL_REPO,
             SOURCE_BINDING_KIND_LOCAL_PRODUCT_SOURCE,
         }:
-            raise ValueError(
-                "unsupported source_binding_kind: " f"{self.source_binding_kind}"
-            )
+            raise ValueError(f"unsupported source_binding_kind: {self.source_binding_kind}")
         local_source_kind = str(self.local_source_kind or "").strip().lower()
         if local_source_kind and local_source_kind not in {
             LOCAL_SOURCE_KIND_SLOT_GIT_MIRROR,
             LOCAL_SOURCE_KIND_EXTERNAL_REPO,
         }:
-            raise ValueError(
-                f"unsupported local_source_kind: {self.local_source_kind}"
-            )
+            raise ValueError(f"unsupported local_source_kind: {self.local_source_kind}")
         required_repo = str(self.required_repo or "").strip()
         required_product = str(self.required_product or "").strip().lower()
         if source_binding_kind == SOURCE_BINDING_KIND_TOOL_REPO and not required_repo:
@@ -214,15 +202,13 @@ class LocalPublicationReadiness:
     project_connected: bool
 
     @classmethod
-    def from_wire(cls, payload: Mapping[str, Any]) -> "LocalPublicationReadiness":
+    def from_wire(cls, payload: Mapping[str, Any]) -> LocalPublicationReadiness:
         return cls(
             ready=bool(payload.get("ready")),
             status=_required_string(payload, "status"),
             repo=_optional_string(payload, "repo"),
             credential_name=_optional_string(payload, "credential_name"),
-            writable_repo_binding_present=bool(
-                payload.get("writable_repo_binding_present")
-            ),
+            writable_repo_binding_present=bool(payload.get("writable_repo_binding_present")),
             project_connected=bool(payload.get("project_connected")),
         )
 
@@ -237,7 +223,7 @@ class LocalProductSourceMirror:
     default_branch: str | None
 
     @classmethod
-    def from_wire(cls, payload: Mapping[str, Any]) -> "LocalProductSourceMirror":
+    def from_wire(cls, payload: Mapping[str, Any]) -> LocalProductSourceMirror:
         return cls(
             product=_required_string(payload, "product"),
             source_kind=_required_string(payload, "source_kind"),
@@ -260,7 +246,7 @@ class LocalEvalContract:
     task_env: dict[str, str]
 
     @classmethod
-    def from_wire(cls, payload: Mapping[str, Any]) -> "LocalEvalContract":
+    def from_wire(cls, payload: Mapping[str, Any]) -> LocalEvalContract:
         mirrors_payload = payload.get("product_source_mirrors")
         if mirrors_payload is None:
             mirrors = {}
@@ -274,11 +260,7 @@ class LocalEvalContract:
             }
         raw_task_env = payload.get("task_env")
         task_env = (
-            {
-                str(key): str(value)
-                for key, value in raw_task_env.items()
-                if isinstance(key, str)
-            }
+            {str(key): str(value) for key, value in raw_task_env.items() if isinstance(key, str)}
             if isinstance(raw_task_env, Mapping)
             else {}
         )
@@ -348,11 +330,7 @@ def default_local_eval_contract_path() -> Path | None:
 
 
 def load_local_eval_contract(path: str | Path | None = None) -> LocalEvalContract:
-    resolved = (
-        Path(path).expanduser()
-        if path is not None
-        else default_local_eval_contract_path()
-    )
+    resolved = Path(path).expanduser() if path is not None else default_local_eval_contract_path()
     if resolved is None:
         raise ValueError(
             "missing local eval contract path; set SYNTH_DEV_LOCAL_EVAL_CONTRACT_PATH "
@@ -468,9 +446,7 @@ def local_execution_profile_payload(
         if snapshot:
             profile["daytona_snapshot"] = snapshot
     else:
-        raise ValueError(
-            f"unsupported local execution profile host kind: {normalized_host_kind}"
-        )
+        raise ValueError(f"unsupported local execution profile host kind: {normalized_host_kind}")
     return profile
 
 
