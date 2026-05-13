@@ -11,7 +11,7 @@ Python compatibility types. Public prose should say Managed Research.
 | Noun | Backend | SDK | MCP | Frontend |
 | --- | --- | --- | --- | --- |
 | projects | `/smr/projects*`, `/smr/projects:runnable` | `client.projects.*`, `client.project(id)` | `smr_list_projects`, `smr_get_project`, `smr_create_runnable_project` | `/smr` |
-| runs | `/smr/runs*`, `/smr/jobs`, `/smr/runs:one-off*` | `client.runs.*` | `smr_start_one_off_run`, `smr_get_run`, `smr_stop_run` | `/smr/jobs` |
+| runs | `/smr/runs*`, `/smr/jobs`, `/smr/runs:one-off*` | `client.runs.*` | `smr_start_run`, `smr_start_one_off_run`, `smr_get_run`, `smr_stop_run` | `/smr/jobs` |
 | usage | `/smr/limits`, `/smr/runs/{id}/usage`, `/smr/projects/{id}/usage`, `/smr/projects/{id}/economics` | `client.usage.*`, `client.projects.get_usage(...)` | `smr_get_limits`, `smr_get_run_usage`, `smr_get_project_usage`, `smr_get_project_economics` | billing/usage surfaces |
 
 ## Setup
@@ -53,7 +53,11 @@ Python compatibility types. Public prose should say Managed Research.
 | Noun | Backend | SDK | MCP | Frontend |
 | --- | --- | --- | --- | --- |
 | readiness | `/smr/projects/{id}/readiness` | `client.project(id).readiness()` | `smr_status_readiness` | `/smr/[projectId]/onboarding` |
-| runtime messages | `/smr/runs/{id}/runtime/messages`, `/smr/projects/{id}/runs/{id}/runtime/messages` | `client.runs.list_runtime_messages(...)`, `run.messages()` | `smr_runtime_message_queue`, runtime read tools | run console |
+| objectives | `/smr/projects/{id}/objectives*`, `/smr/projects/{id}/open-ended-questions*`, `/smr/projects/{id}/directed-effort-outcomes*` | `client.projects.get_objective_status(...)` and objective helpers | `smr_objectives`, `smr_get_objective_status`, `smr_open_ended_questions`, `smr_directed_effort_outcomes` | project/run objective views |
+| milestones | `/smr/projects/{id}/milestones*` | milestone helpers | `smr_milestones` | project/run objective views |
+| tasks | run task/objective task routes | run/task helpers | `smr_list_tasks`, `smr_create_task`, `smr_update_task`, `smr_cancel_task`, `smr_reassign_task` | run console |
+| message queue | `/smr/runs/{id}/runtime/messages`, `/smr/projects/{id}/runs/{id}/runtime/messages` | `client.runs.list_runtime_messages(...)`, `run.messages()` | `smr_list_messages`, `smr_send_message`, `smr_edit_message`, `smr_retract_message` | run console |
+| runtime messages | `/smr/runs/{id}/runtime/messages`, `/smr/projects/{id}/runs/{id}/runtime/messages` | `client.runs.list_runtime_messages(...)` | `smr_runtime_message_queue` | compatibility/debug views |
 | runtime intents | `/smr/runs/{id}/runtime/intents*`, `/smr/projects/{id}/runs/{id}/runtime/intents*` | `run.submit_intent(...)`, `run.intents(...)` | `smr_runtime_intents` | run steering |
 | questions | `/smr/runs/{id}/questions*`, `/smr/projects/{id}/runs/{id}/questions*` | `client.runs.list_questions(...)`, `client.runs.respond_to_question(...)` | `smr_list_run_questions`, `smr_respond_to_run_question` | run console |
 | approvals | `/smr/runs/{id}/approvals*`, `/smr/projects/{id}/runs/{id}/approvals*` | `client.approvals.*`, `client.runs.approve_run_approval(...)` | `smr_list_run_approvals`, `smr_approve_run_approval`, `smr_deny_run_approval` | run console |
@@ -79,6 +83,9 @@ Python compatibility types. Public prose should say Managed Research.
   project-scoped file content read.
 - `SmrControlClient` remains a temporary Python compatibility alias for
   `ManagedResearchClient`.
+- `work_mode` remains a compatibility alias for customer-facing `mode`.
+- `runbook` remains a backend compatibility field. Public launch surfaces should
+  prefer `mode` and `intended_horizon_hours`.
 
 ## Contract Checks
 

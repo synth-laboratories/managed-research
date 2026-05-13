@@ -25,7 +25,8 @@ client = ManagedResearchClient(api_key=os.environ["SYNTH_API_KEY"])
 run = client.runs.start(
     "Review the project context and propose the smallest high-impact improvement.",
     host_kind="daytona",
-    work_mode="directed_effort",
+    mode="directed_effort",
+    intended_horizon_hours=1,
     providers=[{"provider": "openrouter"}],
 )
 
@@ -82,7 +83,8 @@ project.context.set_project_knowledge(
 
 preflight = project.runs.preflight(
     host_kind="daytona",
-    work_mode="directed_effort",
+    mode="directed_effort",
+    intended_horizon_hours=1,
     providers=[{"provider": "openrouter"}],
 )
 
@@ -92,7 +94,8 @@ if not preflight.clear_to_trigger:
 run = project.runs.start(
     "Inspect the eval runner, fix the highest-leverage issue, and explain the evidence.",
     host_kind="daytona",
-    work_mode="directed_effort",
+    mode="directed_effort",
+    intended_horizon_hours=1,
     providers=[{"provider": "openrouter"}],
 )
 ```
@@ -121,7 +124,8 @@ Codex is the default harness. OpenCode can be selected explicitly:
 run = client.runs.start(
     "Review the repo and propose the smallest high-impact fix.",
     host_kind="daytona",
-    work_mode="directed_effort",
+    mode="directed_effort",
+    intended_horizon_hours=1,
     providers=[{"provider": "openrouter"}],
     agent_harness="opencode_sdk",
     agent_model="anthropic/claude-haiku-4-5-20251001",
@@ -152,7 +156,8 @@ codex mcp add managed-research --url https://api.usesynth.ai/mcp
   "tool": "smr_start_one_off_run",
   "arguments": {
     "host_kind": "daytona",
-    "work_mode": "directed_effort",
+    "mode": "directed_effort",
+    "intended_horizon_hours": 1,
     "providers": [{"provider": "openrouter"}],
     "initial_runtime_messages": [
       {

@@ -16,8 +16,8 @@ from managed_research.models.canonical_usage import (
     SmrResourceLimitExtensionPolicy,
     SmrResourceLimitProgress,
     SmrResourceLimitProgressItem,
-    SmrResourceLimitSelector,
     SmrResourceLimits,
+    SmrResourceLimitSelector,
     SmrRunCostTotals,
     SmrRunUsage,
 )
@@ -188,6 +188,11 @@ from managed_research.models.smr_credential_providers import SmrCredentialProvid
 from managed_research.models.smr_environment_kinds import SmrEnvironmentKind
 from managed_research.models.smr_funding_sources import SmrFundingSource
 from managed_research.models.smr_host_kinds import SmrHostKind
+from managed_research.models.smr_horizons import (
+    SMR_INTENDED_HORIZON_HOURS_VALUES,
+    SmrIntendedHorizonHours,
+    coerce_intended_horizon_hours,
+)
 from managed_research.models.smr_network_topology import SmrNetworkTopology
 from managed_research.models.smr_providers import (
     ActorResourceCapability,
@@ -359,6 +364,9 @@ __all__ = [
     "SmrEnvironmentKind",
     "SmrFundingSource",
     "SmrHostKind",
+    "SMR_INTENDED_HORIZON_HOURS_VALUES",
+    "SmrIntendedHorizonHours",
+    "coerce_intended_horizon_hours",
     "SmrNetworkTopology",
     "LaunchPreflight",
     "LaunchPreflightBlocker",

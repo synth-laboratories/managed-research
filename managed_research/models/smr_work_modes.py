@@ -6,6 +6,7 @@ from enum import StrEnum
 
 
 class SmrWorkMode(StrEnum):
+    GENERAL = "general"
     OPEN_ENDED_DISCOVERY = "open_ended_discovery"
     DIRECTED_EFFORT = "directed_effort"
 

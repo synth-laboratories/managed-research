@@ -13,8 +13,8 @@ from managed_research.models.canonical_usage import (
     SmrProjectUsage,
     SmrResourceLimitExtension,
     SmrResourceLimitProgress,
-    SmrResourceLimitSelector,
     SmrResourceLimits,
+    SmrResourceLimitSelector,
 )
 from managed_research.models.project import ManagedResearchProject
 from managed_research.models.project_workspace import ProjectWorkspaceProjection
@@ -136,6 +136,23 @@ class _BoundProjectFilesAPI:
             "metadata": dict(metadata or {}),
         }
         return self._client.create_project_files(self.project_id, [payload])
+
+    def upload_source_bundle(
+        self,
+        path: str | Path,
+        *,
+        name: str | None = None,
+        visibility: str = "model",
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        file_path = Path(path)
+        return self._client.create_project_source_bundle(
+            self.project_id,
+            file_path,
+            path=name or file_path.name,
+            visibility=visibility,
+            metadata=metadata,
+        )
 
     def content(self, file_id: str) -> dict[str, Any]:
         return self._client.get_project_file_content(self.project_id, file_id)
@@ -498,6 +515,26 @@ class _BoundProjectObjectivesAPI:
     def get(self, objective_id: str, *, kind: str | None = None) -> dict[str, Any]:
         return self._client.get_objective(self.project_id, objective_id, kind=kind)
 
+    def status(
+        self,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+        task_limit: int | None = None,
+        claim_limit: int | None = None,
+        event_limit: int | None = 50,
+        milestone_limit: int | None = None,
+    ) -> dict[str, Any]:
+        return self._client.get_objective_status(
+            self.project_id,
+            objective_id,
+            kind=kind,
+            task_limit=task_limit,
+            claim_limit=claim_limit,
+            event_limit=event_limit,
+            milestone_limit=milestone_limit,
+        )
+
     def patch(
         self,
         objective_id: str,
@@ -586,6 +623,56 @@ class _BoundProjectObjectivesAPI:
 
 
 @dataclass
+class _BoundProjectMilestonesAPI:
+    _client: Any
+    project_id: str
+
+    def list(
+        self,
+        *,
+        run_id: str | None = None,
+        parent_kind: str | None = None,
+        parent_id: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_project_milestones(
+            self.project_id,
+            run_id=run_id,
+            parent_kind=parent_kind,
+            parent_id=parent_id,
+            limit=limit,
+        )
+
+    def create(self, payload: Mapping[str, Any] | dict[str, Any]) -> dict[str, Any]:
+        return self._client.create_project_milestone(self.project_id, payload)
+
+    def get(self, milestone_id: str) -> dict[str, Any]:
+        return self._client.get_project_milestone(self.project_id, milestone_id)
+
+    def patch(
+        self,
+        milestone_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.patch_project_milestone(
+            self.project_id,
+            milestone_id,
+            payload,
+        )
+
+    def transition(
+        self,
+        milestone_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.transition_project_milestone(
+            self.project_id,
+            milestone_id,
+            payload,
+        )
+
+
+@dataclass
 class _BoundProjectChangeSetsAPI:
     _client: Any
     project_id: str
@@ -668,6 +755,11 @@ class ManagedResearchProjectClient:
         repr=False,
     )
     _objectives_api: _BoundProjectObjectivesAPI | None = field(
+        init=False,
+        default=None,
+        repr=False,
+    )
+    _milestones_api: _BoundProjectMilestonesAPI | None = field(
         init=False,
         default=None,
         repr=False,
@@ -762,6 +854,15 @@ class ManagedResearchProjectClient:
                 self.project_id,
             )
         return self._objectives_api
+
+    @property
+    def milestones(self) -> _BoundProjectMilestonesAPI:
+        if self._milestones_api is None:
+            self._milestones_api = _BoundProjectMilestonesAPI(
+                self._client,
+                self.project_id,
+            )
+        return self._milestones_api
 
     @property
     def changesets(self) -> _BoundProjectChangeSetsAPI:

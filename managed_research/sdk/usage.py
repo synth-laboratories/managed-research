@@ -12,8 +12,8 @@ from managed_research.models import (
     SmrProjectUsage,
     SmrResourceLimitExtension,
     SmrResourceLimitProgress,
-    SmrResourceLimitSelector,
     SmrResourceLimits,
+    SmrResourceLimitSelector,
     SmrRunUsage,
 )
 from managed_research.sdk._base import _ClientNamespace

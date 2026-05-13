@@ -281,6 +281,11 @@ class ActorSnapshot:
     actor_id: str
     actor_type: str
     state: str
+    profile_id: str | None = None
+    agent_harness: str | None = None
+    model: str | None = None
+    reasoning_effort: str | None = None
+    host_kind: str | None = None
     participant_role: str | None = None
     phase: str | None = None
     live_session: bool = False
@@ -301,6 +306,11 @@ class ActorSnapshot:
             actor_id=_require_string(mapping, "actor_id", label="actor.actor_id"),
             actor_type=_require_string(mapping, "actor_type", label="actor.actor_type"),
             state=_require_string(mapping, "state", label="actor.state"),
+            profile_id=_optional_string(mapping, "profile_id"),
+            agent_harness=_optional_string(mapping, "agent_harness"),
+            model=_optional_string(mapping, "model"),
+            reasoning_effort=_optional_string(mapping, "reasoning_effort"),
+            host_kind=_optional_string(mapping, "host_kind"),
             participant_role=_optional_string(mapping, "participant_role"),
             phase=_optional_string(mapping, "phase"),
             live_session=bool(_optional_bool(mapping, "live_session")),

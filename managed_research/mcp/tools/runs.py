@@ -20,8 +20,8 @@ from managed_research.models.smr_actor_models import (
 from managed_research.models.smr_agent_kinds import SMR_AGENT_KIND_VALUES
 from managed_research.models.smr_agent_models import SMR_AGENT_MODEL_VALUES
 from managed_research.models.smr_host_kinds import SMR_HOST_KIND_VALUES
+from managed_research.models.smr_horizons import SMR_INTENDED_HORIZON_HOURS_VALUES
 from managed_research.models.smr_providers import PROVIDER_VALUES
-from managed_research.models.smr_runbooks import SMR_RUNBOOK_KIND_VALUES
 from managed_research.models.smr_work_modes import SMR_WORK_MODE_VALUES
 
 
@@ -92,30 +92,65 @@ def _usage_limit_schema() -> dict[str, Any]:
     }
 
 
-def _runbook_launch_properties() -> dict[str, Any]:
+def _horizon_launch_properties() -> dict[str, Any]:
     return {
-        "runbook": {
+        "mode": {
             "type": "string",
-            "enum": list(SMR_RUNBOOK_KIND_VALUES),
-            "description": "Runbook posture. Defaults to lite unless a preset sets it.",
+            "enum": list(SMR_WORK_MODE_VALUES),
+            "description": "Product work mode alias for work_mode.",
         },
-        "runbook_preset": {
-            "type": "string",
-            "description": (
-                "Backend-owned launch preset id such as lite or heavy. When provided, "
-                "host_kind, work_mode, and providers may be omitted and resolved by "
-                "the backend."
-            ),
-        },
-        "runbook_config_id": {
-            "type": "string",
-            "description": "Compatibility alias for runbook_preset.",
+        "intended_horizon_hours": {
+            "type": "integer",
+            "enum": list(SMR_INTENDED_HORIZON_HOURS_VALUES),
+            "description": "Customer-facing intended horizon. Allowed values: 1, 4, 8, 24, or 168.",
         },
     }
 
 
 def build_run_tools(server: Any) -> list[ToolDefinition]:
     return [
+        ToolDefinition(
+            name="smr_start_run",
+            description=(
+                "Start a Managed Research run with product launch fields. Prefer "
+                "mode and intended_horizon_hours; backend runbooks remain internal."
+            ),
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    **_horizon_launch_properties(),
+                    "work_mode": {
+                        "type": "string",
+                        "enum": list(SMR_WORK_MODE_VALUES),
+                        "description": "Compatibility alias for mode.",
+                    },
+                    "objective": {
+                        "type": "string",
+                        "description": "Optional kickoff objective text; sent as an initial queued message.",
+                    },
+                    "initial_runtime_messages": {
+                        "type": "array",
+                        "description": "Optional kickoff runtime messages to enqueue durably before the run starts.",
+                        "items": {"type": "object"},
+                    },
+                    "host_kind": {
+                        "type": "string",
+                        "enum": list(SMR_HOST_KIND_VALUES),
+                        "description": "Authenticated API execution host kind for this run.",
+                    },
+                    "providers": _provider_bindings_schema(),
+                    "limit": _usage_limit_schema(),
+                    "timebox_seconds": {
+                        "type": "integer",
+                        "description": "Compatibility hard timebox. Prefer intended_horizon_hours.",
+                    },
+                },
+                "required": ["project_id"],
+                "additionalProperties": True,
+            },
+            handler=server._tool_start_run,
+        ),
         ToolDefinition(
             name="smr_trigger_run",
             description=(
@@ -126,7 +161,6 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             input_schema=tool_schema(
                 {
                     "project_id": {"type": "string", "description": "Managed research project id."},
-                    **_runbook_launch_properties(),
                     "host_kind": {
                         "type": "string",
                         "enum": list(SMR_HOST_KIND_VALUES),
@@ -137,6 +171,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "enum": list(SMR_WORK_MODE_VALUES),
                         "description": "Run work mode.",
                     },
+                    **_horizon_launch_properties(),
                     "providers": _provider_bindings_schema(),
                     "limit": _usage_limit_schema(),
                     "worker_pool_id": {
@@ -241,7 +276,6 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
             ),
             input_schema=tool_schema(
                 {
-                    **_runbook_launch_properties(),
                     "host_kind": {
                         "type": "string",
                         "enum": list(SMR_HOST_KIND_VALUES),
@@ -252,6 +286,7 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "enum": list(SMR_WORK_MODE_VALUES),
                         "description": "Run work mode.",
                     },
+                    **_horizon_launch_properties(),
                     "providers": _provider_bindings_schema(),
                     "limit": _usage_limit_schema(),
                     "worker_pool_id": {
@@ -486,6 +521,91 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                 required=["project_id", "run_id"],
             ),
             handler=server._tool_get_run_work_graph,
+        ),
+        ToolDefinition(
+            name="smr_list_tasks",
+            description="List task views for a run or objective.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id for run task events."},
+                    "objective_id": {
+                        "type": "string",
+                        "description": "Objective id for objective task links.",
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": ["open_ended_question", "directed_effort_outcome"],
+                        "description": "Optional objective kind discriminator.",
+                    },
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 1000},
+                },
+                required=["project_id"],
+            ),
+            handler=server._tool_list_tasks,
+        ),
+        ToolDefinition(
+            name="smr_create_task",
+            description="Create or plan a task through the product task wrapper.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "payload": {"type": "object", "description": "Task payload."},
+                    "mode": {"type": "string", "description": "Runtime intent mode."},
+                    "body": {"type": "string", "description": "Optional operator-facing body."},
+                },
+                required=["project_id", "run_id", "payload"],
+            ),
+            handler=server._tool_create_task,
+        ),
+        ToolDefinition(
+            name="smr_update_task",
+            description="Update a task through the product task wrapper.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "task_id": {"type": "string", "description": "Task id."},
+                    "payload": {"type": "object", "description": "Task patch payload."},
+                    "mode": {"type": "string", "description": "Runtime intent mode."},
+                    "body": {"type": "string", "description": "Optional operator-facing body."},
+                },
+                required=["project_id", "run_id", "task_id", "payload"],
+            ),
+            handler=server._tool_update_task,
+        ),
+        ToolDefinition(
+            name="smr_cancel_task",
+            description="Stop a task through the product task wrapper.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "task_id": {"type": "string", "description": "Task id."},
+                    "reason": {"type": "string", "description": "Optional stop reason."},
+                    "mode": {"type": "string", "description": "Runtime intent mode."},
+                    "body": {"type": "string", "description": "Optional operator-facing body."},
+                },
+                required=["project_id", "run_id", "task_id"],
+            ),
+            handler=server._tool_cancel_task,
+        ),
+        ToolDefinition(
+            name="smr_reassign_task",
+            description="Reassign a task through the product task wrapper.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "task_id": {"type": "string", "description": "Task id."},
+                    "assignee": {"type": "string", "description": "New assignee."},
+                    "mode": {"type": "string", "description": "Runtime intent mode."},
+                    "body": {"type": "string", "description": "Optional operator-facing body."},
+                },
+                required=["project_id", "run_id", "task_id", "assignee"],
+            ),
+            handler=server._tool_reassign_task,
         ),
         ToolDefinition(
             name="smr_get_run_logical_timeline",
@@ -1080,6 +1200,81 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                 required=["operation", "run_id"],
             ),
             handler=server._tool_runtime_message_queue,
+        ),
+        ToolDefinition(
+            name="smr_list_messages",
+            description="List product-level message queue messages for a run.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "thread_id": {"type": "string", "description": "Optional thread filter."},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 1000},
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_list_messages,
+        ),
+        ToolDefinition(
+            name="smr_send_message",
+            description="Send a product-level message queue message to a run.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "body": {"type": "string", "description": "Message body."},
+                    "intent": {
+                        "type": "string",
+                        "enum": ["queue", "steer", "interrupt", "note"],
+                        "description": "Message intent. Defaults to queue.",
+                    },
+                    "audience": {"type": "object", "description": "Optional audience selector."},
+                    "payload": {"type": "object", "description": "Optional message payload."},
+                    "message_kind": {"type": "string", "description": "Optional message kind."},
+                    "thread_id": {"type": "string", "description": "Optional thread id."},
+                    "parent_message_id": {
+                        "type": "string",
+                        "description": "Optional parent message id.",
+                    },
+                    "fallback_policy": {
+                        "type": "string",
+                        "description": "Optional backend fallback policy.",
+                    },
+                    "idempotency_key": {"type": "string"},
+                    "correlation_id": {"type": "string"},
+                    "causation_id": {"type": "string"},
+                },
+                required=["project_id", "run_id"],
+            ),
+            handler=server._tool_send_message,
+        ),
+        ToolDefinition(
+            name="smr_edit_message",
+            description="Edit a product-level message queue message for a run.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "message_id": {"type": "string", "description": "Message id."},
+                    "body": {"type": "string", "description": "Replacement body."},
+                    "payload": {"type": "object", "description": "Replacement payload."},
+                },
+                required=["project_id", "run_id", "message_id"],
+            ),
+            handler=server._tool_edit_message,
+        ),
+        ToolDefinition(
+            name="smr_retract_message",
+            description="Retract a product-level message queue message for a run.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "run_id": {"type": "string", "description": "Run id."},
+                    "message_id": {"type": "string", "description": "Message id."},
+                },
+                required=["project_id", "run_id", "message_id"],
+            ),
+            handler=server._tool_retract_message,
         ),
         ToolDefinition(
             name="smr_runtime_intents",

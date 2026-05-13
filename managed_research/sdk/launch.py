@@ -16,6 +16,10 @@ from managed_research.models.smr_funding_sources import (
     coerce_smr_funding_source,
 )
 from managed_research.models.smr_host_kinds import SmrHostKind, coerce_smr_host_kind
+from managed_research.models.smr_horizons import (
+    SmrIntendedHorizonHours,
+    coerce_intended_horizon_hours,
+)
 from managed_research.models.smr_providers import (
     ProviderBinding,
     UsageLimit,
@@ -94,6 +98,8 @@ def build_project_run_payload(
     metadata: Mapping[str, Any] | dict[str, Any] | None = None,
     host_kind: SmrHostKind | str | None = None,
     work_mode: SmrWorkMode | str | None = None,
+    mode: SmrWorkMode | str | None = None,
+    intended_horizon_hours: SmrIntendedHorizonHours | int | None = None,
     provider_bindings: ProviderBinding
     | Mapping[str, Any]
     | list[ProviderBinding | Mapping[str, Any]]
@@ -143,17 +149,33 @@ def build_project_run_payload(
     normalized_host_kind = coerce_smr_host_kind(host_kind, field_name="host_kind")
     if normalized_host_kind is not None:
         payload["host_kind"] = normalized_host_kind.value
-    normalized_work_mode = coerce_smr_work_mode(work_mode, field_name="work_mode")
+    if work_mode is not None and mode is not None:
+        normalized_work_mode = coerce_smr_work_mode(work_mode, field_name="work_mode")
+        normalized_mode = coerce_smr_work_mode(mode, field_name="mode")
+        if normalized_work_mode != normalized_mode:
+            raise ValueError("work_mode and mode must match when both are provided")
+    else:
+        normalized_work_mode = coerce_smr_work_mode(
+            work_mode if work_mode is not None else mode,
+            field_name="work_mode",
+        )
     if normalized_work_mode is not None:
         payload["work_mode"] = normalized_work_mode.value
-    normalized_provider_bindings = coerce_provider_bindings(
-        provider_bindings,
-        field_name="provider_bindings",
+    normalized_horizon = coerce_intended_horizon_hours(
+        intended_horizon_hours,
+        field_name="intended_horizon_hours",
     )
-    if normalized_provider_bindings:
-        payload["provider_bindings"] = [
-            binding.as_payload() for binding in normalized_provider_bindings
-        ]
+    if normalized_horizon is not None:
+        payload["intended_horizon_hours"] = int(normalized_horizon)
+    if provider_bindings is not None:
+        normalized_provider_bindings = coerce_provider_bindings(
+            provider_bindings,
+            field_name="provider_bindings",
+        )
+        if normalized_provider_bindings:
+            payload["provider_bindings"] = [
+                binding.as_payload() for binding in normalized_provider_bindings
+            ]
     normalized_funding_source = coerce_smr_funding_source(
         funding_source,
         field_name="funding_source",

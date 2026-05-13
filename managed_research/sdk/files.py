@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from os import PathLike
 from typing import Any
 
 from managed_research.models.types import (
@@ -38,6 +39,25 @@ class FilesAPI(_ClientNamespace):
     ) -> ResourceUploadResult:
         return ResourceUploadResult.from_wire(self._client.create_project_files(project_id, files))
 
+    def create_project_source_bundle(
+        self,
+        project_id: str,
+        bundle_path: str | PathLike[str],
+        *,
+        path: str | None = None,
+        visibility: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> ResourceUploadResult:
+        return ResourceUploadResult.from_wire(
+            self._client.create_project_source_bundle(
+                project_id,
+                bundle_path,
+                path=path,
+                visibility=visibility,
+                metadata=metadata,
+            )
+        )
+
     def get_project(self, project_id: str, file_id: str) -> StoredFile:
         return StoredFile.from_wire(self._client.get_project_file(project_id, file_id))
 
@@ -53,6 +73,25 @@ class FilesAPI(_ClientNamespace):
         files: Iterable[Mapping[str, Any]],
     ) -> ResourceUploadResult:
         return ResourceUploadResult.from_wire(self._client.upload_run_files(run_id, files))
+
+    def upload_run_source_bundle(
+        self,
+        run_id: str,
+        bundle_path: str | PathLike[str],
+        *,
+        path: str | None = None,
+        visibility: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> ResourceUploadResult:
+        return ResourceUploadResult.from_wire(
+            self._client.upload_run_source_bundle(
+                run_id,
+                bundle_path,
+                path=path,
+                visibility=visibility,
+                metadata=metadata,
+            )
+        )
 
     def list_outputs(
         self,

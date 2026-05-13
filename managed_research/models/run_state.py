@@ -224,6 +224,9 @@ class ManagedResearchRun:
     capabilities: frozenset[ActorResourceCapability] = field(default_factory=frozenset)
     limit: UsageLimit | None = None
     roles: SmrRoleBindings | None = None
+    kickoff_contract: dict[str, object] = field(default_factory=dict)
+    execution_contract: dict[str, object] = field(default_factory=dict)
+    latest_summary_artifact_id: str | None = None
     stop_reason: str | None = None
     stop_reason_message: str | None = None
     raw: dict[str, object] = field(default_factory=dict)
@@ -290,6 +293,15 @@ class ManagedResearchRun:
             capabilities=_parse_actor_resource_capabilities(mapping.get("capabilities")),
             limit=_parse_usage_limit(mapping.get("limit")),
             roles=roles,
+            kickoff_contract=_optional_object_dict(
+                mapping.get("kickoff_contract"),
+                label="run.kickoff_contract",
+            ),
+            execution_contract=_optional_object_dict(
+                mapping.get("execution_contract"),
+                label="run.execution_contract",
+            ),
+            latest_summary_artifact_id=_optional_string(mapping, "latest_summary_artifact_id"),
             stop_reason=_optional_string(mapping, "stop_reason"),
             stop_reason_message=_optional_string(mapping, "stop_reason_message"),
             raw=dict(mapping),

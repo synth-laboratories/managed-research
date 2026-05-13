@@ -13,6 +13,10 @@ _FILE_ITEM_SCHEMA: dict[str, Any] = {
         "content": {"type": "string"},
         "content_type": {"type": "string"},
         "encoding": {"type": "string"},
+        "kind": {
+            "type": "string",
+            "enum": ["file", "source_bundle"],
+        },
         "visibility": {"type": "string"},
         "metadata": {"type": "object"},
     },

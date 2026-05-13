@@ -50,6 +50,11 @@ def build_workspace_input_tools(server: Any) -> list[ToolDefinition]:
                                 "content": {"type": "string"},
                                 "content_type": {"type": "string"},
                                 "encoding": {"type": "string"},
+                                "kind": {
+                                    "type": "string",
+                                    "enum": ["file", "source_bundle"],
+                                },
+                                "metadata": {"type": "object"},
                             },
                             "required": ["path", "content"],
                             "additionalProperties": False,

@@ -277,6 +277,7 @@ class SmrRunActorLogs:
 class SmrRunMeterCost:
     meter_kind: str
     billed_amount_cents: int = 0
+    billed_amount_pico_usd: int = 0
     billed_amount_usd: float = 0.0
     quantity: float = 0.0
 
@@ -285,6 +286,7 @@ class SmrRunMeterCost:
         return cls(
             meter_kind=_require_text(payload.get("meter_kind"), field_name="meter_kind"),
             billed_amount_cents=int(payload.get("billed_amount_cents") or 0),
+            billed_amount_pico_usd=int(payload.get("billed_amount_pico_usd") or 0),
             billed_amount_usd=float(payload.get("billed_amount_usd") or 0.0),
             quantity=float(payload.get("quantity") or 0.0),
         )
@@ -294,6 +296,7 @@ class SmrRunMeterCost:
 class SmrRunCostSummary:
     run_id: str
     total_cents: int = 0
+    total_pico_usd: int = 0
     total_usd: float = 0.0
     recording_status: str = "complete"
     missing_meters: tuple[str, ...] = ()
@@ -304,6 +307,7 @@ class SmrRunCostSummary:
         return cls(
             run_id=_require_text(payload.get("run_id"), field_name="run_id"),
             total_cents=int(payload.get("total_cents") or 0),
+            total_pico_usd=int(payload.get("total_pico_usd") or 0),
             total_usd=float(payload.get("total_usd") or 0.0),
             recording_status=str(payload.get("recording_status") or "complete"),
             missing_meters=tuple(str(item) for item in (payload.get("missing_meters") or [])),

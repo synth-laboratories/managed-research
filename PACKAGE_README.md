@@ -30,7 +30,7 @@ authenticated org is entitled to use.
 - Authenticated Pro and Team: Free plus the paid GA model bundle and higher
   Managed Research usage pools.
 - Beta Access: an overlay on Free, Pro, or Team that adds
-  `open_ended_discovery`, `heavy`, and all-model access.
+  `open_ended_discovery`, `heavy`, `overnight`, and all-model access.
 
 Open Research on the public web is a narrower lab surface: it accepts `lite`
 runs with `open_ended_discovery` only. Treat those limits as web admission
@@ -86,6 +86,22 @@ print("artifacts:", [artifact.title for artifact in run.artifacts()])
   operator evidence, traces, checkpoints, artifacts, usage, questions,
   approvals, and actor/task counts.
 - Use MCP from Codex or Claude Code when you want an agent-native interface.
+
+## Resource limits
+
+Managed Research exposes resource limits as first-class run and project state.
+Use `resource_limits()` to inspect configured caps and
+`progress_toward_resource_limits()` to inspect current usage, active blockers,
+and extension posture.
+
+When a spend limit blocks work, call `request_resource_limit_extension(...)`
+from a run, project, or `ManagedResearchClient`. Extensions accept either a new
+absolute USD limit or an added USD amount, plus optional blocker resolution and
+resume behavior. MCP exposes the same flow through
+`smr_get_run_resource_limits`, `smr_get_run_progress_toward_resource_limits`,
+`smr_get_project_resource_limits`,
+`smr_get_project_progress_toward_resource_limits`, and
+`smr_request_resource_limit_extension`.
 
 ## MCP
 
