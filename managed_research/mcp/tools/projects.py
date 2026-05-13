@@ -754,6 +754,68 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_objectives,
         ),
         ToolDefinition(
+            name="smr_get_objective_status",
+            description=(
+                "Fetch the composed product status bundle for an objective: "
+                "objective, progress, related tasks, milestones, claims, blockers, "
+                "recent events, and run scopes."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "objective_id": {"type": "string", "description": "Objective id."},
+                    "kind": {
+                        "type": "string",
+                        "enum": ["open_ended_question", "directed_effort_outcome"],
+                        "description": "Optional objective kind discriminator.",
+                    },
+                    "task_limit": {"type": "integer", "description": "Optional task limit."},
+                    "claim_limit": {"type": "integer", "description": "Optional claim limit."},
+                    "event_limit": {"type": "integer", "description": "Optional event limit."},
+                    "milestone_limit": {
+                        "type": "integer",
+                        "description": "Optional milestone limit.",
+                    },
+                },
+                required=["project_id", "objective_id"],
+            ),
+            handler=server._tool_get_objective_status,
+        ),
+        ToolDefinition(
+            name="smr_milestones",
+            description="List, create, fetch, patch, or transition project milestones.",
+            input_schema=tool_schema(
+                {
+                    "operation": {
+                        "type": "string",
+                        "enum": ["list", "create", "get", "patch", "transition"],
+                    },
+                    "project_id": {"type": "string", "description": "Managed research project id."},
+                    "milestone_id": {
+                        "type": "string",
+                        "description": "Milestone id for get/patch/transition.",
+                    },
+                    "run_id": {"type": "string", "description": "Optional run filter for list."},
+                    "parent_kind": {
+                        "type": "string",
+                        "enum": ["open_ended_question", "directed_effort_outcome"],
+                        "description": "Optional parent objective kind filter for list.",
+                    },
+                    "parent_id": {
+                        "type": "string",
+                        "description": "Optional parent objective id filter for list.",
+                    },
+                    "limit": {"type": "integer", "description": "Optional list limit."},
+                    "payload": {
+                        "type": "object",
+                        "description": "Create, patch, or transition payload.",
+                    },
+                },
+                required=["operation", "project_id"],
+            ),
+            handler=server._tool_milestones,
+        ),
+        ToolDefinition(
             name="smr_directed_effort_outcomes",
             description="List, create, fetch, patch, or transition project-scoped directed effort outcomes.",
             input_schema=tool_schema(

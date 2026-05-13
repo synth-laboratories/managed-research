@@ -289,6 +289,27 @@ class ProjectsAPI(_ClientNamespace):
     ) -> dict[str, Any]:
         return self._client.get_objective(project_id, objective_id, kind=kind)
 
+    def get_objective_status(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+        task_limit: int | None = None,
+        claim_limit: int | None = None,
+        event_limit: int | None = 50,
+        milestone_limit: int | None = None,
+    ) -> dict[str, Any]:
+        return self._client.get_objective_status(
+            project_id,
+            objective_id,
+            kind=kind,
+            task_limit=task_limit,
+            claim_limit=claim_limit,
+            event_limit=event_limit,
+            milestone_limit=milestone_limit,
+        )
+
     def pause_objective(
         self,
         project_id: str,
@@ -367,6 +388,33 @@ class ProjectsAPI(_ClientNamespace):
 
     def get_milestone(self, project_id: str, milestone_id: str) -> dict[str, Any]:
         return self._client.get_project_milestone(project_id, milestone_id)
+
+    def create_milestone(
+        self,
+        project_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.create_project_milestone(project_id, payload)
+
+    def patch_milestone(
+        self,
+        project_id: str,
+        milestone_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.patch_project_milestone(project_id, milestone_id, payload)
+
+    def transition_milestone(
+        self,
+        project_id: str,
+        milestone_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.transition_project_milestone(
+            project_id,
+            milestone_id,
+            payload,
+        )
 
     def list_experiments(
         self,

@@ -1168,6 +1168,29 @@ class ManagedResearchMcpServer:
         except SmrApiError as exc:
             _raise_mcp_tool_denial(exc)
 
+    def _tool_start_run(self, args: JSONDict) -> Any:
+        objective = optional_string(args, "objective")
+        request_payload = dict(args)
+        if objective:
+            existing_messages = request_payload.get("initial_runtime_messages")
+            if existing_messages is None:
+                messages = []
+            elif isinstance(existing_messages, list):
+                messages = list(existing_messages)
+            else:
+                raise ValueError("'initial_runtime_messages' must be an array when provided")
+            messages.append({"body": objective, "mode": "queue"})
+            request_payload["initial_runtime_messages"] = messages
+        request = RunLaunchRequest.from_payload(request_payload)
+        try:
+            with self._client_from_args(args) as client:
+                return client.start_run(
+                    request.project_id,
+                    **request.client_kwargs(),
+                )
+        except SmrApiError as exc:
+            _raise_mcp_tool_denial(exc)
+
     def _tool_start_one_off_run(self, args: JSONDict) -> Any:
         request = OneOffRunLaunchRequest.from_payload(args)
         try:
@@ -1310,6 +1333,86 @@ class ManagedResearchMcpServer:
                 project_id,
                 run_id,
                 limit=optional_int(args, "limit"),
+            )
+
+    def _tool_list_tasks(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.runs.list_tasks(
+                project_id,
+                run_id=optional_string(args, "run_id"),
+                objective_id=optional_string(args, "objective_id"),
+                kind=optional_string(args, "kind"),
+                limit=optional_int(args, "limit"),
+            )
+
+    def _tool_create_task(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        payload = args.get("payload")
+        if not isinstance(payload, dict):
+            raise ValueError("'payload' must be an object")
+        with self._client_from_args(args) as client:
+            return asdict(
+                client.runs.create_task(
+                    run_id,
+                    payload,
+                    project_id=project_id,
+                    mode=optional_string(args, "mode") or "queue",
+                    body=optional_string(args, "body"),
+                )
+            )
+
+    def _tool_update_task(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        task_id = require_string(args, "task_id")
+        payload = args.get("payload")
+        if not isinstance(payload, dict):
+            raise ValueError("'payload' must be an object")
+        with self._client_from_args(args) as client:
+            return asdict(
+                client.runs.update_task(
+                    run_id,
+                    task_id,
+                    payload,
+                    project_id=project_id,
+                    mode=optional_string(args, "mode") or "queue",
+                    body=optional_string(args, "body"),
+                )
+            )
+
+    def _tool_cancel_task(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        task_id = require_string(args, "task_id")
+        with self._client_from_args(args) as client:
+            return asdict(
+                client.runs.cancel_task(
+                    run_id,
+                    task_id,
+                    project_id=project_id,
+                    reason=optional_string(args, "reason"),
+                    mode=optional_string(args, "mode") or "queue",
+                    body=optional_string(args, "body"),
+                )
+            )
+
+    def _tool_reassign_task(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        task_id = require_string(args, "task_id")
+        assignee = require_string(args, "assignee")
+        with self._client_from_args(args) as client:
+            return asdict(
+                client.runs.reassign_task(
+                    run_id,
+                    task_id,
+                    project_id=project_id,
+                    assignee=assignee,
+                    mode=optional_string(args, "mode") or "queue",
+                    body=optional_string(args, "body"),
+                )
             )
 
     def _tool_get_run_event_log(self, args: JSONDict) -> Any:
@@ -1548,6 +1651,70 @@ class ManagedResearchMcpServer:
                 action=optional_string(args, "action"),
                 body=optional_string(args, "body"),
                 payload=payload,
+            )
+
+    def _tool_list_messages(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        with self._client_from_args(args) as client:
+            return client.runs.list_messages(
+                run_id,
+                project_id=project_id,
+                thread_id=optional_string(args, "thread_id"),
+                limit=optional_int(args, "limit"),
+            )
+
+    def _tool_send_message(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        payload = args.get("payload")
+        if payload is not None and not isinstance(payload, dict):
+            raise ValueError("'payload' must be an object when provided")
+        audience = args.get("audience")
+        if audience is not None and not isinstance(audience, dict):
+            raise ValueError("'audience' must be an object when provided")
+        with self._client_from_args(args) as client:
+            return client.runs.send_message(
+                run_id,
+                project_id=project_id,
+                intent=optional_string(args, "intent") or "queue",
+                audience=audience,
+                body=optional_string(args, "body"),
+                payload=payload,
+                message_kind=optional_string(args, "message_kind") or "runtime_message",
+                thread_id=optional_string(args, "thread_id"),
+                parent_message_id=optional_string(args, "parent_message_id"),
+                fallback_policy=optional_string(args, "fallback_policy") or "block",
+                idempotency_key=optional_string(args, "idempotency_key"),
+                correlation_id=optional_string(args, "correlation_id"),
+                causation_id=optional_string(args, "causation_id"),
+            )
+
+    def _tool_edit_message(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        message_id = require_string(args, "message_id")
+        payload = args.get("payload")
+        if payload is not None and not isinstance(payload, dict):
+            raise ValueError("'payload' must be an object when provided")
+        with self._client_from_args(args) as client:
+            return client.runs.edit_message(
+                run_id,
+                message_id,
+                project_id=project_id,
+                body=optional_string(args, "body"),
+                payload=payload,
+            )
+
+    def _tool_retract_message(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = require_string(args, "run_id")
+        message_id = require_string(args, "message_id")
+        with self._client_from_args(args) as client:
+            return client.runs.retract_message(
+                run_id,
+                message_id,
+                project_id=project_id,
             )
 
     def _tool_runtime_intents(self, args: JSONDict) -> Any:
@@ -1851,6 +2018,58 @@ class ManagedResearchMcpServer:
                     kind=kind,
                 )
         raise ValueError(f"Unsupported objective operation: {operation.value}")
+
+    def _tool_get_objective_status(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        objective_id = require_string(args, "objective_id")
+        with self._client_from_args(args) as client:
+            return client.projects.get_objective_status(
+                project_id,
+                objective_id,
+                kind=optional_string(args, "kind"),
+                task_limit=optional_int(args, "task_limit"),
+                claim_limit=optional_int(args, "claim_limit"),
+                event_limit=optional_int(args, "event_limit"),
+                milestone_limit=optional_int(args, "milestone_limit"),
+            )
+
+    def _tool_milestones(self, args: JSONDict) -> Any:
+        operation = require_string(args, "operation").strip().lower()
+        if operation not in {"list", "create", "get", "patch", "transition"}:
+            raise ValueError("'operation' must be one of: list, create, get, patch, transition")
+        project_id = require_string(args, "project_id")
+        milestone_id = optional_string(args, "milestone_id")
+        payload = args.get("payload")
+        if payload is not None and not isinstance(payload, dict):
+            raise ValueError("'payload' must be an object when provided")
+        with self._client_from_args(args) as client:
+            if operation == "list":
+                return client.projects.list_milestones(
+                    project_id,
+                    run_id=optional_string(args, "run_id"),
+                    parent_kind=optional_string(args, "parent_kind"),
+                    parent_id=optional_string(args, "parent_id"),
+                    limit=optional_int(args, "limit"),
+                )
+            if operation == "create":
+                return client.projects.create_milestone(project_id, payload or {})
+            if milestone_id is None:
+                raise ValueError("'milestone_id' is required for this operation")
+            if operation == "get":
+                return client.projects.get_milestone(project_id, milestone_id)
+            if operation == "patch":
+                return client.projects.patch_milestone(
+                    project_id,
+                    milestone_id,
+                    payload or {},
+                )
+            if operation == "transition":
+                return client.projects.transition_milestone(
+                    project_id,
+                    milestone_id,
+                    payload or {},
+                )
+        raise ValueError(f"Unsupported milestone operation: {operation}")
 
     def _tool_directed_effort_outcomes(self, args: JSONDict) -> Any:
         operation = compat_objective_tool_operation_from_wire(require_string(args, "operation"))

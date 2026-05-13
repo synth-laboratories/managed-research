@@ -13,8 +13,8 @@ from managed_research.models.smr_actor_models import (
 from managed_research.models.smr_agent_kinds import SMR_AGENT_KIND_VALUES
 from managed_research.models.smr_agent_models import SMR_AGENT_MODEL_VALUES
 from managed_research.models.smr_host_kinds import SMR_HOST_KIND_VALUES
+from managed_research.models.smr_horizons import SMR_INTENDED_HORIZON_HOURS_VALUES
 from managed_research.models.smr_providers import PROVIDER_VALUES
-from managed_research.models.smr_runbooks import SMR_RUNBOOK_KIND_VALUES
 from managed_research.models.smr_work_modes import SMR_WORK_MODE_VALUES
 
 
@@ -85,28 +85,6 @@ def _provider_bindings_schema() -> dict[str, Any]:
     }
 
 
-def _runbook_launch_properties() -> dict[str, Any]:
-    return {
-        "runbook": {
-            "type": "string",
-            "enum": list(SMR_RUNBOOK_KIND_VALUES),
-            "description": "Runbook posture. Defaults to lite unless a preset sets it.",
-        },
-        "runbook_preset": {
-            "type": "string",
-            "description": (
-                "Backend-owned launch preset id such as lite or heavy. When provided, "
-                "host_kind, work_mode, and providers may be omitted and resolved by "
-                "the backend."
-            ),
-        },
-        "runbook_config_id": {
-            "type": "string",
-            "description": "Compatibility alias for runbook_preset.",
-        },
-    }
-
-
 def build_progress_tools(server: Any) -> list[ToolDefinition]:
     return [
         ToolDefinition(
@@ -133,24 +111,11 @@ def build_progress_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_prepare_project_setup,
         ),
         ToolDefinition(
-            name="smr_list_runbook_presets",
-            description=(
-                "List backend-owned runbook presets. Prefer these presets over "
-                "manually specifying host_kind, work_mode, and providers."
-            ),
-            input_schema=tool_schema(
-                {},
-                required=[],
-            ),
-            handler=server._tool_list_runbook_presets,
-        ),
-        ToolDefinition(
             name="smr_get_launch_preflight",
             description=("Fetch the canonical launch preflight for a concrete run request."),
             input_schema=tool_schema(
                 {
                     "project_id": {"type": "string", "description": "Managed research project id."},
-                    **_runbook_launch_properties(),
                     "host_kind": {
                         "type": "string",
                         "enum": list(SMR_HOST_KIND_VALUES),
@@ -160,6 +125,16 @@ def build_progress_tools(server: Any) -> list[ToolDefinition]:
                         "type": "string",
                         "enum": list(SMR_WORK_MODE_VALUES),
                         "description": "Run work mode.",
+                    },
+                    "mode": {
+                        "type": "string",
+                        "enum": list(SMR_WORK_MODE_VALUES),
+                        "description": "Product work mode alias for work_mode.",
+                    },
+                    "intended_horizon_hours": {
+                        "type": "integer",
+                        "enum": list(SMR_INTENDED_HORIZON_HOURS_VALUES),
+                        "description": "Customer-facing intended horizon. Allowed values: 1, 4, 8, 24, or 168.",
                     },
                     "providers": _provider_bindings_schema(),
                     "limit": _usage_limit_schema(),

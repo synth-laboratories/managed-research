@@ -25,13 +25,15 @@ readiness = project.readiness()
 setup = project.setup.get()
 preflight = project.runs.preflight(
     host_kind="daytona",
-    work_mode="directed_effort",
+    mode="general",
+    intended_horizon_hours=1,
     providers=[{"provider": "openrouter"}],
 )
 run = project.runs.start(
     "Inspect the repo, improve the target workflow, and leave behind evidence.",
     host_kind="daytona",
-    work_mode="directed_effort",
+    mode="general",
+    intended_horizon_hours=1,
     providers=[{"provider": "openrouter"}],
 )
 ```
@@ -103,7 +105,8 @@ for event in client.runs.stream_events(run.run_id, view="operator"):
 run = client.runs.start(
     "Triage the repo and propose the smallest safe fix.",
     host_kind="daytona",
-    work_mode="directed_effort",
+    mode="general",
+    intended_horizon_hours=1,
     providers=[{"provider": "openrouter"}],
 )
 ```
@@ -117,13 +120,17 @@ run to a specific existing project instead.
 Shared launch fields:
 
 - `host_kind`
-- `work_mode`
+- `mode`
+- `intended_horizon_hours`
 - `providers`
 - `agent_profile`
 - `agent_harness`
 - `agent_model`
 - `agent_model_params`
 - `initial_runtime_messages`
+
+`work_mode` remains a compatibility alias for `mode`. Prefer
+`intended_horizon_hours` over asking users to choose backend runbook profiles.
 
 Canonical harness values:
 
@@ -144,7 +151,8 @@ Example:
 run = client.runs.start(
     "Do a careful bug-hunt and explain the fix.",
     host_kind="daytona",
-    work_mode="directed_effort",
+    mode="directed_effort",
+    intended_horizon_hours=1,
     providers=[{"provider": "openrouter"}],
     agent_harness="opencode_sdk",
     agent_model="anthropic/claude-haiku-4-5-20251001",

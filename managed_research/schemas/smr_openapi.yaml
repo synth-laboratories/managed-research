@@ -28382,6 +28382,7 @@ components:
       enum:
       - lite
       - heavy
+      - overnight
       title: RunbookKind
     RuntimeIntent:
       properties:
@@ -37205,7 +37206,7 @@ components:
           - type: 'null'
           title: Runbook Preset
           description: Backend-owned launch preset id. Public research-preview presets
-            are 'lite' and 'heavy'.
+            are 'lite', 'heavy', and 'overnight'.
         runbook_config_id:
           anyOf:
           - type: string
@@ -37306,6 +37307,7 @@ components:
           anyOf:
           - type: string
             enum:
+            - general
             - open_ended_discovery
             - directed_effort
           - type: 'null'
@@ -41614,6 +41616,7 @@ components:
           anyOf:
           - type: string
             enum:
+            - general
             - open_ended_discovery
             - directed_effort
           - type: 'null'
@@ -41622,6 +41625,7 @@ components:
           anyOf:
           - type: string
             enum:
+            - general
             - open_ended_discovery
             - directed_effort
           - type: 'null'
@@ -47974,6 +47978,7 @@ components:
     WorkMode:
       type: string
       enum:
+      - general
       - directed_effort
       - open_ended_discovery
       title: WorkMode

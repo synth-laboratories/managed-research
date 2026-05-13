@@ -162,6 +162,7 @@ from managed_research.models.smr_credential_providers import SmrCredentialProvid
 from managed_research.models.smr_environment_kinds import SmrEnvironmentKind
 from managed_research.models.smr_funding_sources import SmrFundingSource
 from managed_research.models.smr_host_kinds import SmrHostKind
+from managed_research.models.smr_horizons import SmrIntendedHorizonHours
 from managed_research.models.smr_network_topology import SmrNetworkTopology
 from managed_research.models.smr_providers import (
     ActorResourceCapability,
@@ -379,6 +380,7 @@ __all__ = [
     "SmrEnvironmentKind",
     "SmrFundingSource",
     "SmrHostKind",
+    "SmrIntendedHorizonHours",
     "SmrLaunchPreflight",
     "SmrLaunchPreflightBlocker",
     "SmrOrchestratorSubtype",
@@ -521,6 +523,7 @@ __all__ = [
     "SmrRunbookPreset",
     "coerce_smr_runbook_kind",
     "SmrHostKind",
+    "SmrIntendedHorizonHours",
     "SmrNetworkTopology",
     "SmrWorkMode",
     "SmrAgentHarness",

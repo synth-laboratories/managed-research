@@ -83,7 +83,7 @@ _STATIC_ENUM_SPECS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
         "smr_work_modes.py",
         "SmrWorkMode",
         "work_mode",
-        ("open_ended_discovery", "directed_effort"),
+        ("general", "open_ended_discovery", "directed_effort"),
     ),
     (
         "smr_resource_providers.py",

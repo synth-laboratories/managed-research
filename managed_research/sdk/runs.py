@@ -312,6 +312,14 @@ class RunHandle:
     def queue_message(self, *, body: str, **kwargs: Any) -> dict[str, Any]:
         return self.publish_message(intent="queue", body=body, **kwargs)
 
+    def send_message(self, *, body: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.send_message(
+            self.run_id,
+            project_id=self.project_id,
+            body=body,
+            **kwargs,
+        )
+
     def steer_message(self, *, body: str, **kwargs: Any) -> dict[str, Any]:
         return self.publish_message(intent="steer", body=body, **kwargs)
 
@@ -333,6 +341,19 @@ class RunHandle:
         limit: int | None = None,
     ) -> list[dict[str, Any]]:
         return self._client.list_manderqueue_messages(
+            self.run_id,
+            project_id=self.project_id,
+            thread_id=thread_id,
+            limit=limit,
+        )
+
+    def messages(
+        self,
+        *,
+        thread_id: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_messages(
             self.run_id,
             project_id=self.project_id,
             thread_id=thread_id,
@@ -382,8 +403,30 @@ class RunHandle:
             payload=payload,
         )
 
+    def edit_message(
+        self,
+        message_id: str,
+        *,
+        body: str | None = None,
+        payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return self._client.edit_message(
+            self.run_id,
+            message_id,
+            project_id=self.project_id,
+            body=body,
+            payload=payload,
+        )
+
     def retract_manderqueue_message(self, message_id: str) -> dict[str, Any]:
         return self._client.retract_manderqueue_message(
+            self.run_id,
+            message_id,
+            project_id=self.project_id,
+        )
+
+    def retract_message(self, message_id: str) -> dict[str, Any]:
+        return self._client.retract_message(
             self.run_id,
             message_id,
             project_id=self.project_id,
@@ -876,6 +919,16 @@ class RunsAPI(_ClientNamespace):
         selector = _resolve_project_selector(project_id, project=project)
         return self._client.trigger_run(selector.project_id, **kwargs)
 
+    def start_run(
+        self,
+        project_id: str | None = None,
+        *,
+        project: ProjectSelector | str | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        selector = _resolve_project_selector(project_id, project=project)
+        return self._client.start_run(selector.project_id, **kwargs)
+
     def start(
         self,
         objective: str,
@@ -1026,6 +1079,52 @@ class RunsAPI(_ClientNamespace):
             project_id,
             run_id,
             detail_level=detail_level,
+            event_limit=event_limit,
+            actor_limit=actor_limit,
+            task_limit=task_limit,
+            question_limit=question_limit,
+            timeline_limit=timeline_limit,
+            message_limit=message_limit,
+        )
+
+    def get_observability_snapshot_hot(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        event_limit: int = 40,
+        actor_limit: int = 25,
+        task_limit: int = 40,
+        question_limit: int = 10,
+        timeline_limit: int = 10,
+        message_limit: int = 8,
+    ) -> RunObservabilitySnapshot:
+        return self._client.get_run_observability_snapshot_hot(
+            project_id,
+            run_id,
+            event_limit=event_limit,
+            actor_limit=actor_limit,
+            task_limit=task_limit,
+            question_limit=question_limit,
+            timeline_limit=timeline_limit,
+            message_limit=message_limit,
+        )
+
+    def get_observability_snapshot_full(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        event_limit: int = 100,
+        actor_limit: int = 25,
+        task_limit: int = 50,
+        question_limit: int = 25,
+        timeline_limit: int = 10,
+        message_limit: int = 10,
+    ) -> RunObservabilitySnapshot:
+        return self._client.get_run_observability_snapshot_full(
+            project_id,
+            run_id,
             event_limit=event_limit,
             actor_limit=actor_limit,
             task_limit=task_limit,
@@ -1721,6 +1820,15 @@ class RunsAPI(_ClientNamespace):
     ) -> dict[str, Any]:
         return self._client.publish_manderqueue_message(run_id, project_id=project_id, **kwargs)
 
+    def send_message(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return self._client.send_message(run_id, project_id=project_id, **kwargs)
+
     def list_manderqueue_messages(
         self,
         run_id: str,
@@ -1729,6 +1837,91 @@ class RunsAPI(_ClientNamespace):
         **kwargs: Any,
     ) -> list[dict[str, Any]]:
         return self._client.list_manderqueue_messages(run_id, project_id=project_id, **kwargs)
+
+    def list_messages(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_messages(run_id, project_id=project_id, **kwargs)
+
+    def list_tasks(
+        self,
+        project_id: str,
+        *,
+        run_id: str | None = None,
+        objective_id: str | None = None,
+        kind: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_tasks(
+            project_id,
+            run_id=run_id,
+            objective_id=objective_id,
+            kind=kind,
+            limit=limit,
+        )
+
+    def create_task(
+        self,
+        run_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+        *,
+        project_id: str,
+        **kwargs: Any,
+    ) -> RuntimeIntentReceipt:
+        return self._client.create_task(run_id, payload, project_id=project_id, **kwargs)
+
+    def update_task(
+        self,
+        run_id: str,
+        task_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+        *,
+        project_id: str,
+        **kwargs: Any,
+    ) -> RuntimeIntentReceipt:
+        return self._client.update_task(
+            run_id,
+            task_id,
+            payload,
+            project_id=project_id,
+            **kwargs,
+        )
+
+    def cancel_task(
+        self,
+        run_id: str,
+        task_id: str,
+        *,
+        project_id: str,
+        **kwargs: Any,
+    ) -> RuntimeIntentReceipt:
+        return self._client.cancel_task(
+            run_id,
+            task_id,
+            project_id=project_id,
+            **kwargs,
+        )
+
+    def reassign_task(
+        self,
+        run_id: str,
+        task_id: str,
+        *,
+        project_id: str,
+        assignee: str,
+        **kwargs: Any,
+    ) -> RuntimeIntentReceipt:
+        return self._client.reassign_task(
+            run_id,
+            task_id,
+            project_id=project_id,
+            assignee=assignee,
+            **kwargs,
+        )
 
     def list_manderqueue_threads(
         self,
@@ -1747,6 +1940,34 @@ class RunsAPI(_ClientNamespace):
         **kwargs: Any,
     ) -> list[dict[str, Any]]:
         return self._client.list_manderqueue_interactions(run_id, project_id=project_id, **kwargs)
+
+    def edit_message(
+        self,
+        run_id: str,
+        message_id: str,
+        *,
+        project_id: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return self._client.edit_message(
+            run_id,
+            message_id,
+            project_id=project_id,
+            **kwargs,
+        )
+
+    def retract_message(
+        self,
+        run_id: str,
+        message_id: str,
+        *,
+        project_id: str,
+    ) -> dict[str, Any]:
+        return self._client.retract_message(
+            run_id,
+            message_id,
+            project_id=project_id,
+        )
 
     def transcript(
         self,

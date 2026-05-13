@@ -30,7 +30,7 @@ authenticated org is entitled to use.
 - Authenticated Pro and Team: Free plus the paid GA model bundle and higher
   Managed Research usage pools.
 - Beta Access: an overlay on Free, Pro, or Team that adds
-  `open_ended_discovery`, `heavy`, and all-model access.
+  `open_ended_discovery`, `heavy`, `overnight`, and all-model access.
 
 Open Research on the public web is a narrower lab surface: it accepts `lite`
 runs with `open_ended_discovery` only. Treat those limits as web admission

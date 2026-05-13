@@ -16,6 +16,7 @@ from managed_research.models.smr_credential_providers import (
 )
 from managed_research.models.smr_funding_sources import coerce_smr_funding_source
 from managed_research.models.smr_host_kinds import coerce_smr_host_kind
+from managed_research.models.smr_horizons import coerce_intended_horizon_hours
 from managed_research.models.smr_providers import (
     coerce_provider_bindings,
     coerce_usage_limit,
@@ -50,6 +51,12 @@ def optional_int(payload: JSONDict, key: str) -> int | None:
     if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError(f"'{key}' must be an integer when provided")
     return value
+
+
+def optional_intended_horizon_hours(payload: JSONDict) -> int | None:
+    value = optional_int(payload, "intended_horizon_hours")
+    horizon = coerce_intended_horizon_hours(value, field_name="intended_horizon_hours")
+    return int(horizon) if horizon is not None else None
 
 
 def optional_bool(payload: JSONDict, key: str, *, default: bool = False) -> bool:
@@ -227,8 +234,9 @@ def _requires_explicit_launch_axes(
     *,
     runbook_preset: str | None,
     runbook_config_id: str | None,
+    intended_horizon_hours: int | None,
 ) -> bool:
-    return not (runbook_preset or runbook_config_id)
+    return not (runbook_preset or runbook_config_id or intended_horizon_hours is not None)
 
 
 def _require_explicit_launch_axes(
@@ -245,7 +253,10 @@ def _require_explicit_launch_axes(
     if providers is None:
         missing.append("providers")
     if missing:
-        raise ValueError("Provide runbook_preset or explicit launch fields: " + ", ".join(missing))
+        raise ValueError(
+            "Provide intended_horizon_hours, runbook_preset, or explicit launch fields: "
+            + ", ".join(missing)
+        )
 
 
 @dataclass(frozen=True)
@@ -334,6 +345,7 @@ class RunLaunchRequest:
     project_id: str
     host_kind: str | None
     work_mode: str | None
+    intended_horizon_hours: int | None
     providers: list[dict[str, Any]] | None
     runbook: str | None = None
     runbook_preset: str | None = None
@@ -373,10 +385,16 @@ class RunLaunchRequest:
         )
         host_kind = optional_smr_host_kind(payload, "host_kind")
         work_mode = optional_smr_work_mode(payload, "work_mode")
+        mode = optional_smr_work_mode(payload, "mode")
+        if work_mode is not None and mode is not None and work_mode != mode:
+            raise ValueError("work_mode and mode must match when both are provided")
+        work_mode = work_mode or mode
+        intended_horizon_hours = optional_intended_horizon_hours(payload)
         providers = optional_provider_bindings(payload, "providers")
         if _requires_explicit_launch_axes(
             runbook_preset=runbook_preset,
             runbook_config_id=runbook_config_id,
+            intended_horizon_hours=intended_horizon_hours,
         ):
             _require_explicit_launch_axes(
                 host_kind=host_kind,
@@ -387,6 +405,7 @@ class RunLaunchRequest:
             project_id=require_string(payload, "project_id"),
             host_kind=host_kind,
             work_mode=work_mode,
+            intended_horizon_hours=intended_horizon_hours,
             providers=providers,
             runbook=optional_smr_runbook_kind(payload, "runbook"),
             runbook_preset=runbook_preset,
@@ -422,6 +441,7 @@ class RunLaunchRequest:
         return {
             "host_kind": self.host_kind,
             "work_mode": self.work_mode,
+            "intended_horizon_hours": self.intended_horizon_hours,
             "providers": self.providers,
             "runbook": self.runbook,
             "runbook_preset": self.runbook_preset,
@@ -456,6 +476,7 @@ class RunLaunchRequest:
 class OneOffRunLaunchRequest:
     host_kind: str | None
     work_mode: str | None
+    intended_horizon_hours: int | None
     providers: list[dict[str, Any]] | None
     runbook: str | None = None
     runbook_preset: str | None = None
@@ -495,10 +516,16 @@ class OneOffRunLaunchRequest:
         )
         host_kind = optional_smr_host_kind(payload, "host_kind")
         work_mode = optional_smr_work_mode(payload, "work_mode")
+        mode = optional_smr_work_mode(payload, "mode")
+        if work_mode is not None and mode is not None and work_mode != mode:
+            raise ValueError("work_mode and mode must match when both are provided")
+        work_mode = work_mode or mode
+        intended_horizon_hours = optional_intended_horizon_hours(payload)
         providers = optional_provider_bindings(payload, "providers")
         if _requires_explicit_launch_axes(
             runbook_preset=runbook_preset,
             runbook_config_id=runbook_config_id,
+            intended_horizon_hours=intended_horizon_hours,
         ):
             _require_explicit_launch_axes(
                 host_kind=host_kind,
@@ -508,6 +535,7 @@ class OneOffRunLaunchRequest:
         return cls(
             host_kind=host_kind,
             work_mode=work_mode,
+            intended_horizon_hours=intended_horizon_hours,
             providers=providers,
             runbook=optional_smr_runbook_kind(payload, "runbook"),
             runbook_preset=runbook_preset,
@@ -543,6 +571,7 @@ class OneOffRunLaunchRequest:
         return {
             "host_kind": self.host_kind,
             "work_mode": self.work_mode,
+            "intended_horizon_hours": self.intended_horizon_hours,
             "providers": self.providers,
             "runbook": self.runbook,
             "runbook_preset": self.runbook_preset,

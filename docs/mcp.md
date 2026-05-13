@@ -76,7 +76,8 @@ are not exposed through MCP.
   "tool": "smr_start_one_off_run",
   "arguments": {
     "host_kind": "daytona",
-    "work_mode": "directed_effort",
+    "mode": "directed_effort",
+    "intended_horizon_hours": 1,
     "providers": [{"provider": "openrouter"}],
     "initial_runtime_messages": [
       {
@@ -95,7 +96,8 @@ are not exposed through MCP.
   "tool": "smr_start_one_off_run",
   "arguments": {
     "host_kind": "daytona",
-    "work_mode": "directed_effort",
+    "mode": "directed_effort",
+    "intended_horizon_hours": 1,
     "providers": [{"provider": "openrouter"}],
     "agent_harness": "opencode_sdk",
     "agent_model": "anthropic/claude-haiku-4-5-20251001",

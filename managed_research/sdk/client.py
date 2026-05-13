@@ -83,6 +83,10 @@ from managed_research.models.smr_funding_sources import (
     coerce_smr_funding_source,
 )
 from managed_research.models.smr_host_kinds import SmrHostKind, coerce_smr_host_kind
+from managed_research.models.smr_horizons import (
+    SmrIntendedHorizonHours,
+    coerce_intended_horizon_hours,
+)
 from managed_research.models.smr_providers import (
     ProviderBinding,
     UsageLimit,
@@ -355,6 +359,8 @@ def _build_project_run_payload(
     *,
     host_kind: SmrHostKind | str | None = None,
     work_mode: SmrWorkMode | str | None = None,
+    mode: SmrWorkMode | str | None = None,
+    intended_horizon_hours: SmrIntendedHorizonHours | int | None = None,
     providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]] | None = None,
     limit: UsageLimit | Mapping[str, Any] | dict[str, Any] | None = None,
     worker_pool_id: str | None = None,
@@ -389,7 +395,11 @@ def _build_project_run_payload(
     config_id = _optional_non_empty_string(runbook_config_id)
     if preset_id and config_id and preset_id != config_id:
         raise ValueError("runbook_preset and runbook_config_id must match when both are provided")
-    uses_backend_preset = bool(preset_id or config_id)
+    normalized_horizon = coerce_intended_horizon_hours(
+        intended_horizon_hours,
+        field_name="intended_horizon_hours",
+    )
+    uses_backend_profile = bool(preset_id or config_id or normalized_horizon is not None)
     payload: dict[str, Any] = {}
     if preset_id:
         payload["runbook_preset"] = preset_id
@@ -403,14 +413,27 @@ def _build_project_run_payload(
     normalized_host_kind = coerce_smr_host_kind(host_kind, field_name="host_kind")
     if normalized_host_kind is not None:
         payload["host_kind"] = normalized_host_kind.value
-    elif not uses_backend_preset:
-        raise ValueError("host_kind is required unless runbook_preset is provided")
+    elif not uses_backend_profile:
+        raise ValueError(
+            "host_kind is required unless runbook_preset or intended_horizon_hours is provided"
+        )
 
-    normalized_work_mode = coerce_smr_work_mode(work_mode, field_name="work_mode")
+    if work_mode is not None and mode is not None:
+        normalized_work_mode = coerce_smr_work_mode(work_mode, field_name="work_mode")
+        normalized_mode = coerce_smr_work_mode(mode, field_name="mode")
+        if normalized_work_mode != normalized_mode:
+            raise ValueError("work_mode and mode must match when both are provided")
+    else:
+        normalized_work_mode = coerce_smr_work_mode(
+            work_mode if work_mode is not None else mode,
+            field_name="work_mode",
+        )
     if normalized_work_mode is not None:
         payload["work_mode"] = normalized_work_mode.value
-    elif not uses_backend_preset:
-        raise ValueError("work_mode is required unless runbook_preset is provided")
+    elif not uses_backend_profile:
+        raise ValueError(
+            "work_mode is required unless runbook_preset or intended_horizon_hours is provided"
+        )
 
     provider_values = list(providers) if providers is not None else None
     if provider_values is not None:
@@ -421,8 +444,10 @@ def _build_project_run_payload(
                 field_name="providers",
             )
         ]
-    elif not uses_backend_preset:
-        raise ValueError("providers is required unless runbook_preset is provided")
+    elif not uses_backend_profile:
+        raise ValueError(
+            "providers is required unless runbook_preset or intended_horizon_hours is provided"
+        )
 
     normalized_limit = coerce_usage_limit(limit, field_name="limit")
     if normalized_limit is not None:
@@ -462,6 +487,12 @@ def _build_project_run_payload(
             payload["execution_profile"] = _optional_mapping(
                 execution_profile,
                 field_name="execution_profile",
+            )
+    if normalized_horizon is not None:
+        payload["intended_horizon_hours"] = int(normalized_horizon)
+        if timebox_seconds is not None and int(timebox_seconds) != int(normalized_horizon) * 3600:
+            raise ValueError(
+                "timebox_seconds must equal intended_horizon_hours * 3600 when both are provided"
             )
     if timebox_seconds is not None:
         payload["timebox_seconds"] = int(timebox_seconds)
@@ -2623,6 +2654,8 @@ class ManagedResearchClient:
         *,
         host_kind: SmrHostKind | str | None = None,
         work_mode: SmrWorkMode | str | None = None,
+        mode: SmrWorkMode | str | None = None,
+        intended_horizon_hours: SmrIntendedHorizonHours | int | None = None,
         providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]]
         | None = None,
         limit: UsageLimit | Mapping[str, Any] | dict[str, Any] | None = None,
@@ -2659,6 +2692,8 @@ class ManagedResearchClient:
         payload = _build_project_run_payload(
             host_kind=host_kind,
             work_mode=work_mode,
+            mode=mode,
+            intended_horizon_hours=intended_horizon_hours,
             providers=providers,
             limit=limit,
             worker_pool_id=worker_pool_id,
@@ -2745,6 +2780,8 @@ class ManagedResearchClient:
         *,
         host_kind: SmrHostKind | str | None = None,
         work_mode: SmrWorkMode | str | None = None,
+        mode: SmrWorkMode | str | None = None,
+        intended_horizon_hours: SmrIntendedHorizonHours | int | None = None,
         providers: Iterable[ProviderBinding | str | Mapping[str, Any] | dict[str, Any]]
         | None = None,
         limit: UsageLimit | Mapping[str, Any] | dict[str, Any] | None = None,
@@ -2781,6 +2818,8 @@ class ManagedResearchClient:
         payload = _build_project_run_payload(
             host_kind=host_kind,
             work_mode=work_mode,
+            mode=mode,
+            intended_horizon_hours=intended_horizon_hours,
             providers=providers,
             limit=limit,
             worker_pool_id=worker_pool_id,
@@ -2814,6 +2853,11 @@ class ManagedResearchClient:
             self._request_json("POST", f"/smr/projects/{project_id}/trigger", json_body=payload),
             label="trigger_run",
         )
+
+    def start_run(self, project_id: str, **kwargs: Any) -> dict[str, Any]:
+        """Start a Managed Research run using the product launch vocabulary."""
+
+        return self.trigger_run(project_id, **kwargs)
 
     def trigger_one_off_run(self, **kwargs: Any) -> dict[str, Any]:
         payload = _build_project_run_payload(**kwargs)
@@ -2910,6 +2954,64 @@ class ManagedResearchClient:
             return RunObservabilitySnapshot.from_wire(payload)
         except ValueError as exc:
             raise SmrApiError(f"Invalid run observability snapshot payload: {exc}") from exc
+
+    def get_run_observability_snapshot_hot(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        since_event_seq: int | None = None,
+        latest_runtime_message_seq: int | None = None,
+        latest_runtime_event_id: str | None = None,
+        event_limit: int = 40,
+        actor_limit: int = 25,
+        task_limit: int = 40,
+        question_limit: int = 10,
+        timeline_limit: int = 10,
+        message_limit: int = 8,
+    ) -> RunObservabilitySnapshot:
+        """Fetch the lightweight live-poll projection for an in-flight run."""
+
+        return self.get_run_observability_snapshot(
+            project_id,
+            run_id,
+            since_event_seq=since_event_seq,
+            latest_runtime_message_seq=latest_runtime_message_seq,
+            latest_runtime_event_id=latest_runtime_event_id,
+            detail_level="hot",
+            event_limit=event_limit,
+            actor_limit=actor_limit,
+            task_limit=task_limit,
+            question_limit=question_limit,
+            timeline_limit=timeline_limit,
+            message_limit=message_limit,
+        )
+
+    def get_run_observability_snapshot_full(
+        self,
+        project_id: str,
+        run_id: str,
+        *,
+        event_limit: int = 100,
+        actor_limit: int = 25,
+        task_limit: int = 50,
+        question_limit: int = 25,
+        timeline_limit: int = 10,
+        message_limit: int = 10,
+    ) -> RunObservabilitySnapshot:
+        """Fetch the heavy evidence projection; use after terminal state."""
+
+        return self.get_run_observability_snapshot(
+            project_id,
+            run_id,
+            detail_level="full",
+            event_limit=event_limit,
+            actor_limit=actor_limit,
+            task_limit=task_limit,
+            question_limit=question_limit,
+            timeline_limit=timeline_limit,
+            message_limit=message_limit,
+        )
 
     def get_run_contract(
         self,
@@ -3163,6 +3265,20 @@ class ManagedResearchClient:
             label="list_project_milestones",
         )
 
+    def create_project_milestone(
+        self,
+        project_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/milestones",
+                json_body=dict(payload),
+            ),
+            label="create_project_milestone",
+        )
+
     def get_project_milestone(
         self,
         project_id: str,
@@ -3174,6 +3290,36 @@ class ManagedResearchClient:
                 f"/smr/projects/{project_id}/milestones/{milestone_id}",
             ),
             label="get_project_milestone",
+        )
+
+    def patch_project_milestone(
+        self,
+        project_id: str,
+        milestone_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "PATCH",
+                f"/smr/projects/{project_id}/milestones/{milestone_id}",
+                json_body=dict(payload),
+            ),
+            label="patch_project_milestone",
+        )
+
+    def transition_project_milestone(
+        self,
+        project_id: str,
+        milestone_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "POST",
+                f"/smr/projects/{project_id}/milestones/{milestone_id}/transition",
+                json_body=dict(payload),
+            ),
+            label="transition_project_milestone",
         )
 
     def list_project_experiments(
@@ -3267,6 +3413,95 @@ class ManagedResearchClient:
             ),
             label="get_objective",
         )
+
+    def get_objective_events(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        return _coerce_dict(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/objectives/{objective_id}/events",
+                params=build_query_params(kind=kind, limit=limit),
+            ),
+            label="get_objective_events",
+        )
+
+    def get_objective_status(
+        self,
+        project_id: str,
+        objective_id: str,
+        *,
+        kind: str | None = None,
+        task_limit: int | None = None,
+        claim_limit: int | None = None,
+        event_limit: int | None = 50,
+        milestone_limit: int | None = None,
+    ) -> dict[str, Any]:
+        objective = self.get_objective(project_id, objective_id, kind=kind)
+        objective_kind = str(
+            kind
+            or objective.get("objective_kind")
+            or objective.get("kind")
+            or ""
+        ).strip() or None
+        progress = self.get_objective_progress(
+            project_id,
+            objective_id,
+            kind=objective_kind,
+        )
+        tasks = self.list_objective_tasks(
+            project_id,
+            objective_id,
+            kind=objective_kind,
+            limit=task_limit,
+        )
+        claims = self.list_objective_claims(
+            project_id,
+            objective_id,
+            kind=objective_kind,
+            limit=claim_limit,
+        )
+        milestones = self.list_project_milestones(
+            project_id,
+            parent_kind=objective_kind,
+            parent_id=objective_id,
+            limit=milestone_limit,
+        )
+        events = self.get_objective_events(
+            project_id,
+            objective_id,
+            kind=objective_kind,
+            limit=event_limit,
+        )
+        latest_review = None
+        for claim in claims:
+            claim_kind = str(claim.get("claim_kind") or claim.get("kind") or "").strip()
+            if "review" in claim_kind:
+                latest_review = claim
+                break
+        blockers = [
+            item
+            for item in [*tasks, *milestones]
+            if str(item.get("status") or item.get("state") or "").strip().lower()
+            in {"blocked", "failed"}
+        ]
+        return {
+            "objective": objective,
+            "progress": progress,
+            "related_tasks": tasks,
+            "related_milestones": milestones,
+            "claims": claims,
+            "latest_review": latest_review,
+            "blockers": blockers,
+            "recent_events": events.get("events", []),
+            "events": events,
+            "run_scopes": objective.get("run_scopes") or objective.get("runs") or [],
+        }
 
     def patch_objective(
         self,
@@ -3365,6 +3600,110 @@ class ManagedResearchClient:
                 params=build_query_params(kind=kind, limit=limit),
             ),
             label="list_objective_tasks",
+        )
+
+    def list_tasks(
+        self,
+        project_id: str,
+        *,
+        run_id: str | None = None,
+        objective_id: str | None = None,
+        kind: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        if objective_id:
+            return self.list_objective_tasks(
+                project_id,
+                objective_id,
+                kind=kind,
+                limit=limit,
+            )
+        if not run_id:
+            raise ValueError("run_id or objective_id is required")
+        return _coerce_dict_list(
+            self._request_json(
+                "GET",
+                f"/smr/projects/{project_id}/runs/{run_id}/tasks",
+                params=build_query_params(kind=kind, limit=limit),
+            ),
+            label="list_tasks",
+        )
+
+    def create_task(
+        self,
+        run_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+        *,
+        project_id: str,
+        mode: str = "queue",
+        body: str | None = None,
+    ) -> RuntimeIntentReceipt:
+        return self.submit_runtime_intent(
+            run_id,
+            RuntimeIntent.plan_tasks(tasks=[dict(payload)]),
+            project_id=project_id,
+            mode=mode,
+            body=body,
+        )
+
+    def update_task(
+        self,
+        run_id: str,
+        task_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+        *,
+        project_id: str,
+        mode: str = "queue",
+        body: str | None = None,
+    ) -> RuntimeIntentReceipt:
+        task_payload = {"task_id": task_id, **dict(payload)}
+        return self.submit_runtime_intent(
+            run_id,
+            RuntimeIntent.plan_tasks(tasks=[task_payload]),
+            project_id=project_id,
+            mode=mode,
+            body=body,
+        )
+
+    def cancel_task(
+        self,
+        run_id: str,
+        task_id: str,
+        *,
+        project_id: str,
+        reason: str | None = None,
+        mode: str = "queue",
+        body: str | None = None,
+    ) -> RuntimeIntentReceipt:
+        return self.submit_runtime_intent(
+            run_id,
+            RuntimeIntent.set_task_state(
+                task_id=task_id,
+                state="stopped",
+                reason=reason,
+            ),
+            project_id=project_id,
+            mode=mode,
+            body=body,
+        )
+
+    def reassign_task(
+        self,
+        run_id: str,
+        task_id: str,
+        *,
+        project_id: str,
+        assignee: str,
+        mode: str = "queue",
+        body: str | None = None,
+    ) -> RuntimeIntentReceipt:
+        return self.update_task(
+            run_id,
+            task_id,
+            {"assignee": assignee},
+            project_id=project_id,
+            mode=mode,
+            body=body,
         )
 
     def list_objective_claims(
@@ -4598,6 +4937,41 @@ class ManagedResearchClient:
             label="publish_manderqueue_message",
         )
 
+    def send_message(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        intent: str = "queue",
+        audience: Mapping[str, Any] | dict[str, Any] | None = None,
+        body: str | None = None,
+        payload: Mapping[str, Any] | dict[str, Any] | None = None,
+        message_kind: str = "runtime_message",
+        thread_id: str | None = None,
+        parent_message_id: str | None = None,
+        fallback_policy: str = "block",
+        idempotency_key: str | None = None,
+        correlation_id: str | None = None,
+        causation_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Send a product-level message queue message for a run."""
+
+        return self.publish_manderqueue_message(
+            run_id,
+            project_id=project_id,
+            intent=intent,
+            audience=audience,
+            body=body,
+            payload=payload,
+            message_kind=message_kind,
+            thread_id=thread_id,
+            parent_message_id=parent_message_id,
+            fallback_policy=fallback_policy,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+            causation_id=causation_id,
+        )
+
     def list_manderqueue_threads(
         self,
         run_id: str,
@@ -4635,6 +5009,23 @@ class ManagedResearchClient:
                 params=params or None,
             ),
             label="list_manderqueue_messages",
+        )
+
+    def list_messages(
+        self,
+        run_id: str,
+        *,
+        project_id: str,
+        thread_id: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """List product-level message queue messages for a run."""
+
+        return self.list_manderqueue_messages(
+            run_id,
+            project_id=project_id,
+            thread_id=thread_id,
+            limit=limit,
         )
 
     def list_manderqueue_interactions(
@@ -4707,6 +5098,25 @@ class ManagedResearchClient:
             label="edit_manderqueue_message",
         )
 
+    def edit_message(
+        self,
+        run_id: str,
+        message_id: str,
+        *,
+        project_id: str,
+        body: str | None = None,
+        payload: Mapping[str, Any] | dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Edit a product-level message queue message for a run."""
+
+        return self.edit_manderqueue_message(
+            run_id,
+            message_id,
+            project_id=project_id,
+            body=body,
+            payload=payload,
+        )
+
     def retract_manderqueue_message(
         self,
         run_id: str,
@@ -4721,6 +5131,21 @@ class ManagedResearchClient:
                 json_body={},
             ),
             label="retract_manderqueue_message",
+        )
+
+    def retract_message(
+        self,
+        run_id: str,
+        message_id: str,
+        *,
+        project_id: str,
+    ) -> dict[str, Any]:
+        """Retract a product-level message queue message for a run."""
+
+        return self.retract_manderqueue_message(
+            run_id,
+            message_id,
+            project_id=project_id,
         )
 
     def _list_run_log_archives(
