@@ -46,6 +46,7 @@ from managed_research.mcp.tools.github import build_github_tools
 from managed_research.mcp.tools.integrations import build_integration_tools
 from managed_research.mcp.tools.logs import build_log_tools
 from managed_research.mcp.tools.models import build_model_tools
+from managed_research.mcp.tools.open_research import build_open_research_tools
 from managed_research.mcp.tools.outputs import build_output_tools
 from managed_research.mcp.tools.progress import build_progress_tools
 from managed_research.mcp.tools.projects import build_project_tools
@@ -174,6 +175,7 @@ class ManagedResearchMcpServer:
             *build_file_tools(self),
             *build_pr_tools(self),
             *build_model_tools(self),
+            *build_open_research_tools(self),
             *build_output_tools(self),
             *build_readiness_tools(self),
             *build_resource_tools(self),
