@@ -2,10 +2,10 @@
 
 This subtree owns the Python control-plane client and the typed namespace wrappers built on top of it.
 
-Surface note: this SDK targets the authenticated Managed Research API. Public
-Open Research web limits, such as `lite` plus `open_ended_discovery` only, are
-documented in the top-level `PACKAGE_README.md` and enforced by backend web
-admission policy rather than by a separate SDK client fork.
+Surface note: this SDK targets the authenticated private-beta Managed Research
+API. Managed Research beta access is an account/org entitlement enforced by the
+backend through entitlement checks and launch preflight rather than by a
+separate SDK client fork.
 
 Ownership:
 - `client.py` owns transport-facing request building and raw backend interaction

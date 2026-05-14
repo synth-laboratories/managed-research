@@ -2,6 +2,10 @@
 
 `ManagedResearchClient` is the canonical Python entrypoint:
 
+Managed Research is private beta only. The SDK requires an authenticated Synth
+account with Managed Research beta access, and backend entitlement checks plus
+launch preflight remain authoritative for every run.
+
 ```python
 from managed_research import ManagedResearchClient, ProjectSelector
 
@@ -137,13 +141,13 @@ Canonical harness values:
 - `codex`
 - `opencode_sdk`
 
-Canonical OpenCode launch models:
+Canonical OpenCode launch models for private beta orgs:
 
 | Model ID | Launch access |
 | --- | --- |
-| `anthropic/claude-sonnet-4-6` | Beta Access |
-| `anthropic/claude-haiku-4-5-20251001` | Standard |
-| `x-ai/grok-4.1-fast` | Standard |
+| `anthropic/claude-sonnet-4-6` | Private Beta |
+| `anthropic/claude-haiku-4-5-20251001` | Private Beta |
+| `x-ai/grok-4.1-fast` | Private Beta |
 
 Example:
 

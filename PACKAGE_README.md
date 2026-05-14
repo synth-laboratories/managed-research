@@ -8,34 +8,28 @@ Use Managed Research when you want a repeatable run instead of an untraceable
 chat transcript: attach repositories and context, launch work from Python or
 MCP, and read back logs, checkpoints, artifacts, PRs, usage, and final reports.
 
+Managed Research is currently private beta only. This package requires an
+authenticated Synth account with Managed Research beta access; backend
+entitlement checks and launch preflight remain authoritative for every run.
+
 ## Engineering style
 
 Contributors should follow **Synth Style** (engineering rules for contracts,
 errors, and structure). The canonical Markdown copy lives in the **backend**
 repository: [`specifications/tanha/references/synthstyle.md`](https://github.com/synth-laboratories/backend/blob/dev/specifications/tanha/references/synthstyle.md).
 
-## Surfaces
+## Beta Surface
 
-This package is for authenticated Managed Research integrations. The Python SDK
-and MCP server expose the backend catalog for project and run automation,
-including the runbook presets, work modes, model catalog, and usage state the
-authenticated org is entitled to use.
+This package is for authenticated private-beta Managed Research integrations.
+The Python SDK and MCP server expose the backend catalog for project and run
+automation, including the runbook presets, work modes, model catalog, and usage
+state the authenticated org is entitled to use.
 
-## Surfaces and tiers
-
-- Open Research web: public lab surface with `lite` and
-  `open_ended_discovery`.
-- Authenticated Free: `lite`, `directed_effort`, standard model access, and
-  one-time Managed Research credits.
-- Authenticated Pro and Team: Free plus the paid GA model bundle and higher
-  Managed Research usage pools.
-- Beta Access: an overlay on Free, Pro, or Team that adds
-  `open_ended_discovery`, `heavy`, `overnight`, and all-model access.
-
-Open Research on the public web is a narrower lab surface: it accepts `lite`
-runs with `open_ended_discovery` only. Treat those limits as web admission
-policy, not as SDK or MCP client-side rules. See the customer docs for the
-current product split: https://docs.usesynth.ai/managed-research/intro
+Beta access is an account/org entitlement, not a client-side tier selection.
+Treat backend entitlement checks and launch preflight as the source of truth for
+which harnesses, work modes, models, providers, and usage pools are available.
+See the customer docs for the current product status:
+https://docs.usesynth.ai/managed-research/intro
 
 ## Installation
 

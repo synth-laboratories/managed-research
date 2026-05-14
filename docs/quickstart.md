@@ -3,6 +3,10 @@
 This guide starts a Managed Research run from Python, waits for it to finish,
 and inspects the useful evidence it leaves behind.
 
+Managed Research is private beta only. Install and launch require an
+authenticated Synth account with Managed Research beta access; launch preflight
+is the authoritative check for what your org can run.
+
 ## 1. Install
 
 ```bash
@@ -132,13 +136,13 @@ run = client.runs.start(
 )
 ```
 
-Supported OpenCode models:
+Supported OpenCode models for private beta orgs:
 
 | Model ID | Launch access |
 | --- | --- |
-| `anthropic/claude-sonnet-4-6` | Beta Access |
-| `anthropic/claude-haiku-4-5-20251001` | Standard |
-| `x-ai/grok-4.1-fast` | Standard |
+| `anthropic/claude-sonnet-4-6` | Private Beta |
+| `anthropic/claude-haiku-4-5-20251001` | Private Beta |
+| `x-ai/grok-4.1-fast` | Private Beta |
 
 If the requested `(agent_harness, agent_model)` pair is unsupported, launch
 preflight and run start fail loudly with structured denials.

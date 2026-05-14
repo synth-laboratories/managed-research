@@ -2,11 +2,11 @@
 
 This package owns the canonical MCP surface for `managed-research`.
 
-Surface note: MCP tools call the authenticated Managed Research API. When tool
-or schema descriptions say public, they mean the stable API contract, not the
-public Open Research web lab. Web lab limits such as `lite` plus
-`open_ended_discovery` only are enforced by backend admission policy, not by
-narrowing the MCP tool list.
+Surface note: MCP tools call the authenticated private-beta Managed Research
+API. When tool or schema descriptions say public, they mean the stable API
+contract. Managed Research beta access is an account/org entitlement enforced by
+the backend through entitlement checks and launch preflight, not by narrowing
+the MCP tool list.
 
 What belongs here:
 - tool registration, schemas, and scope metadata

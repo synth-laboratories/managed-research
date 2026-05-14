@@ -2,6 +2,10 @@
 
 Hosted AI workers for durable repo and research runs.
 
+Managed Research is currently private beta only. The SDK and MCP server require
+an authenticated Synth account with Managed Research beta access; backend
+entitlement checks and launch preflight remain authoritative for every run.
+
 **Documentation:** https://docs.usesynth.ai/managed-research/intro
 
 Managed Research lets you start work from Python or MCP, attach repositories and

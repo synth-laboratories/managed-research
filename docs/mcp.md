@@ -2,6 +2,10 @@
 
 Managed Research exposes a first-class MCP surface alongside the Python SDK.
 
+Managed Research is private beta only. Hosted and local MCP usage require an
+authenticated Synth account with Managed Research beta access; backend
+entitlement checks and launch preflight remain authoritative for every run.
+
 ## Connect
 
 Hosted:
@@ -111,13 +115,13 @@ are not exposed through MCP.
 }
 ```
 
-Supported OpenCode models:
+Supported OpenCode models for private beta orgs:
 
 | Model ID | Launch access |
 | --- | --- |
-| `anthropic/claude-sonnet-4-6` | Beta Access |
-| `anthropic/claude-haiku-4-5-20251001` | Standard |
-| `x-ai/grok-4.1-fast` | Standard |
+| `anthropic/claude-sonnet-4-6` | Private Beta |
+| `anthropic/claude-haiku-4-5-20251001` | Private Beta |
+| `x-ai/grok-4.1-fast` | Private Beta |
 
 ## Denials
 
