@@ -15,8 +15,8 @@ from managed_research.models.smr_credential_providers import (
     coerce_smr_credential_provider,
 )
 from managed_research.models.smr_funding_sources import coerce_smr_funding_source
-from managed_research.models.smr_host_kinds import coerce_smr_host_kind
 from managed_research.models.smr_horizons import coerce_intended_horizon_hours
+from managed_research.models.smr_host_kinds import coerce_smr_host_kind
 from managed_research.models.smr_providers import (
     coerce_provider_bindings,
     coerce_usage_limit,
@@ -362,11 +362,13 @@ class RunLaunchRequest:
     initial_runtime_messages: list[dict[str, Any]] | None = None
     workflow: dict[str, Any] | None = None
     sandbox_override: dict[str, Any] | None = None
+    environment: dict[str, Any] | None = None
     local_execution: dict[str, Any] | None = None
     execution_profile: dict[str, Any] | None = None
     run_policy: dict[str, Any] | None = None
     kickoff_contract: dict[str, Any] | None = None
     resource_bindings: dict[str, Any] | None = None
+    ai_cache: dict[str, Any] | None = None
     primary_objective_id: str | None = None
     primary_objective_kind: str | None = None
     primary_parent_ref: dict[str, Any] | None = None
@@ -424,11 +426,13 @@ class RunLaunchRequest:
             initial_runtime_messages=_optional_object_list(payload, "initial_runtime_messages"),
             workflow=_optional_object(payload, "workflow"),
             sandbox_override=_optional_object(payload, "sandbox_override"),
+            environment=_optional_object(payload, "environment"),
             local_execution=_optional_object(payload, "local_execution"),
             execution_profile=_optional_object(payload, "execution_profile"),
             run_policy=optional_smr_run_policy(payload, "run_policy"),
             kickoff_contract=_optional_object(payload, "kickoff_contract"),
             resource_bindings=_optional_object(payload, "resource_bindings"),
+            ai_cache=_optional_object(payload, "ai_cache"),
             primary_objective_id=optional_string(payload, "primary_objective_id"),
             primary_objective_kind=optional_string(payload, "primary_objective_kind"),
             primary_parent_ref=_optional_object(payload, "primary_parent_ref"),
@@ -458,11 +462,13 @@ class RunLaunchRequest:
             "initial_runtime_messages": self.initial_runtime_messages,
             "workflow": self.workflow,
             "sandbox_override": self.sandbox_override,
+            "environment": self.environment,
             "local_execution": self.local_execution,
             "execution_profile": self.execution_profile,
             "run_policy": self.run_policy,
             "kickoff_contract": self.kickoff_contract,
             "resource_bindings": self.resource_bindings,
+            "ai_cache": self.ai_cache,
             "primary_objective_id": self.primary_objective_id,
             "primary_objective_kind": self.primary_objective_kind,
             "primary_parent_ref": self.primary_parent_ref,
@@ -493,11 +499,13 @@ class OneOffRunLaunchRequest:
     initial_runtime_messages: list[dict[str, Any]] | None = None
     workflow: dict[str, Any] | None = None
     sandbox_override: dict[str, Any] | None = None
+    environment: dict[str, Any] | None = None
     local_execution: dict[str, Any] | None = None
     execution_profile: dict[str, Any] | None = None
     run_policy: dict[str, Any] | None = None
     kickoff_contract: dict[str, Any] | None = None
     resource_bindings: dict[str, Any] | None = None
+    ai_cache: dict[str, Any] | None = None
     primary_objective_id: str | None = None
     primary_objective_kind: str | None = None
     primary_parent_ref: dict[str, Any] | None = None
@@ -554,11 +562,13 @@ class OneOffRunLaunchRequest:
             initial_runtime_messages=_optional_object_list(payload, "initial_runtime_messages"),
             workflow=_optional_object(payload, "workflow"),
             sandbox_override=_optional_object(payload, "sandbox_override"),
+            environment=_optional_object(payload, "environment"),
             local_execution=_optional_object(payload, "local_execution"),
             execution_profile=_optional_object(payload, "execution_profile"),
             run_policy=optional_smr_run_policy(payload, "run_policy"),
             kickoff_contract=_optional_object(payload, "kickoff_contract"),
             resource_bindings=_optional_object(payload, "resource_bindings"),
+            ai_cache=_optional_object(payload, "ai_cache"),
             primary_objective_id=optional_string(payload, "primary_objective_id"),
             primary_objective_kind=optional_string(payload, "primary_objective_kind"),
             primary_parent_ref=_optional_object(payload, "primary_parent_ref"),
@@ -588,11 +598,13 @@ class OneOffRunLaunchRequest:
             "initial_runtime_messages": self.initial_runtime_messages,
             "workflow": self.workflow,
             "sandbox_override": self.sandbox_override,
+            "environment": self.environment,
             "local_execution": self.local_execution,
             "execution_profile": self.execution_profile,
             "run_policy": self.run_policy,
             "kickoff_contract": self.kickoff_contract,
             "resource_bindings": self.resource_bindings,
+            "ai_cache": self.ai_cache,
             "primary_objective_id": self.primary_objective_id,
             "primary_objective_kind": self.primary_objective_kind,
             "primary_parent_ref": self.primary_parent_ref,

@@ -1156,6 +1156,13 @@ class RunsAPI(_ClientNamespace):
             work_product_limit=work_product_limit,
         )
 
+    def get_actors(
+        self,
+        project_id: str,
+        run_id: str,
+    ) -> list[dict[str, Any]]:
+        return self._client.get_project_run_actors(project_id, run_id)
+
     def list_task_events(
         self,
         project_id: str,

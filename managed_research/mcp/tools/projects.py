@@ -267,6 +267,242 @@ def build_project_tools(server: Any) -> list[ToolDefinition]:
             handler=server._tool_get_project_workspace,
         ),
         ToolDefinition(
+            name="smr_list_project_experiments",
+            description="List first-class SMR project experiments, optionally scoped to a run.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string"},
+                    "run_id": {"type": "string"},
+                    "limit": {"type": "integer"},
+                },
+                required=["project_id"],
+            ),
+            handler=server._tool_list_project_experiments,
+        ),
+        ToolDefinition(
+            name="smr_create_project_experiment",
+            description=(
+                "Create a first-class SMR experiment/trial for a candidate attempt, "
+                "policy, prompt, verifier, or other comparable treatment."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string"},
+                    "run_id": {"type": "string"},
+                    "parent_experiment_id": {"type": "string"},
+                    "milestone_id": {"type": "string"},
+                    "title": {"type": "string"},
+                    "kind": {"type": "string"},
+                    "hypothesis": {"type": "string"},
+                    "intervention": {"type": "string"},
+                    "comparison": {"type": "string"},
+                    "expected_effect": {"type": "string"},
+                    "status": {"type": "string"},
+                    "idempotency_key": {"type": "string"},
+                    "proposal_correlation_id": {"type": "string"},
+                    "summary": {"type": "string"},
+                    "baseline_snapshot": {
+                        "type": "object",
+                        "description": "Structured baseline candidate/source summary.",
+                    },
+                    "candidate_snapshot": {
+                        "type": "object",
+                        "description": "Structured candidate code/artifact summary.",
+                    },
+                    "protocol_snapshot": {
+                        "type": "object",
+                        "description": "Structured metric, split, seed-set, scorer, and acceptance protocol.",
+                    },
+                    "result_summary": {
+                        "type": "object",
+                        "description": "Optional headline result summary, usually filled after measurement.",
+                    },
+                    "decision_summary": {
+                        "type": "object",
+                        "description": "Optional verdict/decision summary.",
+                    },
+                    "artifact_refs": {
+                        "type": "object",
+                        "description": "Reviewable artifact references for candidate source and result JSON.",
+                    },
+                    "metadata": {"type": "object"},
+                },
+                required=["project_id", "title", "hypothesis"],
+            ),
+            handler=server._tool_create_project_experiment,
+        ),
+        ToolDefinition(
+            name="smr_get_project_experiment",
+            description="Fetch one first-class SMR project experiment.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string"},
+                    "experiment_id": {"type": "string"},
+                },
+                required=["project_id", "experiment_id"],
+            ),
+            handler=server._tool_get_project_experiment,
+        ),
+        ToolDefinition(
+            name="smr_patch_project_experiment",
+            description="Patch experiment lifecycle fields such as status, verdict, summary, or metadata.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string"},
+                    "experiment_id": {"type": "string"},
+                    "payload": {"type": "object"},
+                },
+                required=["project_id", "experiment_id", "payload"],
+            ),
+            handler=server._tool_patch_project_experiment,
+        ),
+        ToolDefinition(
+            name="smr_link_project_experiment_run",
+            description="Link a first-class experiment to an SMR run with a lineage role.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string"},
+                    "experiment_id": {"type": "string"},
+                    "run_id": {"type": "string"},
+                    "role": {"type": "string"},
+                    "notes": {"type": "string"},
+                    "metadata": {"type": "object"},
+                },
+                required=["project_id", "experiment_id", "run_id"],
+            ),
+            handler=server._tool_link_project_experiment_run,
+        ),
+        ToolDefinition(
+            name="smr_list_project_experiment_runs",
+            description="List SMR run links for one first-class experiment.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string"},
+                    "experiment_id": {"type": "string"},
+                    "limit": {"type": "integer"},
+                },
+                required=["project_id", "experiment_id"],
+            ),
+            handler=server._tool_list_project_experiment_runs,
+        ),
+        ToolDefinition(
+            name="smr_attach_project_experiment_container_run",
+            description=(
+                "Attach a concrete container/taskset/scorer execution receipt to "
+                "an SMR experiment."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string"},
+                    "experiment_id": {"type": "string"},
+                    "container_run_id": {"type": "string"},
+                    "run_id": {"type": "string"},
+                    "experiment_run_id": {"type": "string"},
+                    "role": {"type": "string"},
+                    "container_name": {"type": "string"},
+                    "container_version": {"type": "string"},
+                    "container_digest": {"type": "string"},
+                    "image_ref": {"type": "string"},
+                    "taskset_id": {"type": "string"},
+                    "taskset_version": {"type": "string"},
+                    "taskset_seed": {"type": "integer"},
+                    "eval_profile_id": {"type": "string"},
+                    "eval_profile_version": {"type": "string"},
+                    "verifier_or_scorer_id": {"type": "string"},
+                    "verifier_or_scorer_version": {"type": "string"},
+                    "status": {"type": "string"},
+                },
+                required=["project_id", "experiment_id", "container_run_id"],
+            ),
+            handler=server._tool_attach_project_experiment_container_run,
+        ),
+        ToolDefinition(
+            name="smr_list_project_experiment_container_runs",
+            description="List concrete execution receipts attached to one SMR experiment.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string"},
+                    "experiment_id": {"type": "string"},
+                    "limit": {"type": "integer"},
+                },
+                required=["project_id", "experiment_id"],
+            ),
+            handler=server._tool_list_project_experiment_container_runs,
+        ),
+        ToolDefinition(
+            name="smr_attach_project_experiment_result",
+            description=(
+                "Attach a normalized measured result to an SMR experiment. "
+                "Use one result row per candidate metric/split."
+            ),
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string"},
+                    "experiment_id": {"type": "string"},
+                    "run_id": {"type": "string"},
+                    "candidate_id": {"type": "string"},
+                    "candidate_kind": {"type": "string"},
+                    "candidate_label": {"type": "string"},
+                    "metric": {"type": "string"},
+                    "metric_direction": {
+                        "type": "string",
+                        "enum": ["higher_is_better", "lower_is_better"],
+                    },
+                    "value": {"type": "number"},
+                    "baseline_value": {"type": "number"},
+                    "delta": {"type": "number"},
+                    "dataset_or_task_set_id": {"type": "string"},
+                    "sample_size": {"type": "integer"},
+                    "seed_set": {"type": "array", "items": {"type": "integer"}},
+                    "split_name": {"type": "string"},
+                    "summary_artifact_id": {"type": "string"},
+                    "per_example_artifact_id": {"type": "string"},
+                    "summary_artifact_path": {"type": "string"},
+                    "per_example_artifact_path": {"type": "string"},
+                    "evidence_grade": {"type": "string"},
+                    "truth_status": {"type": "string"},
+                    "caveats": {"type": "string"},
+                    "metadata": {"type": "object"},
+                },
+                required=["project_id", "experiment_id", "metric", "value"],
+            ),
+            handler=server._tool_attach_project_experiment_result,
+        ),
+        ToolDefinition(
+            name="smr_list_project_experiment_results",
+            description="List normalized SMR experiment results for a project or one experiment.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string"},
+                    "experiment_id": {"type": "string"},
+                    "metric": {"type": "string"},
+                    "taskset_id": {"type": "string"},
+                    "taskset_seed": {"type": "integer"},
+                    "comparison_cohort_key": {"type": "string"},
+                    "truth_status": {"type": "string"},
+                    "limit": {"type": "integer"},
+                },
+                required=["project_id"],
+            ),
+            handler=server._tool_list_project_experiment_results,
+        ),
+        ToolDefinition(
+            name="smr_rank_project_experiment_results",
+            description="Rank comparable SMR experiment results for one metric.",
+            input_schema=tool_schema(
+                {
+                    "project_id": {"type": "string"},
+                    "metric": {"type": "string"},
+                    "taskset_id": {"type": "string"},
+                    "taskset_seed": {"type": "integer"},
+                    "comparison_cohort_key": {"type": "string"},
+                    "limit": {"type": "integer"},
+                },
+                required=["project_id", "metric"],
+            ),
+            handler=server._tool_rank_project_experiment_results,
+        ),
+        ToolDefinition(
             name="smr_list_project_changesets",
             description="List review-gated project ChangeSets.",
             input_schema=tool_schema(

@@ -429,8 +429,144 @@ class ProjectsAPI(_ClientNamespace):
             limit=limit,
         )
 
+    def create_experiment(
+        self,
+        project_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.create_project_experiment(project_id, payload)
+
     def get_experiment(self, project_id: str, experiment_id: str) -> dict[str, Any]:
         return self._client.get_project_experiment(project_id, experiment_id)
+
+    def patch_experiment(
+        self,
+        project_id: str,
+        experiment_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.patch_project_experiment(
+            project_id,
+            experiment_id,
+            payload,
+        )
+
+    def list_experiment_runs(
+        self,
+        project_id: str,
+        experiment_id: str,
+        *,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_project_experiment_runs(
+            project_id,
+            experiment_id,
+            limit=limit,
+        )
+
+    def link_experiment_run(
+        self,
+        project_id: str,
+        experiment_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.link_project_experiment_run(
+            project_id,
+            experiment_id,
+            payload,
+        )
+
+    def list_experiment_container_runs(
+        self,
+        project_id: str,
+        experiment_id: str,
+        *,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_project_experiment_container_runs(
+            project_id,
+            experiment_id,
+            limit=limit,
+        )
+
+    def attach_experiment_container_run(
+        self,
+        project_id: str,
+        experiment_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.attach_project_experiment_container_run(
+            project_id,
+            experiment_id,
+            payload,
+        )
+
+    def list_experiment_results(
+        self,
+        project_id: str,
+        *,
+        experiment_id: str | None = None,
+        metric: str | None = None,
+        taskset_id: str | None = None,
+        taskset_seed: int | None = None,
+        comparison_cohort_key: str | None = None,
+        truth_status: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_project_experiment_results(
+            project_id,
+            experiment_id=experiment_id,
+            metric=metric,
+            taskset_id=taskset_id,
+            taskset_seed=taskset_seed,
+            comparison_cohort_key=comparison_cohort_key,
+            truth_status=truth_status,
+            limit=limit,
+        )
+
+    def list_experiment_results_for_experiment(
+        self,
+        project_id: str,
+        experiment_id: str,
+        *,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.list_project_experiment_results_for_experiment(
+            project_id,
+            experiment_id,
+            limit=limit,
+        )
+
+    def attach_experiment_result(
+        self,
+        project_id: str,
+        experiment_id: str,
+        payload: Mapping[str, Any] | dict[str, Any],
+    ) -> dict[str, Any]:
+        return self._client.attach_project_experiment_result(
+            project_id,
+            experiment_id,
+            payload,
+        )
+
+    def rank_experiment_results(
+        self,
+        project_id: str,
+        *,
+        metric: str,
+        taskset_id: str | None = None,
+        taskset_seed: int | None = None,
+        comparison_cohort_key: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._client.rank_project_experiment_results(
+            project_id,
+            metric=metric,
+            taskset_id=taskset_id,
+            taskset_seed=taskset_seed,
+            comparison_cohort_key=comparison_cohort_key,
+            limit=limit,
+        )
 
     def set_provider_key(self, project_id: str, **kwargs: Any) -> ProviderKeyStatus:
         return ProviderKeyStatus.from_wire(self._client.set_provider_key(project_id, **kwargs))

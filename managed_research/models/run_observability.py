@@ -298,6 +298,7 @@ class ActorSnapshot:
     completed_at: str | None = None
     last_heartbeat_at: str | None = None
     labels: dict[str, object] = field(default_factory=dict)
+    runtime_bootstrap: dict[str, object] = field(default_factory=dict)
 
     @classmethod
     def from_wire(cls, payload: object) -> ActorSnapshot:
@@ -323,6 +324,7 @@ class ActorSnapshot:
             completed_at=_optional_string(mapping, "completed_at"),
             last_heartbeat_at=_optional_string(mapping, "last_heartbeat_at"),
             labels=_optional_object_dict(mapping.get("labels")),
+            runtime_bootstrap=_optional_object_dict(mapping.get("runtime_bootstrap")),
         )
 
 

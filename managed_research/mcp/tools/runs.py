@@ -19,8 +19,8 @@ from managed_research.models.smr_actor_models import (
 )
 from managed_research.models.smr_agent_kinds import SMR_AGENT_KIND_VALUES
 from managed_research.models.smr_agent_models import SMR_AGENT_MODEL_VALUES
-from managed_research.models.smr_host_kinds import SMR_HOST_KIND_VALUES
 from managed_research.models.smr_horizons import SMR_INTENDED_HORIZON_HOURS_VALUES
+from managed_research.models.smr_host_kinds import SMR_HOST_KIND_VALUES
 from managed_research.models.smr_providers import PROVIDER_VALUES
 from managed_research.models.smr_work_modes import SMR_WORK_MODE_VALUES
 
@@ -221,6 +221,10 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "type": "object",
                         "description": "Optional sandbox override.",
                     },
+                    "environment": {
+                        "type": "object",
+                        "description": "Optional Environment v1 reference, e.g. {'schema_version': '2026-05-14-environment-v1', 'name': 'symbolic-craftax-py311'}.",
+                    },
                     "local_execution": {
                         "type": "object",
                         "description": "Explicit synth-dev local lane identity for slot-backed launches.",
@@ -237,6 +241,10 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                     "resource_bindings": {
                         "type": "object",
                         "description": "Optional Phase 3 run resource bindings for external repos and credential refs.",
+                    },
+                    "ai_cache": {
+                        "type": "object",
+                        "description": "Optional run-scoped local AI-cache request with mode and proxy base_url.",
                     },
                     "primary_objective_id": {
                         "type": "string",
@@ -330,6 +338,10 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                         "type": "object",
                         "description": "Optional sandbox override.",
                     },
+                    "environment": {
+                        "type": "object",
+                        "description": "Optional Environment v1 reference.",
+                    },
                     "local_execution": {
                         "type": "object",
                         "description": "Explicit synth-dev local lane identity for slot-backed launches.",
@@ -346,6 +358,10 @@ def build_run_tools(server: Any) -> list[ToolDefinition]:
                     "resource_bindings": {
                         "type": "object",
                         "description": "Optional Phase 3 run resource bindings for external repos and credential refs.",
+                    },
+                    "ai_cache": {
+                        "type": "object",
+                        "description": "Optional run-scoped local AI-cache request with mode and proxy base_url.",
                     },
                     "primary_objective_id": {
                         "type": "string",

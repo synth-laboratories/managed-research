@@ -479,6 +479,134 @@ class ManagedResearchMcpServer:
         with self._client_from_args(args) as client:
             return client.get_project_workspace(project_id)
 
+    def _tool_list_project_experiments(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        run_id = optional_string(args, "run_id")
+        limit = optional_int(args, "limit")
+        with self._client_from_args(args) as client:
+            return client.projects.list_experiments(
+                project_id,
+                run_id=run_id,
+                limit=limit,
+            )
+
+    def _tool_create_project_experiment(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        payload = {key: value for key, value in args.items() if key != "project_id"}
+        with self._client_from_args(args) as client:
+            return client.projects.create_experiment(project_id, payload)
+
+    def _tool_get_project_experiment(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        experiment_id = require_string(args, "experiment_id")
+        with self._client_from_args(args) as client:
+            return client.projects.get_experiment(project_id, experiment_id)
+
+    def _tool_patch_project_experiment(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        experiment_id = require_string(args, "experiment_id")
+        payload = args.get("payload")
+        if not isinstance(payload, dict):
+            raise ValueError("'payload' must be an object")
+        with self._client_from_args(args) as client:
+            return client.projects.patch_experiment(
+                project_id,
+                experiment_id,
+                payload,
+            )
+
+    def _tool_link_project_experiment_run(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        experiment_id = require_string(args, "experiment_id")
+        payload = {
+            key: value
+            for key, value in args.items()
+            if key not in {"project_id", "experiment_id"}
+        }
+        with self._client_from_args(args) as client:
+            return client.projects.link_experiment_run(
+                project_id,
+                experiment_id,
+                payload,
+            )
+
+    def _tool_list_project_experiment_runs(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        experiment_id = require_string(args, "experiment_id")
+        with self._client_from_args(args) as client:
+            return client.projects.list_experiment_runs(
+                project_id,
+                experiment_id,
+                limit=optional_int(args, "limit"),
+            )
+
+    def _tool_attach_project_experiment_container_run(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        experiment_id = require_string(args, "experiment_id")
+        payload = {
+            key: value
+            for key, value in args.items()
+            if key not in {"project_id", "experiment_id"}
+        }
+        with self._client_from_args(args) as client:
+            return client.projects.attach_experiment_container_run(
+                project_id,
+                experiment_id,
+                payload,
+            )
+
+    def _tool_list_project_experiment_container_runs(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        experiment_id = require_string(args, "experiment_id")
+        with self._client_from_args(args) as client:
+            return client.projects.list_experiment_container_runs(
+                project_id,
+                experiment_id,
+                limit=optional_int(args, "limit"),
+            )
+
+    def _tool_attach_project_experiment_result(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        experiment_id = require_string(args, "experiment_id")
+        payload = {
+            key: value
+            for key, value in args.items()
+            if key not in {"project_id", "experiment_id"}
+        }
+        with self._client_from_args(args) as client:
+            return client.projects.attach_experiment_result(
+                project_id,
+                experiment_id,
+                payload,
+            )
+
+    def _tool_list_project_experiment_results(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        with self._client_from_args(args) as client:
+            return client.projects.list_experiment_results(
+                project_id,
+                experiment_id=optional_string(args, "experiment_id"),
+                metric=optional_string(args, "metric"),
+                taskset_id=optional_string(args, "taskset_id"),
+                taskset_seed=optional_int(args, "taskset_seed"),
+                comparison_cohort_key=optional_string(args, "comparison_cohort_key"),
+                truth_status=optional_string(args, "truth_status"),
+                limit=optional_int(args, "limit"),
+            )
+
+    def _tool_rank_project_experiment_results(self, args: JSONDict) -> Any:
+        project_id = require_string(args, "project_id")
+        metric = require_string(args, "metric")
+        with self._client_from_args(args) as client:
+            return client.projects.rank_experiment_results(
+                project_id,
+                metric=metric,
+                taskset_id=optional_string(args, "taskset_id"),
+                taskset_seed=optional_int(args, "taskset_seed"),
+                comparison_cohort_key=optional_string(args, "comparison_cohort_key"),
+                limit=optional_int(args, "limit"),
+            )
+
     def _tool_list_project_changesets(self, args: JSONDict) -> Any:
         project_id = require_string(args, "project_id")
         status = optional_string(args, "status")
